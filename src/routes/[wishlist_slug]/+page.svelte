@@ -8,6 +8,10 @@
 	const description = $derived(wishlist.description.trim());
 </script>
 
+<svelte:head>
+	<title>{wishlist.name} by {wishlist.user.name}</title>
+</svelte:head>
+
 <div class="container">
 	<div class="header">
 		<h1>{wishlist.name}</h1>
