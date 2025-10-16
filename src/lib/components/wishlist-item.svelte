@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { WishlistItem } from '$lib/server/db/schema';
 
-	let { item }: { item: WishlistItem } = $props();
+	let { item }: { item: Omit<WishlistItem, 'id' | 'wishlistId'> } = $props();
 
 	const currFormats = $derived.by(() => {
 		const currency = item.priceCurrency || 'USD';
@@ -68,7 +68,7 @@
 			{/if}
 
 			{#if urlSummary}
-				<a class="item-link" href={item.url} target="_blank">🔗 {urlSummary}</a>
+				<p class="item-link">🔗 {urlSummary}</p>
 			{/if}
 		</div>
 	{/if}
@@ -76,6 +76,8 @@
 
 <style>
 	.item {
+		max-width: 600px;
+
 		display: flex;
 		flex-direction: column;
 
@@ -129,7 +131,7 @@
 	}
 
 	.item:hover .item-price {
-		text-shadow: 0 0 5px gold;
+		text-shadow: 0 0 5px hotpink;
 	}
 
 	.item .divider {
