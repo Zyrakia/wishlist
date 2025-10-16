@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `wishlist_slug_unique` ON `wishlist` (`slug`);
