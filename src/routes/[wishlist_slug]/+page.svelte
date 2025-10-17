@@ -52,6 +52,7 @@
 
 	.description {
 		white-space: pre-wrap;
+		overflow-wrap: break-word;
 		font-size: larger;
 
 		padding: 0.5rem 0.75rem;

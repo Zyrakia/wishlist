@@ -44,7 +44,12 @@
 	const renderBody = $derived(item.url || item.notes);
 </script>
 
-<svelte:element this={item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
+<svelte:element
+	this={item.url && interactive ? 'a' : 'div'}
+	class="item"
+	href={item.url}
+	target="_blank"
+>
 	<div class="item-header">
 		{#if item.imageUrl}
 			<div class="item-image-wrapper">
@@ -155,6 +160,7 @@
 
 	.item-notes {
 		white-space: pre-wrap;
+		overflow-wrap: break-word;
 		font-weight: 300;
 	}
 
