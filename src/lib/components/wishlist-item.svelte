@@ -4,7 +4,8 @@
 	let {
 		item,
 		interactive = true,
-	}: { item: Omit<WishlistItem, 'id' | 'wishlistId'>; interactive?: boolean } = $props();
+	}: { item: Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>; interactive?: boolean } =
+		$props();
 
 	const currFormats = $derived.by(() => {
 		const currency = item.priceCurrency || 'USD';
