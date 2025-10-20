@@ -31,6 +31,7 @@
 
 	let hasJs = $state(false);
 	$effect(() => void (hasJs = true));
+	1;
 
 	onMount(() => {
 		const { success, data } = ItemSchema.safeParse(initProperties);
@@ -38,6 +39,24 @@
 
 		remote.fields.set(data as any);
 		item = data;
+	});
+
+	let container: HTMLDivElement;
+	onMount(() => {
+		const target = document.scrollingElement || document.documentElement;
+
+		const update = () => {
+			const hasScroll = target.scrollHeight > target.clientHeight + 1;
+			container.classList.toggle('scroll-possible', hasScroll);
+		};
+
+		const ro = new ResizeObserver(update);
+		ro.observe(target);
+
+		window.addEventListener('resize', update);
+		update();
+
+		return () => ro.disconnect();
 	});
 
 	const onInput: FormEventHandler<HTMLFormElement> = (ev) => {
@@ -63,153 +82,145 @@
 	const issue = (field: RemoteFormField<RemoteFormFieldValue>) => field.issues()?.[0]?.message;
 </script>
 
-<div class="container">
+<div bind:this={container} class="container">
 	{#if hasJs && preview}
-		<div class="preview">
+		<aside class="preview-pane">
 			<div class="preview-snap">
 				<WishlistItem item={preview} interactive={false} />
 			</div>
-		</div>
+		</aside>
 
 		<div class="divider"></div>
 	{/if}
 
-	<form {...remote.preflight(ItemSchema)} oninput={onInput}>
-		<label class="input-group required">
-			Name
+	<section class="form-pane">
+		<form {...remote.preflight(ItemSchema)} oninput={onInput}>
+			<label class="input-group required">
+				Name
 
-			<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
+				<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
 
-			{#if issue(remote.fields.name)}
-				<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-					{issue(remote.fields.name)}
-				</p>
-			{/if}
-		</label>
+				{#if issue(remote.fields.name)}
+					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+						{issue(remote.fields.name)}
+					</p>
+				{/if}
+			</label>
 
-		<label class="input-group">
-			Notes
+			<label class="input-group">
+				Notes
 
-			<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
-			></textarea>
+				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
+				></textarea>
 
-			{#if issue(remote.fields.notes)}
-				<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-					{issue(remote.fields.notes)}
-				</p>
-			{/if}
-		</label>
+				{#if issue(remote.fields.notes)}
+					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+						{issue(remote.fields.notes)}
+					</p>
+				{/if}
+			</label>
 
-		<label class="input-group">
-			Price
+			<label class="input-group">
+				Price
 
-			<input
-				placeholder={placeholder.price?.toFixed(2)}
-				{...remote.fields.price.as('text')}
-				step="0.01"
-				min="0"
-			/>
+				<input
+					placeholder={placeholder.price?.toFixed(2)}
+					{...remote.fields.price.as('text')}
+					step="0.01"
+					min="0"
+				/>
 
-			{#if issue(remote.fields.price)}
-				<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-					{issue(remote.fields.price)}
-				</p>
-			{/if}
-		</label>
+				{#if issue(remote.fields.price)}
+					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+						{issue(remote.fields.price)}
+					</p>
+				{/if}
+			</label>
 
-		<label class="input-group">
-			Purchase Link
+			<label class="input-group">
+				Purchase Link
 
-			<input placeholder={placeholder.url} {...remote.fields.url.as('url')} />
+				<input placeholder={placeholder.url} {...remote.fields.url.as('url')} />
 
-			{#if issue(remote.fields.url)}
-				<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-					{issue(remote.fields.url)}
-				</p>
-			{/if}
-		</label>
+				{#if issue(remote.fields.url)}
+					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+						{issue(remote.fields.url)}
+					</p>
+				{/if}
+			</label>
 
-		<label class="input-group">
-			Image Link
+			<label class="input-group">
+				Image Link
 
-			<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('url')} />
+				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('url')} />
 
-			{#if issue(remote.fields.imageUrl)}
-				<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-					{issue(remote.fields.imageUrl)}
-				</p>
-			{/if}
-		</label>
+				{#if issue(remote.fields.imageUrl)}
+					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+						{issue(remote.fields.imageUrl)}
+					</p>
+				{/if}
+			</label>
 
-		<button type="submit" disabled={hasIssue}>Submit</button>
-	</form>
+			<button type="submit" disabled={hasJs && hasIssue}>Submit</button>
+		</form>
+	</section>
 </div>
 
 <style>
 	.container {
-		width: 100%;
 		height: 100%;
 
-		display: flex;
-		align-items: center;
-		justify-content: space-evenly;
-		gap: 2rem;
+		display: grid;
+		grid-template-columns: 1fr 1px 1.5fr;
 	}
 
-	.preview {
-		width: 100%;
+	.preview-pane {
 		padding: 2rem;
+
+		background-color: whitesmoke;
+
+		display: grid;
+		place-items: center;
 	}
 
-	.preview-snap {
-		width: 100%;
+	.container.scroll-possible .preview-pane {
+		display: initial;
+	}
 
-		display: flex;
-		justify-content: center;
+	.container.scroll-possible .preview-snap {
+		position: sticky;
+		top: 2rem;
 	}
 
 	.divider {
-		height: 100%;
-		width: 1px;
 		background: black;
+		box-shadow: -4px 0 5px rgba(0, 0, 0, 0.5);
 	}
 
-	@media (max-width: 1300px) {
+	.form-pane {
+		width: 100%;
+		padding: 1.5rem;
+
+		overflow: auto;
+	}
+
+	@media (max-width: 1000px) {
 		.container {
-			flex-direction: column;
-			gap: 1.5rem;
-			padding-left: 0;
-			padding-right: 0;
-		}
-
-		.preview {
-			padding-right: 0;
-			padding-bottom: 1rem;
-		}
-
-		.preview {
-			display: flex;
-			align-items: center;
-			justify-content: center;
+			grid-template-columns: 1fr;
+			grid-template-rows: auto 1px auto;
 		}
 
 		.divider {
-			width: 100%;
-			height: 1px;
+			box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
 		}
 	}
 
 	form {
-		width: 100%;
-
-		padding: 2rem 1rem;
-		padding-right: 2rem;
-
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
 
-		gap: 2rem;
+		gap: 1.5rem;
 	}
 
 	.input-group {
@@ -230,6 +241,11 @@
 		border-radius: 6px;
 	}
 
+	input:focus,
+	textarea:focus {
+		border-color: blue;
+	}
+
 	input[aria-invalid],
 	textarea[aria-invalid] {
 		border-color: red;
@@ -242,6 +258,17 @@
 	button {
 		padding: 0.5rem;
 		outline: none;
+	}
+
+	.required {
+		position: relative;
+	}
+
+	.required::before {
+		content: '*';
+		position: absolute;
+		right: calc(100% + 0.2em);
+		color: red;
 	}
 
 	.error {
