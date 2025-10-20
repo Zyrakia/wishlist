@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 
-	console.log(page.status);
-	console.warn(page.error);
+	onMount(() => console.error(page.error));
 </script>
 
 <div class="container">

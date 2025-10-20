@@ -37,12 +37,12 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 		locals: { user },
 	} = getRequestEvent();
 
-	if (!user) error(401);
+	// if (!user) error(401);
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
 	const wl = await db.query.WishlistTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
+		where: (t, { and, eq }) => and(/* eq(t.userId, user.id), */ eq(t.slug, wishlist_slug)),
 	});
 
 	if (!wl) error(400, 'Invalid wishlist slug provided');
@@ -61,12 +61,12 @@ export const deleteItem = form(async () => {
 		locals: { user },
 	} = getRequestEvent();
 
-	if (!user) error(401);
+	// if (!user) error(401);
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while deleting an item');
 
 	const wl = await db.query.WishlistTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
+		where: (t, { and, eq }) => and(/* eq(t.userId, user.id), */ eq(t.slug, wishlist_slug)),
 	});
 
 	if (!wl) error(400, 'Invalid wishlist slug provided');

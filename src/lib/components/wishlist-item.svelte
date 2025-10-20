@@ -4,8 +4,10 @@
 	let {
 		item,
 		interactive = true,
-	}: { item: Partial<Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>>; interactive?: boolean } =
-		$props();
+	}: {
+		item: Partial<Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>>;
+		interactive?: boolean;
+	} = $props();
 
 	const currFormats = $derived.by(() => {
 		const currency = item.priceCurrency || 'USD';
@@ -45,7 +47,12 @@
 	const renderBody = $derived(item.url || item.notes);
 </script>
 
-<svelte:element this={item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
+<svelte:element
+	this={item.url && interactive ? 'a' : 'div'}
+	class="item"
+	href={item.url}
+	target="_blank"
+>
 	<div class="item-header">
 		{#if item.imageUrl}
 			<div class="item-image-wrapper">
@@ -80,6 +87,7 @@
 
 <style>
 	.item {
+		width: 100%;
 		max-width: 600px;
 
 		display: flex;
