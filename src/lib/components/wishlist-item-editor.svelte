@@ -11,9 +11,12 @@
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
-	let { item: initProperties = {} }: { item?: Partial<ItemType> } = $props();
+	let {
+		item: initProperties = {},
+		mode = 'create',
+	}: { item?: Partial<ItemType>; mode?: 'edit' | 'create' } = $props();
 
-	const isCreate = $derived(Object.keys(initProperties).length === 0);
+	const isCreate = $derived(mode === 'create');
 	const remote = $derived(isCreate ? createItem : updateItem);
 
 	let item = $state<Partial<z.infer<typeof ItemSchema>>>({});
@@ -22,19 +25,18 @@
 		notes: '',
 		price: 19.99,
 		priceCurrency: 'USD',
-		imageUrl: null,
+		imageUrl: 'https://picsum.photos/1280/720',
 		url: 'https://example.com',
 	};
 
 	const hasIssue = $derived(remote.fields.issues() !== undefined);
-	const preview = $derived({ ...placeholder, ...item });
+	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
 
 	let hasJs = $state(false);
 	$effect(() => void (hasJs = true));
-	1;
 
 	onMount(() => {
-		const { success, data } = ItemSchema.safeParse(initProperties);
+		const { success, data } = ItemSchema.partial().safeParse(initProperties);
 		if (!success) return;
 
 		remote.fields.set(data as any);
@@ -97,7 +99,7 @@
 	<section class="form-pane">
 		<form {...remote.preflight(ItemSchema)} oninput={onInput}>
 			<label class="input-group required">
-				<span class="input-group-label"> Name</span>
+				<span class="input-group-label">Name</span>
 
 				<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
 
@@ -109,9 +111,12 @@
 			</label>
 
 			<label class="input-group">
-				<span class="input-group-label"> Notes</span>
+				<span class="input-group-label">Notes</span>
 
-				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
+				<textarea
+					rows="6"
+					placeholder={placeholder.notes}
+					{...remote.fields.notes.as('text')}
 				></textarea>
 
 				{#if issue(remote.fields.notes)}
@@ -121,25 +126,56 @@
 				{/if}
 			</label>
 
+			<div class="price-group">
+				<label class="input-group price-value-group">
+					<span class="input-group-label">Price</span>
+
+					<input
+						placeholder={placeholder.price?.toFixed(2)}
+						{...remote.fields.price.as('text')}
+						step="0.01"
+						min="0"
+					/>
+
+					{#if issue(remote.fields.price)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.price)}
+						</p>
+					{/if}
+				</label>
+
+				<label class="input-group currency-group">
+					<span class="input-group-label">Currency</span>
+
+					<input
+						placeholder={placeholder.priceCurrency}
+						{...remote.fields.priceCurrency.as('text')}
+						list="currency-list"
+						autocomplete="off"
+					/>
+
+					{#if issue(remote.fields.priceCurrency)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.priceCurrency)}
+						</p>
+					{/if}
+
+					<datalist id="currency-list">
+						<option value="USD">USD ($)</option>
+						<option value="EUR">EUR (€)</option>
+						<option value="GBP">GBP (£)</option>
+						<option value="JPY">JPY (¥)</option>
+						<option value="AUD">AUD ($)</option>
+						<option value="CAD">CAD ($)</option>
+						<option value="CNY">CNY (¥)</option>
+						<option value="INR">INR (₹)</option>
+						<option value="MXN">MXN ($)</option>
+					</datalist>
+				</label>
+			</div>
+
 			<label class="input-group">
-				<span class="input-group-label"> Price</span>
-
-				<input
-					placeholder={placeholder.price?.toFixed(2)}
-					{...remote.fields.price.as('text')}
-					step="0.01"
-					min="0"
-				/>
-
-				{#if issue(remote.fields.price)}
-					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{issue(remote.fields.price)}
-					</p>
-				{/if}
-			</label>
-
-			<label class="input-group">
-				<span class="input-group-label"> Purchase Link</span>
+				<span class="input-group-label">Purchase Link</span>
 
 				<input placeholder={placeholder.url} {...remote.fields.url.as('url')} />
 
@@ -151,7 +187,7 @@
 			</label>
 
 			<label class="input-group">
-				<span class="input-group-label"> Image Link</span>
+				<span class="input-group-label">Image Link</span>
 
 				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('url')} />
 
@@ -254,6 +290,29 @@
 		font-weight: 700;
 	}
 
+	.price-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+	}
+
+	.price-value-group {
+		flex: 2 1 0;
+		min-width: 250px;
+	}
+
+	.currency-group {
+		flex: 1 0 250px;
+		min-width: 250px;
+		max-width: 300px;
+	}
+
+	@media (max-width: 600px) {
+		.currency-group {
+			max-width: 100%;
+		}
+	}
+
 	input,
 	textarea {
 		outline: none;
@@ -280,6 +339,8 @@
 	button {
 		padding: 0.5rem;
 		outline: none;
+		border: 1px solid black;
+		background-color: #4bb543;
 	}
 
 	.required {
