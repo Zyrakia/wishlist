@@ -2,4 +2,4 @@
 	import WishlistItemEditor from '$lib/components/wishlist-item-editor.svelte';
 </script>
 
-<WishlistItemEditor />
+<WishlistItemEditor mode="create" />

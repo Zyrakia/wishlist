@@ -4,4 +4,4 @@
 	const { data } = $props();
 </script>
 
-<WishlistItemEditor item={data.item} />
+<WishlistItemEditor item={data.item} mode="edit" />
