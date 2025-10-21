@@ -51,12 +51,7 @@
 </script>
 
 <div class="item-wrapper">
-	<svelte:element
-		this={item.url && interactive ? 'a' : 'div'}
-		class="item"
-		href={item.url}
-		target="_blank"
-	>
+	<svelte:element this={item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
 		<div class="item-header">
 			{#if item.imageUrl}
 				<div class="item-image-wrapper">
@@ -85,7 +80,7 @@
 				{/if}
 
 				{#if urlSummary}
-					<p class="item-link">🔗 {urlSummary}</p>
+					<p class="item-link" title={item.url}>🔗 {urlSummary}</p>
 				{/if}
 			</div>
 		{/if}
@@ -200,9 +195,5 @@
 	.item-link {
 		margin-top: auto;
 		font-weight: bold;
-	}
-
-	.item:visited .item-link {
-		align-self: end;
 	}
 </style>
