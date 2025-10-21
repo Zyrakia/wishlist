@@ -1,12 +1,15 @@
 <script lang="ts">
 	import type { WishlistItem } from '$lib/server/db/schema';
+	import type { Snippet } from 'svelte';
 
 	let {
 		item,
 		interactive = true,
+		footer: toolbar,
 	}: {
 		item: Partial<Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>>;
 		interactive?: boolean;
+		footer?: Snippet<[item: typeof item]>;
 	} = $props();
 
 	const currFormats = $derived.by(() => {
@@ -47,52 +50,71 @@
 	const renderBody = $derived(item.url || item.notes);
 </script>
 
-<svelte:element
-	this={item.url && interactive ? 'a' : 'div'}
-	class="item"
-	href={item.url}
-	target="_blank"
->
-	<div class="item-header">
-		{#if item.imageUrl}
-			<div class="item-image-wrapper">
-				<img class="item-image" src={item.imageUrl} alt="{item.name} Primary Image" />
-			</div>
-		{/if}
-
-		<p class="item-name">{item.name}</p>
-
-		{#if currFormats && item.price}
-			<p title="Priced around {currFormats.long.format(item.price)}" class="item-price">
-				<span class="item-price-prefix">~</span>
-				{currFormats.short.format(item.price)}
-			</p>
-		{/if}
-	</div>
-
-	{#if renderBody}
-		<hr class="divider" />
-
-		<div class="item-body">
-			{#if item.notes}
-				<p class="item-notes">{item.notes.trim()}</p>
+<div class="item-wrapper">
+	<svelte:element
+		this={item.url && interactive ? 'a' : 'div'}
+		class="item"
+		href={item.url}
+		target="_blank"
+	>
+		<div class="item-header">
+			{#if item.imageUrl}
+				<div class="item-image-wrapper">
+					<img class="item-image" src={item.imageUrl} alt="{item.name} Primary Image" />
+				</div>
 			{/if}
 
-			{#if urlSummary}
-				<p class="item-link">🔗 {urlSummary}</p>
+			<p class="item-name">
+				{item.name}
+			</p>
+
+			{#if currFormats && item.price}
+				<p title="Priced around {currFormats.long.format(item.price)}" class="item-price">
+					<span class="item-price-prefix">~</span>
+					{currFormats.short.format(item.price)}
+				</p>
 			{/if}
 		</div>
+
+		{#if renderBody}
+			<hr class="divider" />
+
+			<div class="item-body">
+				{#if item.notes}
+					<p class="item-notes">{item.notes.trim()}</p>
+				{/if}
+
+				{#if urlSummary}
+					<p class="item-link">🔗 {urlSummary}</p>
+				{/if}
+			</div>
+		{/if}
+	</svelte:element>
+
+	{#if toolbar}
+		<div class="toolbar">
+			{@render toolbar(item)}
+		</div>
 	{/if}
-</svelte:element>
+</div>
 
 <style>
-	.item {
+	.item-wrapper {
 		width: 100%;
 		max-width: 600px;
 
+		position: relative;
+
 		display: flex;
 		flex-direction: column;
+	}
 
+	.item {
+		width: 100%;
+		height: 100%;
+
+		display: flex;
+		flex-direction: column;
 		padding: 1rem;
 
 		border: 2px solid slategray;
@@ -134,6 +156,9 @@
 	.item-name {
 		font-size: large;
 		font-weight: bold;
+
+		white-space: normal;
+		overflow-wrap: break-word;
 	}
 
 	.item-price-prefix {
