@@ -8,6 +8,7 @@
 	import type { RemoteFormField, RemoteFormFieldValue } from '@sveltejs/kit';
 	import type { FormEventHandler } from 'svelte/elements';
 	import { onMount } from 'svelte';
+	import { safePrune } from '$lib/util/safe-prune';
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
@@ -15,9 +16,6 @@
 		item: initProperties = {},
 		mode = 'create',
 	}: { item?: Partial<ItemType>; mode?: 'edit' | 'create' } = $props();
-
-	const isCreate = $derived(mode === 'create');
-	const remote = $derived(isCreate ? createItem : updateItem);
 
 	let item = $state<Partial<z.infer<typeof ItemSchema>>>({});
 	const placeholder: ItemType = {
@@ -29,19 +27,14 @@
 		url: 'https://example.com',
 	};
 
+	const isCreate = mode === 'create';
+	const remote = isCreate ? createItem : updateItem;
+
 	const hasIssue = $derived(remote.fields.issues() !== undefined);
 	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
 
 	let hasJs = $state(false);
 	$effect(() => void (hasJs = true));
-
-	onMount(() => {
-		const { success, data } = ItemSchema.partial().safeParse(initProperties);
-		if (!success) return;
-
-		remote.fields.set(data as any);
-		item = data;
-	});
 
 	let container: HTMLDivElement;
 	onMount(() => {
@@ -82,9 +75,19 @@
 	};
 
 	const issue = (field: RemoteFormField<RemoteFormFieldValue>) => field.issues()?.[0]?.message;
+
+	const seedItem = safePrune(ItemSchema, initProperties);
+	if (Object.keys(seedItem).length !== 0) {
+		remote.fields.set(seedItem as any);
+		item = seedItem;
+	}
 </script>
 
-<div bind:this={container} class="container">
+<div
+	bind:this={container}
+	class="container"
+	style="grid-template-columns: {hasJs && preview ? '1fr 1px 1.5fr' : '100% !important'}"
+>
 	{#if hasJs && preview}
 		<aside class="preview-pane">
 			<div class="preview-snap">
@@ -177,7 +180,7 @@
 			<label class="input-group">
 				<span class="input-group-label">Purchase Link</span>
 
-				<input placeholder={placeholder.url} {...remote.fields.url.as('url')} />
+				<input placeholder={placeholder.url} {...remote.fields.url.as('text')} />
 
 				{#if issue(remote.fields.url)}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
@@ -189,7 +192,7 @@
 			<label class="input-group">
 				<span class="input-group-label">Image Link</span>
 
-				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('url')} />
+				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
 
 				{#if issue(remote.fields.imageUrl)}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
@@ -198,7 +201,9 @@
 				{/if}
 			</label>
 
-			<button type="submit" disabled={hasJs && hasIssue}>Submit</button>
+			<button disabled={hasIssue && hasJs} {...remote.buttonProps}
+				>{mode === 'edit' ? 'Save' : 'Submit'}</button
+			>
 		</form>
 	</section>
 </div>
@@ -208,7 +213,6 @@
 		height: 100%;
 
 		display: grid;
-		grid-template-columns: 1fr 1px 1.5fr;
 	}
 
 	.preview-pane {
@@ -225,6 +229,9 @@
 	}
 
 	.preview-snap {
+		width: 100%;
+		max-width: 600px;
+
 		position: relative;
 
 		padding: 1rem;
@@ -338,9 +345,22 @@
 
 	button {
 		padding: 0.5rem;
+
 		outline: none;
 		border: 1px solid black;
-		background-color: #4bb543;
+		border-radius: 6px;
+
+		background-color: #bbf451;
+
+		transition: filter 100ms ease;
+	}
+
+	button:not(:disabled):hover {
+		filter: brightness(0.95);
+	}
+
+	button:disabled {
+		filter: brightness(0.75);
 	}
 
 	.required {
