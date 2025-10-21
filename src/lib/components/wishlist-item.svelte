@@ -98,6 +98,8 @@
 		border: 2px solid slategray;
 		border-radius: 6px;
 
+		background-color: #fafafa;
+
 		box-shadow: 0 0 transparent;
 		transition: box-shadow 200ms ease;
 	}

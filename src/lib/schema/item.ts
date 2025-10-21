@@ -5,6 +5,16 @@ const clearEmptyString = (v: any) => {
 	return v;
 };
 
+const autocompleteProtocol = (v: any) => {
+	if (typeof v !== 'string') return v;
+	if (!v) return v;
+
+	if (v.match(/^[A-Za-z]+:\/\//)) return v;
+
+	v.replace('://', '');
+	return `https://${v}`;
+};
+
 export const ItemSchema = z.object({
 	name: z
 		.string()
@@ -13,8 +23,8 @@ export const ItemSchema = z.object({
 		.max(30, { error: 'Maximum 30 characters' })
 		.nonempty('A name is required'),
 	notes: z.string().trim().max(250, { error: 'Maximum 250 characters' }).default(''),
-	imageUrl: z.preprocess(clearEmptyString, z.url().nullish()),
-	url: z.preprocess(clearEmptyString, z.url().nullish()),
+	imageUrl: z.preprocess(clearEmptyString, z.string().nullish().transform(autocompleteProtocol)),
+	url: z.preprocess(clearEmptyString, z.string().nullish().transform(autocompleteProtocol)),
 	priceCurrency: z.preprocess(
 		clearEmptyString,
 		z

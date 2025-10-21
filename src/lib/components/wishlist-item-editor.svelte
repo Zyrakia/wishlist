@@ -19,7 +19,7 @@
 	let item = $state<Partial<z.infer<typeof ItemSchema>>>({});
 	const placeholder: ItemType = {
 		name: 'New Item',
-		notes: 'Explain specifics or motivations about this item.',
+		notes: '',
 		price: 19.99,
 		priceCurrency: 'USD',
 		imageUrl: null,
@@ -86,6 +86,7 @@
 	{#if hasJs && preview}
 		<aside class="preview-pane">
 			<div class="preview-snap">
+				<h3 class="preview-label">Preview</h3>
 				<WishlistItem item={preview} interactive={false} />
 			</div>
 		</aside>
@@ -96,7 +97,7 @@
 	<section class="form-pane">
 		<form {...remote.preflight(ItemSchema)} oninput={onInput}>
 			<label class="input-group required">
-				Name
+				<span class="input-group-label"> Name</span>
 
 				<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
 
@@ -108,7 +109,7 @@
 			</label>
 
 			<label class="input-group">
-				Notes
+				<span class="input-group-label"> Notes</span>
 
 				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
 				></textarea>
@@ -121,7 +122,7 @@
 			</label>
 
 			<label class="input-group">
-				Price
+				<span class="input-group-label"> Price</span>
 
 				<input
 					placeholder={placeholder.price?.toFixed(2)}
@@ -138,7 +139,7 @@
 			</label>
 
 			<label class="input-group">
-				Purchase Link
+				<span class="input-group-label"> Purchase Link</span>
 
 				<input placeholder={placeholder.url} {...remote.fields.url.as('url')} />
 
@@ -150,7 +151,7 @@
 			</label>
 
 			<label class="input-group">
-				Image Link
+				<span class="input-group-label"> Image Link</span>
 
 				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('url')} />
 
@@ -177,7 +178,7 @@
 	.preview-pane {
 		padding: 2rem;
 
-		background-color: whitesmoke;
+		background-color: rgb(233, 233, 233);
 
 		display: grid;
 		place-items: center;
@@ -185,6 +186,23 @@
 
 	.container.scroll-possible .preview-pane {
 		display: initial;
+	}
+
+	.preview-snap {
+		position: relative;
+
+		padding: 1rem;
+		border: 1px solid rgba(255, 0, 0, 0.3);
+		border-radius: 12px;
+
+		background-color: white;
+		box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.3);
+	}
+
+	.preview-label {
+		padding-bottom: 1rem;
+		margin-bottom: 1rem;
+		border-bottom: 1px dashed rgba(255, 0, 0, 0.3);
 	}
 
 	.container.scroll-possible .preview-snap {
@@ -230,6 +248,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
+	}
+
+	.input-group-label {
+		font-weight: 700;
 	}
 
 	input,
