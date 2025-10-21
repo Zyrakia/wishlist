@@ -6,11 +6,14 @@
 	let { data }: { data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
+	const items = $derived(
+		wishlist.items.sort((a, b) => b.createdAt.getSeconds() - a.createdAt.getSeconds()),
+	);
 </script>
 
 <div class="items-wrapper">
-	{#if wishlist.items.length !== 0}
-		{#each wishlist.items as item}
+	{#if items.length !== 0}
+		{#each items as item}
 			<WishlistItem {item}>
 				{#snippet footer()}
 					<WishlistItemToolbar itemId={item.id} wishlistSlug={wishlist.slug} />
