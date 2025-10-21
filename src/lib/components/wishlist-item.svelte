@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import type { WishlistItem } from '$lib/server/db/schema';
 	import type { Snippet } from 'svelte';
 
@@ -32,7 +33,7 @@
 
 			return { short, long };
 		} catch (err) {
-			console.warn(err);
+			if (browser) console.warn(err, { item });
 		}
 	});
 
