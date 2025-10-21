@@ -267,8 +267,8 @@
 
 	@media (max-width: 1000px) {
 		.container {
-			grid-template-columns: 1fr;
-			grid-template-rows: auto 1px auto;
+			grid-template-columns: 100% !important;
+			grid-template-rows: auto 1px auto !important;
 		}
 
 		.divider {
