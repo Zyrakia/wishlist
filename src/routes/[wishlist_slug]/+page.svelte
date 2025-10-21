@@ -32,7 +32,7 @@
 		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 		grid-auto-rows: auto;
 		align-content: start;
-		gap: 1rem;
+		gap: 1.5rem 1rem;
 	}
 
 	.no-items-message {
