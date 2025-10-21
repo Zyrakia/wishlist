@@ -49,10 +49,12 @@
 	});
 
 	const renderBody = $derived(item.url || item.notes);
+
+	const hasJs
 </script>
 
 <div class="item-wrapper">
-	<svelte:element this={item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
+	<svelte:element this={!browser && item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
 		<div class="item-header">
 			{#if item.imageUrl}
 				<div class="item-image-wrapper">

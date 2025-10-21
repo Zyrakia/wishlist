@@ -4,7 +4,7 @@ import { db } from '../server/db';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { ItemSchema } from '$lib/schema/item';
+import { ItemSchema } from '$lib/schemas/item';
 
 export const createItem = form(ItemSchema, async (data) => {
 	const {

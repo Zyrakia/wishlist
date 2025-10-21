@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createItem, updateItem } from '$lib/remotes/item.remote';
-	import { ItemSchema } from '$lib/schema/item';
+	import { ItemSchema } from '$lib/schemas/item';
 	import WishlistItem from './wishlist-item.svelte';
 	import type { WishlistItem as _WishlistItemType } from '$lib/server/db/schema';
 	import type z from 'zod';
