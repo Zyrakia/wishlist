@@ -4,7 +4,6 @@
 
 <div class="container">
 	<a class="button edit" href="/{wishlistSlug}/item/edit/{itemId}">✎ &ThickSpace; Edit</a>
-
 	<a class="button delete" href="/{wishlistSlug}/item/delete/{itemId}">🗑️ &ThickSpace; Delete</a>
 </div>
 
@@ -35,12 +34,12 @@
 	.edit {
 		background-color: #cefafe;
 		border-top-left-radius: 0;
-        border-bottom-right-radius: 0;
+		border-bottom-right-radius: 0;
 	}
 
 	.delete {
 		border-top-right-radius: 0;
-        border-bottom-left-radius: 0;
+		border-bottom-left-radius: 0;
 		background-color: #ffc9c9;
 	}
 </style>

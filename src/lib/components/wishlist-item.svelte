@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import type { WishlistItem } from '$lib/server/db/schema';
 	import type { Snippet } from 'svelte';
 
@@ -12,6 +13,8 @@
 		interactive?: boolean;
 		footer?: Snippet<[item: typeof item]>;
 	} = $props();
+
+	const canClick = $derived(interactive && item.url);
 
 	const currFormats = $derived.by(() => {
 		const currency = item.priceCurrency || 'USD';
@@ -50,11 +53,23 @@
 
 	const renderBody = $derived(item.url || item.notes);
 
-	const hasJs
+	const hasJs = useHasJs();
 </script>
 
 <div class="item-wrapper">
-	<svelte:element this={!browser && item.url && interactive ? 'a' : 'div'} class="item" href={item.url} target="_blank">
+	<svelte:element
+		this={!hasJs() && item.url && canClick ? 'a' : 'button'}
+		onclick={() => {
+			if (!canClick) return;
+			window.open(item.url!, '_blank', 'noopener,noreferrer');
+		}}
+		disabled={!canClick}
+		role="link"
+		tabindex="0"
+		class="item {canClick ? 'interactive' : ''}"
+		href={item.url}
+		target="_blank"
+	>
 		<div class="item-header">
 			{#if item.imageUrl}
 				<div class="item-image-wrapper">
@@ -115,7 +130,7 @@
 		flex-direction: column;
 		padding: 1rem;
 
-		border: 2px solid slategray;
+		border: 2px solid #ccc;
 		border-radius: 6px;
 
 		background-color: #fafafa;
@@ -124,8 +139,12 @@
 		transition: box-shadow 200ms ease;
 	}
 
-	.item:hover {
-		box-shadow: 1px 3px 3px gray;
+	.item.interactive {
+		cursor: pointer;
+	}
+
+	.item.interactive:hover {
+		box-shadow: -3px 2px 5px rgba(0, 0, 0, 0.5);
 	}
 
 	.item-header {

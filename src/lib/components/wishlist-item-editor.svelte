@@ -9,6 +9,7 @@
 	import type { FormEventHandler } from 'svelte/elements';
 	import { onMount } from 'svelte';
 	import { safePrune } from '$lib/util/safe-prune';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
@@ -33,8 +34,7 @@
 	const hasIssue = $derived(remote.fields.issues() !== undefined);
 	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
 
-	let hasJs = $state(false);
-	$effect(() => void (hasJs = true));
+	const hasJs = useHasJs();
 
 	let container: HTMLDivElement;
 	onMount(() => {
@@ -86,9 +86,9 @@
 <div
 	bind:this={container}
 	class="container"
-	style="grid-template-columns: {hasJs && preview ? '1fr 1px 1.5fr' : '100% !important'}"
+	style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}"
 >
-	{#if hasJs && preview}
+	{#if hasJs() && preview}
 		<aside class="preview-pane">
 			<div class="preview-snap">
 				<h3 class="preview-label">Preview</h3>
@@ -116,10 +116,7 @@
 			<label class="input-group">
 				<span class="input-group-label">Notes</span>
 
-				<textarea
-					rows="6"
-					placeholder={placeholder.notes}
-					{...remote.fields.notes.as('text')}
+				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
 				></textarea>
 
 				{#if issue(remote.fields.notes)}
@@ -201,7 +198,7 @@
 				{/if}
 			</label>
 
-			<button disabled={hasIssue && hasJs} {...remote.buttonProps}
+			<button disabled={hasIssue && hasJs()} {...remote.buttonProps}
 				>{mode === 'edit' ? 'Save' : 'Submit'}</button
 			>
 		</form>
