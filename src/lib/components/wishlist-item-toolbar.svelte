@@ -2,12 +2,7 @@
 	import { deleteItem } from '$lib/remotes/item.remote';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { slide } from 'svelte/transition';
-	import {
-		Settings as SettingsIcon,
-		Trash2 as TrashIcon,
-		Check as CheckIcon,
-		X as XIcon,
-	} from '@lucide/svelte';
+	import { Settings as EditIcon, Trash2 as TrashIcon } from '@lucide/svelte';
 
 	let { wishlistSlug, itemId }: { wishlistSlug: string; itemId: string } = $props();
 
@@ -16,8 +11,6 @@
 
 	let confirmResolver = $state<((res: boolean) => void) | undefined>();
 	const confirming = $derived(confirmResolver !== undefined);
-
-	let yesBtn = $state<HTMLButtonElement | null>(null);
 
 	const confirmYes = () => confirmResolver && confirmResolver(true);
 	const confirmNo = () => confirmResolver && confirmResolver(false);
@@ -40,38 +33,12 @@
 	const onConfirmKeydown = (ev: KeyboardEvent) => {
 		if (ev.key === 'Escape') confirmNo();
 	};
-
-	$effect(() => {
-		if (confirming && yesBtn) yesBtn.focus();
-	});
 </script>
 
 <div class="container">
-	<a title="Edit" class="button" href="/{wishlistSlug}/item/{itemId}/edit"><SettingsIcon /></a>
-
-	<form class="delete-form" {...deleteForm}>
-		<input {...deleteForm.fields.wishlistSlug.as('hidden', wishlistSlug)} />
-		<input {...deleteForm.fields.itemId.as('hidden', itemId)} />
-		<input {...deleteForm.fields.confirm.as('hidden', `${hasJs()}`)} />
-
-		<button
-			title="Delete"
-			class="button"
-			disabled={confirming}
-			{...deleteForm.buttonProps.enhance(async ({ submit }) => {
-				const res = await startConfirm();
-				if (res === true) {
-					deleteForm.fields.confirm.set(true);
-					console.log('Submitting');
-					await submit();
-				}
-			})}><TrashIcon /></button
-		>
-	</form>
-
 	{#if confirmResolver}
 		<div
-			class="confirm"
+			class="confirm-container"
 			role="alertdialog"
 			aria-modal="true"
 			tabindex="-1"
@@ -81,73 +48,65 @@
 		>
 			<p>Are you sure?</p>
 
-			<button bind:this={yesBtn} type="button" title="Yes" onclick={confirmYes}
-				><CheckIcon color="green" /></button
-			>
+			<button type="button" title="Yes" onclick={confirmYes} class="button">Yes</button>
+			<button type="button" title="No" onclick={confirmNo} class="button">No</button>
+		</div>
+	{:else}
+		<div class="actions-container" in:slide={{ duration: 150 }} out:slide={{ duration: 150 }}>
+			<a title="Edit" class="button" href="/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a>
 
-			<button type="button" title="No" onclick={confirmNo}><XIcon /></button>
+			<form class="delete-form" {...deleteForm}>
+				<input {...deleteForm.fields.wishlistSlug.as('hidden', wishlistSlug)} />
+				<input {...deleteForm.fields.itemId.as('hidden', itemId)} />
+				<input {...deleteForm.fields.confirm.as('hidden', `${hasJs()}`)} />
+
+				<button
+					title="Delete"
+					class="button"
+					disabled={confirming}
+					{...deleteForm.buttonProps.enhance(async ({ submit }) => {
+						const res = await startConfirm();
+						if (res === true) {
+							deleteForm.fields.confirm.set(true);
+							await submit();
+						}
+					})}><TrashIcon /></button
+				>
+			</form>
 		</div>
 	{/if}
 </div>
 
 <style>
 	.container {
-		position: relative;
+		max-height: 48px;
+		min-height: 48px;
 		padding: 0.5rem;
-
-		display: flex;
-		gap: 1rem;
-
 		transition: scale 100ms ease;
 	}
 
-	button,
+	.actions-container {
+		display: flex;
+		flex-direction: row-reverse;
+		gap: 0.5rem;
+	}
+
 	.button {
-		padding: 0;
 		background: none;
-		outline: none;
 		border: none;
-		cursor: pointer;
-	}
-
-	button:hover,
-	.button:hover {
-		transform: scale(1.05);
-	}
-
-	button:active,
-	.button:active {
-		transform: scale(1);
-	}
-
-	button:focus,
-	.button:focus {
-		border: 1px solid black;
-		border-radius: 5px;
 	}
 
 	.delete-form {
 		color: red;
-		margin-left: auto;
 	}
 
-	.confirm {
-		position: absolute;
-		left: 0;
-		right: 0;
-		height: 100%;
-
-		background-color: white;
-		border-radius: 8px;
-
-		padding: 0.5rem;
-
+	.confirm-container {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 	}
 
-	.confirm p {
+	.confirm-container p {
 		margin-right: auto;
 	}
 </style>
