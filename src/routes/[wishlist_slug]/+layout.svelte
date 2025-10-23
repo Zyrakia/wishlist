@@ -1,11 +1,20 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { type Snippet } from 'svelte';
 	import { type PageData } from './$types';
+	import { SvelteMap } from 'svelte/reactivity';
+	import { badgeContext } from '$lib/context/badge';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
+	let badges = $state(new SvelteMap<string, string>());
+
+	const addBadge = (id: string, badge: string) => badges.set(id, badge);
+	const removeBadge = (id: string) => badges?.delete(id);
+
 	const wishlist = $derived(data.wishlist);
 	const description = $derived(wishlist.description.trim());
+
+	badgeContext.set({ addBadge, removeBadge });
 </script>
 
 <svelte:head>
@@ -20,6 +29,14 @@
 		{#if description}
 			<br />
 			<p class="description">{description}</p>
+		{/if}
+
+		{#if badges.size}
+			<div class="badges">
+				{#each badges as [, badge]}
+					<p class="badge">{badge}</p>
+				{/each}
+			</div>
 		{/if}
 	</div>
 
@@ -42,6 +59,20 @@
 		border-bottom: 1px solid black;
 
 		box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+	}
+
+	.badges {
+		margin-top: 1rem;
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.badge {
+		padding: 0.3rem 0.7rem;
+		background-color: rgba(128,239,128, 0.5);
+
+		border: 1px solid black;
+		border-radius: 12px;
 	}
 
 	.description {

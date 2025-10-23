@@ -51,7 +51,7 @@
 		}
 	});
 
-	const renderBody = $derived(item.url || item.notes);
+	const renderBody = $derived(item.price || item.url || item.notes);
 
 	const hasJs = useHasJs();
 </script>
