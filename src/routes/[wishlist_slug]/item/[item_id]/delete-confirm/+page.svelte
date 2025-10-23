@@ -58,26 +58,6 @@
 		gap: 1rem;
 	}
 
-	.button {
-		outline: none;
-		border: none;
-		padding: 0.5rem 0.7rem;
-		border-radius: 5px;
-		cursor: pointer;
-
-		background-color: whitesmoke;
-		border: 1px solid black;
-	}
-
-	.button:focus {
-		border: 1px solid black;
-	}
-
-	.button:hover,
-	.button:active {
-		filter: brightness(0.9);
-	}
-
 	.confirm {
 		background-color: #f09393;
 	}

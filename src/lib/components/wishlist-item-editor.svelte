@@ -81,6 +81,8 @@
 		remote.fields.set(seedItem as any);
 		item = seedItem;
 	}
+
+	onMount(() => remote.validate())
 </script>
 
 <div
@@ -116,10 +118,7 @@
 			<label class="input-group">
 				<span class="input-group-label">Notes</span>
 
-				<textarea
-					rows="6"
-					placeholder={placeholder.notes}
-					{...remote.fields.notes.as('text')}
+				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
 					>{remote.fields.notes.value() || ''}</textarea
 				>
 
@@ -346,22 +345,12 @@
 
 	button {
 		padding: 0.5rem;
-
-		outline: none;
-		border: 1px solid black;
-		border-radius: 6px;
-
 		background-color: #bbf451;
-
-		transition: filter 100ms ease;
-	}
-
-	button:not(:disabled):hover {
-		filter: brightness(0.95);
 	}
 
 	button:disabled {
 		filter: brightness(0.75);
+		cursor: initial;
 	}
 
 	.required {

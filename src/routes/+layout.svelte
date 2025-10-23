@@ -67,4 +67,61 @@
 			text-decoration: none;
 		}
 	}
+
+	:global {
+		button,
+		.button {
+			position: relative;
+
+			padding: 0.2rem 0.7rem;
+
+			border: 1px solid black;
+			border-radius: 5px;
+
+			outline: none;
+			background: whitesmoke;
+			cursor: pointer;
+
+			transition: filter 150ms ease;
+		}
+
+		button:active,
+		.button:active,
+		button:hover,
+		.button:hover {
+			filter: brightness(0.93);
+		}
+
+		button:focus {
+			border-width: 2px;
+		}
+
+		.button::before {
+			content: '';
+
+			position: absolute;
+			left: -2px;
+			top: -2px;
+			width: calc(100% + 4px);
+			height: calc(100% + 4px);
+
+			border-radius: 5px;
+		}
+
+		button:hover::before,
+		.button:hover::before {
+			border: 2px solid rgba(0, 0, 0, 0.2);
+		}
+
+		button:focus::before,
+		.button:focus::before {
+			border: 2px solid rgba(0, 0, 0, 1);
+		}
+
+		button:disabled,
+		.button:disabled {
+			filter: brightness(0.7);
+			cursor: initial;
+		}
+	}
 </style>

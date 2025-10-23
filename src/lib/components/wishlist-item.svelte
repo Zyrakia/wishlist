@@ -93,10 +93,7 @@
 
 			<div class="item-purchase-details">
 				{#if currFormats && item.price}
-					<p
-						title="Priced around {currFormats.long.format(item.price)}"
-						class="item-price"
-					>
+					<p title="Priced around {currFormats.long.format(item.price)}" class="item-price">
 						<span class="item-price-prefix">~</span>
 						{currFormats.short.format(item.price)}
 					</p>
@@ -146,6 +143,8 @@
 		transition: box-shadow 200ms ease;
 
 		text-align: left;
+
+		filter: brightness(1);
 	}
 
 	.item.interactive {
@@ -220,6 +219,8 @@
 		text-shadow: 0 0 0 transparent;
 		transition: text-shadow 300ms ease;
 		flex: 0 0 auto;
+
+		font-weight: bold;
 	}
 
 	.item-price-prefix {
