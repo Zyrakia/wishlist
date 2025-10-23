@@ -7,11 +7,11 @@
 	let {
 		item,
 		interactive = true,
-		footer: toolbar,
+		footer,
 	}: {
 		item: Partial<Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>>;
 		interactive?: boolean;
-		footer?: Snippet<[item: typeof item]>;
+		footer?: Snippet<[]>;
 	} = $props();
 
 	const canClick = $derived(interactive && item.url);
@@ -58,7 +58,7 @@
 
 <div class="item-wrapper">
 	<svelte:element
-		this={!hasJs() && item.url && canClick ? 'a' : 'button'}
+		this={!hasJs() && canClick ? 'a' : 'button'}
 		onclick={() => {
 			if (!canClick) return;
 			window.open(item.url!, '_blank', 'noopener,noreferrer');
@@ -80,34 +80,40 @@
 			<p class="item-name">
 				{item.name}
 			</p>
-
-			{#if currFormats && item.price}
-				<p title="Priced around {currFormats.long.format(item.price)}" class="item-price">
-					<span class="item-price-prefix">~</span>
-					{currFormats.short.format(item.price)}
-				</p>
-			{/if}
 		</div>
 
 		{#if renderBody}
-			<hr class="divider" />
-
 			<div class="item-body">
+				<hr class="divider" />
+
 				{#if item.notes}
 					<p class="item-notes">{item.notes.trim()}</p>
 				{/if}
+			</div>
+
+			<div class="item-purchase-details">
+				{#if currFormats && item.price}
+					<p
+						title="Priced around {currFormats.long.format(item.price)}"
+						class="item-price"
+					>
+						<span class="item-price-prefix">~</span>
+						{currFormats.short.format(item.price)}
+					</p>
+				{/if}
 
 				{#if urlSummary}
-					<p class="item-link" title={item.url}>🔗 {urlSummary}</p>
+					<span class="item-link-prefix">
+						{currFormats && item.price ? 'at' : '🔗'}
+					</span>
+					<span class="item-link-name" title={item.url}>{urlSummary}</span>
 				{/if}
 			</div>
 		{/if}
 	</svelte:element>
 
-	{#if toolbar}
-		<div class="toolbar">
-			{@render toolbar(item)}
-		</div>
+	{#if footer}
+		{@render footer()}
 	{/if}
 </div>
 
@@ -128,15 +134,18 @@
 
 		display: flex;
 		flex-direction: column;
+		justify-content: center;
 		padding: 1rem;
 
 		border: 2px solid #ccc;
 		border-radius: 6px;
 
-		background-color: #fafafa;
+		background-color: white;
 
 		box-shadow: 0 0 transparent;
 		transition: box-shadow 200ms ease;
+
+		text-align: left;
 	}
 
 	.item.interactive {
@@ -144,15 +153,19 @@
 	}
 
 	.item.interactive:hover {
-		box-shadow: -3px 2px 5px rgba(0, 0, 0, 0.5);
+		box-shadow: -3px 2px 5px rgba(0, 0, 0, 0.4);
 	}
 
 	.item-header {
 		display: flex;
 		flex-direction: column;
+		justify-content: center;
+
+		text-align: center;
+
 		gap: 0.5rem;
 
-		flex: 1;
+		flex: 1 1;
 
 		padding-bottom: 0;
 	}
@@ -178,23 +191,9 @@
 		overflow-wrap: break-word;
 	}
 
-	.item-price-prefix {
-		font-weight: bold;
-		color: red;
-	}
-
-	.item-price {
-		text-shadow: 0 0 0 transparent;
-		transition: text-shadow 300ms ease;
-	}
-
-	.item:hover .item-price {
-		text-shadow: 0 0 5px hotpink;
-	}
-
-	.item .divider {
+	.divider {
 		width: 100%;
-		height: 2px;
+		height: 1px;
 
 		border: none;
 		background-color: gray;
@@ -202,10 +201,13 @@
 
 	.item-body {
 		height: 100%;
+		text-align: left;
+	}
 
+	.item-purchase-details {
+		padding-top: 0.5rem;
 		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.25rem;
 	}
 
 	.item-notes {
@@ -214,8 +216,45 @@
 		font-weight: 300;
 	}
 
-	.item-link {
-		margin-top: auto;
+	.item-price {
+		text-shadow: 0 0 0 transparent;
+		transition: text-shadow 300ms ease;
+		flex: 0 0 auto;
+	}
+
+	.item-price-prefix {
 		font-weight: bold;
+		color: red;
+	}
+
+	.item.interactive:hover .item-price {
+		text-shadow: 0 0 5px hotpink;
+	}
+
+	.item-link-name {
+		position: relative;
+
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.item-link-name::before {
+		content: '';
+
+		position: absolute;
+		bottom: 0;
+		left: 0;
+
+		height: 1px;
+		width: 0;
+
+		background-color: black;
+		opacity: 0.5;
+
+		transition: width 150ms ease-in;
+	}
+
+	.item.interactive:hover .item-link-name::before {
+		width: 100%;
 	}
 </style>

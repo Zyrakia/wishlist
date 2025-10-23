@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { LayoutServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, parent }) => {
+export const load: LayoutServerLoad = async ({ params, parent }) => {
 	const { wishlist } = await parent();
 
 	const item = await db.query.WishlistItemTable.findFirst({

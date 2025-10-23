@@ -29,13 +29,21 @@
 	.items-wrapper {
 		height: 100%;
 
-		padding: 1rem;
+		padding: 2rem;
 
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 		grid-auto-rows: auto;
 		align-content: start;
 		gap: 1.5rem 1rem;
+
+		background-color: #fafafa;
+	}
+
+	@media (max-width: 600px) {
+		.items-wrapper {
+			padding: 0.5rem;
+		}
 	}
 
 	.no-items-message {

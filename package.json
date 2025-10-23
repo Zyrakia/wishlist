@@ -28,6 +28,7 @@
 		"vite": "^7.1.7"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^0.546.0",
 		"@t3-oss/env-core": "^0.13.8",
 		"better-sqlite3": "^12.4.1",
 		"dotenv-flow": "^4.1.0",

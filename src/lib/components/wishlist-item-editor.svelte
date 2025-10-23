@@ -116,8 +116,12 @@
 			<label class="input-group">
 				<span class="input-group-label">Notes</span>
 
-				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
-				></textarea>
+				<textarea
+					rows="6"
+					placeholder={placeholder.notes}
+					{...remote.fields.notes.as('text')}
+					>{remote.fields.notes.value() || ''}</textarea
+				>
 
 				{#if issue(remote.fields.notes)}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">

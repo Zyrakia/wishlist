@@ -38,8 +38,7 @@
 			font-style: normal;
 		}
 
-		img,
-		svg {
+		img {
 			display: block;
 			width: 100%;
 			height: auto;
