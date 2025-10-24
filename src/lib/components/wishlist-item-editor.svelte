@@ -24,7 +24,7 @@
 		notes: '',
 		price: 19.99,
 		priceCurrency: 'USD',
-		imageUrl: 'https://picsum.photos/1280/720',
+		imageUrl: 'https://placehold.co/1080x720?text=Item+Image&font=roboto',
 		url: 'https://example.com',
 	};
 
@@ -82,7 +82,7 @@
 		item = seedItem;
 	}
 
-	onMount(() => remote.validate())
+	onMount(() => remote.validate());
 </script>
 
 <div
@@ -118,7 +118,10 @@
 			<label class="input-group">
 				<span class="input-group-label">Notes</span>
 
-				<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
+				<textarea
+					rows="6"
+					placeholder={placeholder.notes}
+					{...remote.fields.notes.as('text')}
 					>{remote.fields.notes.value() || ''}</textarea
 				>
 
