@@ -6,8 +6,11 @@ declare global {
 			user?: User;
 		}
 
+		interface PageData {
+			headerBadges?: string[];
+		}
+
 		// interface Error {}
-		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
 	}
