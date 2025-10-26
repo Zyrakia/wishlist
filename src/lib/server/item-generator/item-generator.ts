@@ -32,7 +32,7 @@ const google = createGoogleGenerativeAI({ apiKey: ENV.GOOGLE_AI_KEY });
 
 const CandidateSchema = z
 	.object({
-		name: z.string(),
+		name: z.string().max(30),
 		imageUrl: z.string(),
 		price: z.number(),
 		priceCurrency: z.string().length(3).toUpperCase(),
@@ -111,8 +111,8 @@ export async function generateItemCandidates(url: string) {
 	if (!html) return;
 
 	const distilledPage = distillPage(html, parsedUrl.origin);
-	const { object: candidates } = await generateObject({
-		model: google('gemini-2.5-flash-lite'),
+	const { object: candidate } = await generateObject({
+		model: google('gemini-2.5-flash'),
 		schema: CandidateSchema.optional(),
 		messages: [
 			{ role: 'system', content: SYSTEM_PROMPT },
@@ -121,5 +121,5 @@ export async function generateItemCandidates(url: string) {
 		],
 	});
 
-	return candidates;
+	return { ...candidate, url };
 }

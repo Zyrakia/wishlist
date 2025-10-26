@@ -4,8 +4,9 @@ import { db } from '../server/db';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { ItemSchema } from '$lib/schemas/item';
+import { ItemSchema, ItemUrlSchema } from '$lib/schemas/item';
 import z from 'zod';
+import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
 
 export const createItem = form(ItemSchema, async (data) => {
 	const {
@@ -73,8 +74,7 @@ export const deleteItem = form(
 		]),
 	}),
 	async (data) => {
-		if (!data.confirm)
-			redirect(303, `/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+		if (!data.confirm) redirect(303, `/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
 		const {
 			locals: { user },
@@ -82,18 +82,25 @@ export const deleteItem = form(
 
 		// if (!user) error(401);
 		const wl = await db.query.WishlistTable.findFirst({
-			where: (t, { and, eq }) =>
-				and(/* eq(t.userId, user.id), */ eq(t.slug, data.wishlistSlug)),
+			where: (t, { and, eq }) => and(/* eq(t.userId, user.id), */ eq(t.slug, data.wishlistSlug)),
 		});
 
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
 		await db
 			.delete(WishlistItemTable)
-			.where(
-				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
-			);
+			.where(and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)));
 
 		redirect(303, `/${data.wishlistSlug}`);
 	},
 );
+
+export const generateItem = form(z.object({ url: ItemUrlSchema }), async (data) => {
+	if (typeof data.url !== 'string') error(400, 'A URL is required to generate an item.');
+
+	try {
+		return await generateItemCandidates(data.url);
+	} catch (err) {
+		console.warn(err);
+	}
+});

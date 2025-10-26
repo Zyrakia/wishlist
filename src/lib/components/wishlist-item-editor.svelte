@@ -1,22 +1,24 @@
 <script lang="ts">
-	import { createItem, updateItem } from '$lib/remotes/item.remote';
-	import { ItemSchema } from '$lib/schemas/item';
+	import { createItem, generateItem, updateItem } from '$lib/remotes/item.remote';
+	import { ItemSchema, ItemUrlSchema } from '$lib/schemas/item';
 	import WishlistItem from './wishlist-item.svelte';
 	import type { WishlistItem as _WishlistItemType } from '$lib/server/db/schema';
-	import type z from 'zod';
+	import z from 'zod';
 	import { fade } from 'svelte/transition';
-	import type { RemoteFormField, RemoteFormFieldValue } from '@sveltejs/kit';
+	import type { RemoteFormField, RemoteFormIssue } from '@sveltejs/kit';
 	import type { FormEventHandler } from 'svelte/elements';
 	import { onMount } from 'svelte';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import Loader from './loader.svelte';
+	import { browser } from '$app/environment';
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
 	let {
 		item: initProperties = {},
 		mode = 'create',
-	}: { item?: Partial<ItemType>; mode?: 'edit' | 'create' } = $props();
+	}: { item?: Partial<ItemType>; mode?: 'edit' | 'create' | 'create-auto' } = $props();
 
 	let item = $state<Partial<z.infer<typeof ItemSchema>>>({});
 	const placeholder: ItemType = {
@@ -28,19 +30,33 @@
 		url: 'https://example.com',
 	};
 
-	const isCreate = mode === 'create';
-	const remote = isCreate ? createItem : updateItem;
+	const isCreate = mode === 'create' || mode === 'create-auto';
+	const remote = (isCreate ? createItem : updateItem).preflight(ItemSchema);
 
 	const hasIssue = $derived(remote.fields.issues() !== undefined);
 	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
 
+	const generateRemote = generateItem.preflight(
+		z.object({
+			url: ItemUrlSchema.refine((v) => encodeURI(v) === v, { error: 'Invalid URL' }),
+		}),
+	);
+
 	const hasJs = useHasJs();
+
+	let isGenerating = $derived(generateRemote.pending !== 0);
+	let generateError = $state('');
+
+	let isGenerateDone = $state(browser ? false : generateRemote.result);
+	onMount(() => (isGenerateDone = false));
 
 	let container: HTMLDivElement;
 	onMount(() => {
 		const target = document.scrollingElement || document.documentElement;
 
 		const update = () => {
+			if (!container) return;
+
 			const hasScroll = target.scrollHeight > target.clientHeight + 1;
 			container.classList.toggle('scroll-possible', hasScroll);
 		};
@@ -71,18 +87,24 @@
 			else (item[fieldName] as any) = res.data;
 		}
 
-		remote.validate();
+		remote.validate({ preflightOnly: true });
 	};
 
-	const issue = (field: RemoteFormField<RemoteFormFieldValue>) => field.issues()?.[0]?.message;
+	const issue = (field: { issues(): RemoteFormIssue[] | undefined }) => field.issues()?.[0]?.message;
 
-	const seedItem = safePrune(ItemSchema, initProperties);
-	if (Object.keys(seedItem).length !== 0) {
-		remote.fields.set(seedItem as any);
-		item = seedItem;
-	}
+	const seed = () => {
+		const seedItem = safePrune(ItemSchema, {
+			...(mode === 'create-auto' && isGenerateDone ? generateRemote.result : {}),
+			...initProperties,
+		});
+		if (Object.keys(seedItem).length !== 0) {
+			remote.fields.set(seedItem as any);
+			item = seedItem;
+		}
+	};
 
-	onMount(() => remote.validate());
+	seed();
+	onMount(() => remote.validate({ preflightOnly: true }));
 </script>
 
 <div
@@ -94,7 +116,14 @@
 		<aside class="preview-pane">
 			<div class="preview-snap">
 				<h3 class="preview-label">Preview</h3>
-				<WishlistItem item={preview} interactive={false} />
+
+				{#if mode === 'create-auto' && isGenerating}
+					<div class="loader-wrapper">
+						<Loader />
+					</div>
+				{:else}
+					<WishlistItem item={preview} interactive={false} />
+				{/if}
 			</div>
 		</aside>
 
@@ -102,112 +131,176 @@
 	{/if}
 
 	<section class="form-pane">
-		<form {...remote.preflight(ItemSchema)} oninput={onInput}>
-			<label class="input-group required">
-				<span class="input-group-label">Name</span>
+		{#if mode !== 'create-auto' || isGenerateDone}
+			<form
+				{...remote.enhance(async ({ form, submit }) => {
+					await submit();
+					isGenerateDone = false;
+					form.reset();
+				})}
+				oninput={onInput}
+			>
+				<label class="input-group required">
+					<span class="input-group-label">Name</span>
 
-				<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
+					<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
 
-				{#if issue(remote.fields.name)}
-					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{issue(remote.fields.name)}
-					</p>
-				{/if}
-			</label>
+					{#if issue(remote.fields.name)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.name)}
+						</p>
+					{/if}
+				</label>
 
-			<label class="input-group">
-				<span class="input-group-label">Notes</span>
+				<label class="input-group">
+					<span class="input-group-label">Notes</span>
 
-				<textarea
-					rows="6"
-					placeholder={placeholder.notes}
-					{...remote.fields.notes.as('text')}
-					>{remote.fields.notes.value() || ''}</textarea
+					<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
+						>{remote.fields.notes.value() || ''}</textarea
+					>
+
+					{#if issue(remote.fields.notes)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.notes)}
+						</p>
+					{/if}
+				</label>
+
+				<div class="price-group">
+					<label class="input-group price-value-group">
+						<span class="input-group-label">Price</span>
+
+						<input
+							placeholder={placeholder.price?.toFixed(2)}
+							{...(remote.fields.price as unknown as RemoteFormField<string>).as('text')}
+							step="0.01"
+							min="0"
+						/>
+
+						{#if issue(remote.fields.price)}
+							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+								{issue(remote.fields.price)}
+							</p>
+						{/if}
+					</label>
+
+					<label class="input-group currency-group">
+						<span class="input-group-label">Currency</span>
+
+						<input
+							placeholder={placeholder.priceCurrency}
+							{...(remote.fields.priceCurrency as unknown as RemoteFormField<string>).as(
+								'text',
+							)}
+							list="currency-list"
+							autocomplete="off"
+						/>
+
+						{#if issue(remote.fields.priceCurrency)}
+							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+								{issue(remote.fields.priceCurrency)}
+							</p>
+						{/if}
+
+						<datalist id="currency-list">
+							<option value="USD">USD ($)</option>
+							<option value="EUR">EUR (€)</option>
+							<option value="GBP">GBP (£)</option>
+							<option value="JPY">JPY (¥)</option>
+							<option value="AUD">AUD ($)</option>
+							<option value="CAD">CAD ($)</option>
+							<option value="CNY">CNY (¥)</option>
+							<option value="INR">INR (₹)</option>
+							<option value="MXN">MXN ($)</option>
+						</datalist>
+					</label>
+				</div>
+
+				<label class="input-group">
+					<span class="input-group-label">Purchase Link</span>
+
+					<input placeholder={placeholder.url} {...remote.fields.url.as('text')} />
+
+					{#if issue(remote.fields.url)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.url)}
+						</p>
+					{/if}
+				</label>
+
+				<label class="input-group">
+					<span class="input-group-label">Image Link</span>
+
+					<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
+
+					{#if issue(remote.fields.imageUrl)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(remote.fields.imageUrl)}
+						</p>
+					{/if}
+				</label>
+
+				<button disabled={hasIssue && hasJs()} {...remote.buttonProps}
+					>{mode === 'edit' ? 'Save' : 'Submit'}</button
+				>
+			</form>
+		{:else if mode === 'create-auto'}
+			<form
+				style="position: relative;"
+				{...generateRemote.enhance(async ({ submit, form }) => {
+					await submit();
+
+					const res = generateRemote.result;
+					if (res && res.price) {
+						form.reset();
+						isGenerateDone = true;
+						seed();
+					} else {
+						isGenerateDone = false;
+						generateError = 'No product found!';
+					}
+				})}
+			>
+				<label class="input-group">
+					<span class="input-group-label">Product Link</span>
+
+					<input
+						disabled={isGenerating}
+						oninput={() => {
+							generateError = '';
+							generateRemote.validate({ preflightOnly: true });
+						}}
+						placeholder="Enter a product link"
+						{...generateRemote.fields.url.as('text')}
+					/>
+
+					{#if issue(generateRemote.fields.url)}
+						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							{issue(generateRemote.fields.url)}
+						</p>
+					{/if}
+				</label>
+
+				<button type="submit" disabled={isGenerating || !!generateRemote.fields.issues()}
+					>Create From Link</button
 				>
 
-				{#if issue(remote.fields.notes)}
+				<p style="text-align: center;">OR</p>
+
+				<button
+					type="button"
+					style="background-color: whitesmoke"
+					disabled={isGenerating}
+					onclick={() => (isGenerateDone = true)}>Create Manually</button
+				>
+
+				{#if generateError}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{issue(remote.fields.notes)}
+						{generateError}
 					</p>
 				{/if}
-			</label>
-
-			<div class="price-group">
-				<label class="input-group price-value-group">
-					<span class="input-group-label">Price</span>
-
-					<input
-						placeholder={placeholder.price?.toFixed(2)}
-						{...remote.fields.price.as('text')}
-						step="0.01"
-						min="0"
-					/>
-
-					{#if issue(remote.fields.price)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.price)}
-						</p>
-					{/if}
-				</label>
-
-				<label class="input-group currency-group">
-					<span class="input-group-label">Currency</span>
-
-					<input
-						placeholder={placeholder.priceCurrency}
-						{...remote.fields.priceCurrency.as('text')}
-						list="currency-list"
-						autocomplete="off"
-					/>
-
-					{#if issue(remote.fields.priceCurrency)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.priceCurrency)}
-						</p>
-					{/if}
-
-					<datalist id="currency-list">
-						<option value="USD">USD ($)</option>
-						<option value="EUR">EUR (€)</option>
-						<option value="GBP">GBP (£)</option>
-						<option value="JPY">JPY (¥)</option>
-						<option value="AUD">AUD ($)</option>
-						<option value="CAD">CAD ($)</option>
-						<option value="CNY">CNY (¥)</option>
-						<option value="INR">INR (₹)</option>
-						<option value="MXN">MXN ($)</option>
-					</datalist>
-				</label>
-			</div>
-
-			<label class="input-group">
-				<span class="input-group-label">Purchase Link</span>
-
-				<input placeholder={placeholder.url} {...remote.fields.url.as('text')} />
-
-				{#if issue(remote.fields.url)}
-					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{issue(remote.fields.url)}
-					</p>
-				{/if}
-			</label>
-
-			<label class="input-group">
-				<span class="input-group-label">Image Link</span>
-
-				<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
-
-				{#if issue(remote.fields.imageUrl)}
-					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{issue(remote.fields.imageUrl)}
-					</p>
-				{/if}
-			</label>
-
-			<button disabled={hasIssue && hasJs()} {...remote.buttonProps}
-				>{mode === 'edit' ? 'Save' : 'Submit'}</button
-			>
-		</form>
+			</form>
+		{/if}
 	</section>
 </div>
 
@@ -383,5 +476,10 @@
 	.price-section {
 		display: flex;
 		gap: 1rem;
+	}
+
+	.loader-wrapper {
+		width: 100%;
+		height: 128px;
 	}
 </style>

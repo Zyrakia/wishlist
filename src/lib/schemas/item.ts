@@ -10,13 +10,21 @@ const emptyToUndefined = (v: any) => {
 	return v;
 };
 
-const normalizeUrl = (v: any) => {
+const normalizeUrl = (v: any, ctx: z.RefinementCtx) => {
 	if (typeof v !== 'string') return v;
 	if (!v) return v;
 
-	if (v.match(/^[A-Za-z]+:\/\//)) return v;
+	let candidate = v;
+	if (!candidate.match(/^[A-Za-z]+:\/\//)) {
+		candidate = `https://${candidate.replace('://', '')}`;
+	}
 
-	return `https://${v.replace('://', '')}`;
+	if (!URL.canParse(candidate)) {
+		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: candidate });
+		return z.NEVER;
+	}
+
+	return candidate;
 };
 
 const priceTransform = (v: unknown, ctx: z.RefinementCtx) => {
@@ -37,6 +45,11 @@ const priceTransform = (v: unknown, ctx: z.RefinementCtx) => {
 	return n;
 };
 
+export const ItemUrlSchema = z.preprocess(
+	emptyToNull,
+	z.string().trim().transform(normalizeUrl).nullish(),
+) as unknown as z.ZodString;
+
 export const ItemSchema = z.object({
 	name: z
 		.string()
@@ -45,8 +58,8 @@ export const ItemSchema = z.object({
 		.min(2, { error: 'Minimum 2 characters' })
 		.max(30, { error: 'Maximum 30 characters' }),
 	notes: z.string().trim().max(250, { error: 'Maximum 250 characters' }).default(''),
-	imageUrl: z.preprocess(emptyToNull, z.union([z.string().trim().transform(normalizeUrl), z.null()])),
-	url: z.preprocess(emptyToNull, z.union([z.string().trim().transform(normalizeUrl), z.null()])),
+	imageUrl: ItemUrlSchema,
+	url: ItemUrlSchema,
 	price: z.preprocess(
 		emptyToNull,
 		z
