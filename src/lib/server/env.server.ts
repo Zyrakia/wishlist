@@ -11,7 +11,7 @@ const ENV = createEnv({
 	clientPrefix: 'VITE_',
 	client: {},
 	server: {
-		GEMINI_KEY: z.string(),
+		GOOGLE_AI_KEY: z.string(),
 		DATABASE_URL: z.string(),
 	},
 });

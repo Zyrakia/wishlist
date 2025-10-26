@@ -5,24 +5,49 @@ import { chromium } from 'playwright';
 import z from 'zod';
 import ENV from '../env.server';
 
-const google = createGoogleGenerativeAI({ apiKey: ENV.GEMINI_KEY });
+const SYSTEM_PROMPT = `
+You are to extract the single best product candidate from the given input.
+If any product closely relates to the title, it is the core product.
 
-const CandidateSchema = z.object({
-	name: z.string(),
-	imageUrl: z.string(),
-	price: z.number(),
-	priceCurrency: z.string().length(3).toUpperCase(),
-});
+**Name Formatting Guidelines**
+- Keep the core product identity—what a person would call it.
+- Remove redundant details: sizes, color codes, SKUs, store names, promo text, “New,” duplicates.
+- Keep essential identifiers like brand + model, but not descriptors of function or appearance of the product.
+- Avoid truncation that removes necessary context; prefer the shortest clear form when multiple appear.
+
+**General Extraction Rules**
+- Prefer clearly grouped name-price-image clusters over isolated mentions.
+- For product grids, treat each item as a separate candidate.
+- If the page centers on a single product, return one candidate.
+- Ignore unrelated text like menus, reviews, ads, shipping details.
+- Select prices most likely to be the actual selling price; avoid list/per-unit/off-sale unless clearly the main price.
+- Infer currency via explicit symbols/codes, metadata, or URL/locale hints; otherwise default to USD.
+- Prefer a clear standalone product image near the name or price.
+
+**Output Requirements**
+- Omit any candidates missing both price and image.
+`;
+
+const google = createGoogleGenerativeAI({ apiKey: ENV.GOOGLE_AI_KEY });
+
+const CandidateSchema = z
+	.object({
+		name: z.string(),
+		imageUrl: z.string(),
+		price: z.number(),
+		priceCurrency: z.string().length(3).toUpperCase(),
+	})
+	.optional();
 
 async function renderUrl(url: string) {
 	const UA =
 		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36 ProductFinder';
 
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ headless: true });
 	const page = await browser.newPage({ userAgent: UA });
 
 	try {
-		const res = await page.goto(url, { waitUntil: 'networkidle' });
+		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
 		if (!res || res.status() !== 200) return;
 
 		return await page.content();
@@ -39,17 +64,17 @@ function distillPage(html: string, baseUrl: string) {
 	const pageTitle = $('title').text();
 	const pageDescription = $('meta[name="description"]').attr('content');
 
+	$('script, style, noscript, link, meta, head').remove();
+	$('nav, footer, header, aside').remove();
+	$('[role="navigation"], [role="banner"], [role="contentinfo"]').remove();
+
 	const meta: Record<string, string> = {};
 	$('meta').each((_, el) => {
 		const $el = $(el);
 		const property = $el.attr('name') || $el.attr('property');
 		const content = $el.attr('content');
 
-		if (
-			property &&
-			content &&
-			(property.startsWith('og:') || property.startsWith('twitter:'))
-		) {
+		if (property && content && (property.startsWith('og:') || property.startsWith('twitter:'))) {
 			meta[property] = content;
 		}
 	});
@@ -70,40 +95,31 @@ function distillPage(html: string, baseUrl: string) {
 		})
 		.get();
 
-	$('script, style, noscript, link, meta, head').remove();
-	$('nav, footer, header, aside').remove();
-	$('[role="navigation"], [role="banner"], [role="contentinfo"]').remove();
-
 	let textContent = $('main').text() || $('body').text();
-	textContent = textContent.replace(/\s\s+/g, ' ');
+	textContent = textContent
+		.replace(/\n\s+/g, '\n')
+		.replace(/\s\s{3,}/g, '\n')
+		.trim();
 
 	return JSON.stringify({ pageTitle, pageDescription, meta, images, textContent });
 }
 
 export async function generateItemCandidates(url: string) {
-	try {
-		const parsedUrl = new URL(url);
+	const parsedUrl = new URL(url);
 
-		const html = await renderUrl(url);
-		if (!html) return;
+	const html = await renderUrl(url);
+	if (!html) return;
 
-		const pageData = distillPage(html, parsedUrl.origin);
-		console.log(pageData);
-	} catch (err) {}
+	const distilledPage = distillPage(html, parsedUrl.origin);
+	const { object: candidates } = await generateObject({
+		model: google('gemini-2.5-flash-lite'),
+		schema: CandidateSchema.optional(),
+		messages: [
+			{ role: 'system', content: SYSTEM_PROMPT },
+			{ role: 'user', content: `URL: ${url}` },
+			{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
+		],
+	});
 
-	// const { object: candidates } = await generateObject({
-	// 	model: google('gemini-2.5-flash-lite'),
-	// 	schema: z.array(CandidateSchema),
-	// 	messages: [
-	// 		{ role: 'system', content: '' },
-	// 		{ role: 'user', content: `URL: ${url}` },
-	// 		{ role: 'user', content: `Page extraction data: \n${pageData}` },
-	// 	],
-	// });
-
-	// return candidates;
+	return candidates;
 }
-
-generateItemCandidates(
-	'https://www.amazon.com/Glass-Shower-Magnet-Replacement-Swing/dp/B0F4CVM7V3',
-);
