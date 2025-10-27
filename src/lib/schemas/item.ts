@@ -1,20 +1,9 @@
 import z from 'zod';
 
-const emptyToNull = (v: any) => {
-	if (typeof v === 'string' && v.trim() === '') return null;
-	return v;
-};
+const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
+	if (!raw) return null;
 
-const emptyToUndefined = (v: any) => {
-	if (typeof v === 'string' && v.trim() === '') return;
-	return v;
-};
-
-const normalizeUrl = (v: any, ctx: z.RefinementCtx) => {
-	if (typeof v !== 'string') return v;
-	if (!v) return v;
-
-	let candidate = v;
+	let candidate = raw;
 	if (!candidate.match(/^[A-Za-z]+:\/\//)) {
 		candidate = `https://${candidate.replace('://', '')}`;
 	}
@@ -27,28 +16,20 @@ const normalizeUrl = (v: any, ctx: z.RefinementCtx) => {
 	return candidate;
 };
 
-const priceTransform = (v: unknown, ctx: z.RefinementCtx) => {
-	if (v === undefined || v === null) return v;
+const toPrice = (raw: string | number, ctx: z.RefinementCtx) => {
+	if (raw === '') return null;
 
-	const n = Number(v);
-
-	if (isNaN(n)) {
-		ctx.addIssue({ code: 'custom', message: 'Not a valid number', input: v });
+	const num = Number(raw);
+	if (isNaN(num)) {
+		ctx.addIssue({ code: 'custom', message: 'Not a valid number', input: num });
+		return z.NEVER;
+	} else if (num < 0) {
+		ctx.addIssue({ code: 'custom', message: 'Cannot be negative', input: num });
 		return z.NEVER;
 	}
 
-	if (n < 0) {
-		ctx.addIssue({ code: 'custom', message: 'Cannot be negative', input: n });
-		return z.NEVER;
-	}
-
-	return n;
+	return num;
 };
-
-export const ItemUrlSchema = z.preprocess(
-	emptyToNull,
-	z.string().trim().transform(normalizeUrl).nullish(),
-) as unknown as z.ZodString;
 
 export const ItemSchema = z.object({
 	name: z
@@ -58,21 +39,13 @@ export const ItemSchema = z.object({
 		.min(2, { error: 'Minimum 2 characters' })
 		.max(30, { error: 'Maximum 30 characters' }),
 	notes: z.string().trim().max(250, { error: 'Maximum 250 characters' }).default(''),
-	imageUrl: ItemUrlSchema,
-	url: ItemUrlSchema,
-	price: z.preprocess(
-		emptyToNull,
-		z
-			.union([z.number(), z.string().trim().max(15, { error: 'Maximum 15 characters' }), z.null()])
-			.transform(priceTransform),
-	),
-	priceCurrency: z.preprocess(
-		emptyToUndefined,
-		z
-			.string()
-			.trim()
-			.toUpperCase()
-			.regex(/^[A-Z]{3}$/, { error: 'Must be exactly 3 letters' })
-			.default('USD'),
-	),
+	imageUrl: z.string().trim().transform(normalizeUrl),
+	url: z.string().trim().transform(normalizeUrl),
+	price: z.string().trim().transform(toPrice),
+	priceCurrency: z
+		.string()
+		.trim()
+		.toUpperCase()
+		.transform((v) => (v === '' ? 'USD' : v))
+		.refine((v) => /^[A-Z]{3}$/.test(v), { error: 'Must be exactly 3 characters' }),
 });
