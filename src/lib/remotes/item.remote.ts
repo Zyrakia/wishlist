@@ -119,7 +119,7 @@ export const generateItem = form(
 
 		try {
 			const res = await generateItemCandidates(data.url);
-			if (res.success) return res.candidate;
+			if (res.success) return { ...res.candidate, url: data.url };
 			else error(422, res.error);
 		} catch (err) {
 			if (isHttpError(err)) throw err;

@@ -5,7 +5,7 @@
 	import type { WishlistItem as _WishlistItemType } from '$lib/server/db/schema';
 	import z from 'zod';
 	import { fade } from 'svelte/transition';
-	import type { RemoteFormField, RemoteFormIssue } from '@sveltejs/kit';
+	import { isHttpError, type RemoteFormField, type RemoteFormIssue } from '@sveltejs/kit';
 	import type { FormEventHandler } from 'svelte/elements';
 	import { onMount } from 'svelte';
 	import { safePrune } from '$lib/util/safe-prune';
@@ -39,8 +39,13 @@
 
 	const generateRemote = generateItem.preflight(
 		z.object({
-			url: ItemSchema.shape.url.refine((v) => v === null ? true : encodeURI(v) === v, {
-				error: 'Invalid URL',
+			url: ItemSchema.shape.url.transform((v, ctx) => {
+				if (v === null) {
+					ctx.addIssue({ code: 'custom', message: 'URL is required' });
+					return z.NEVER;
+				}
+
+				return v;
 			}),
 		}),
 	);
@@ -88,7 +93,10 @@
 	};
 
 	seed();
-	onMount(() => remote.validate());
+	onMount(() => {
+		remote.validate();
+		generateRemote.validate();
+	});
 </script>
 
 <div
@@ -252,16 +260,23 @@
 			<form
 				style="position: relative;"
 				{...generateRemote.enhance(async ({ submit, form }) => {
-					await submit();
+					try {
+						await submit();
 
-					const res = generateRemote.result;
-					if (res && res.price) {
-						form.reset();
-						isGenerateDone = true;
-						seed();
-					} else {
-						isGenerateDone = false;
-						generateError = 'No product found!';
+						const res = generateRemote.result;
+						if (res && res.price) {
+							form.reset();
+							isGenerateDone = true;
+							seed();
+						} else {
+							isGenerateDone = false;
+							generateError = 'No product found';
+						}
+					} catch (err) {
+						console.warn(err);
+						if (isHttpError(err)) {
+							generateError = err.body.message;
+						}
 					}
 				})}
 			>
@@ -277,12 +292,6 @@
 						placeholder="Enter a product link"
 						{...generateRemote.fields.url.as('text')}
 					/>
-
-					{#if issue(generateRemote.fields.url)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(generateRemote.fields.url)}
-						</p>
-					{/if}
 				</label>
 
 				<button type="submit" disabled={isGenerating || !!generateRemote.fields.issues()}
@@ -298,9 +307,9 @@
 					onclick={() => (isGenerateDone = true)}>Create Manually</button
 				>
 
-				{#if generateError}
+				{#if generateError || issue(generateRemote.fields.url)}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{generateError}
+						{generateError || issue(generateRemote.fields.url)}
 					</p>
 				{/if}
 			</form>
