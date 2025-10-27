@@ -5,10 +5,19 @@ const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
 
 	let candidate = raw;
 	if (!candidate.match(/^[A-Za-z]+:\/\//)) {
-		candidate = `https://${candidate.replace('://', '')}`;
+		candidate = `https://${candidate.replace(/:\/{1,2}/, '')}`;
 	}
 
-	if (!URL.canParse(candidate)) {
+	try {
+		const url = new URL(candidate);
+
+		if (!candidate.startsWith(url.origin)) {
+			ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: url.origin });
+			return z.NEVER;
+		}
+
+		return candidate;
+	} catch (err) {
 		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: candidate });
 		return z.NEVER;
 	}
