@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import type { WishlistItem } from '$lib/server/db/schema';
+	import type { Item } from '$lib/schemas/item';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -9,7 +9,7 @@
 		interactive = true,
 		footer,
 	}: {
-		item: Partial<Omit<WishlistItem, 'id' | 'wishlistId' | 'createdAt'>>;
+		item: Partial<Item>;
 		interactive?: boolean;
 		footer?: Snippet<[]>;
 	} = $props();
@@ -66,7 +66,7 @@
 		disabled={!canClick}
 		role="link"
 		tabindex="0"
-		class="item {canClick ? 'interactive' : ''}"
+		class={['item', canClick && 'interactive']}
 		href={item.url}
 		target="_blank"
 	>
@@ -93,7 +93,10 @@
 
 			<div class="item-purchase-details">
 				{#if currFormats && item.price}
-					<p title="Priced around {currFormats.long.format(item.price)}" class="item-price">
+					<p
+						title="Priced around {currFormats.long.format(item.price)}"
+						class="item-price"
+					>
 						<span class="item-price-prefix">~</span>
 						{currFormats.short.format(item.price)}
 					</p>

@@ -21,8 +21,6 @@ const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
 		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: candidate });
 		return z.NEVER;
 	}
-
-	return candidate;
 };
 
 const toPrice = (raw: string | number, ctx: z.RefinementCtx) => {
@@ -50,11 +48,15 @@ export const ItemSchema = z.object({
 	notes: z.string().trim().max(250, { error: 'Maximum 250 characters' }).default(''),
 	imageUrl: z.string().trim().transform(normalizeUrl),
 	url: z.string().trim().transform(normalizeUrl),
-	price: z.string().trim().transform(toPrice),
+	price: z.string().trim().or(z.number()).transform(toPrice),
 	priceCurrency: z
 		.string()
 		.trim()
 		.toUpperCase()
-		.transform((v) => (v === '' ? 'USD' : v))
-		.refine((v) => /^[A-Z]{3}$/.test(v), { error: 'Must be exactly 3 characters' }),
+		.transform((v) => (v === '' ? 'USD' : v ? v : null))
+		.refine((v) => (v === null ? true : /^[A-Z]{3}$/.test(v)), {
+			error: 'Must be exactly 3 characters',
+		}),
 });
+
+export type Item = z.infer<typeof ItemSchema>;
