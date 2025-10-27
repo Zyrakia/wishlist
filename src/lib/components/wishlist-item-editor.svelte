@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createItem, generateItem, updateItem } from '$lib/remotes/item.remote';
-	import { ItemSchema, ItemUrlSchema } from '$lib/schemas/item';
+	import { ItemSchema } from '$lib/schemas/item';
 	import WishlistItem from './wishlist-item.svelte';
 	import type { WishlistItem as _WishlistItemType } from '$lib/server/db/schema';
 	import z from 'zod';
@@ -12,6 +12,7 @@
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import Loader from './loader.svelte';
 	import { browser } from '$app/environment';
+	import { pageScroll } from '$lib/actions/page-scroll';
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
@@ -38,7 +39,9 @@
 
 	const generateRemote = generateItem.preflight(
 		z.object({
-			url: ItemUrlSchema.refine((v) => encodeURI(v) === v, { error: 'Invalid URL' }),
+			url: ItemSchema.shape.url.refine((v) => v === null ? true : encodeURI(v) === v, {
+				error: 'Invalid URL',
+			}),
 		}),
 	);
 
@@ -49,26 +52,6 @@
 
 	let isGenerateDone = $state(browser ? false : generateRemote.result);
 	onMount(() => (isGenerateDone = false));
-
-	let container: HTMLDivElement;
-	onMount(() => {
-		const target = document.scrollingElement || document.documentElement;
-
-		const update = () => {
-			if (!container) return;
-
-			const hasScroll = target.scrollHeight > target.clientHeight + 1;
-			container.classList.toggle('scroll-possible', hasScroll);
-		};
-
-		const ro = new ResizeObserver(update);
-		ro.observe(target);
-
-		window.addEventListener('resize', update);
-		update();
-
-		return () => ro.disconnect();
-	});
 
 	const onInput: FormEventHandler<HTMLFormElement> = (ev) => {
 		const input = ev.target;
@@ -87,10 +70,11 @@
 			else (item[fieldName] as any) = res.data;
 		}
 
-		remote.validate({ preflightOnly: true });
+		remote.validate();
 	};
 
-	const issue = (field: { issues(): RemoteFormIssue[] | undefined }) => field.issues()?.[0]?.message;
+	const issue = (field: { issues(): RemoteFormIssue[] | undefined }) =>
+		field.issues()?.[0]?.message;
 
 	const seed = () => {
 		const seedItem = safePrune(ItemSchema, {
@@ -104,11 +88,11 @@
 	};
 
 	seed();
-	onMount(() => remote.validate({ preflightOnly: true }));
+	onMount(() => remote.validate());
 </script>
 
 <div
-	bind:this={container}
+	use:pageScroll
 	class="container"
 	style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}"
 >
@@ -143,7 +127,11 @@
 				<label class="input-group required">
 					<span class="input-group-label">Name</span>
 
-					<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
+					<input
+						placeholder={placeholder.name}
+						required
+						{...remote.fields.name.as('text')}
+					/>
 
 					{#if issue(remote.fields.name)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
@@ -155,7 +143,10 @@
 				<label class="input-group">
 					<span class="input-group-label">Notes</span>
 
-					<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
+					<textarea
+						rows="6"
+						placeholder={placeholder.notes}
+						{...remote.fields.notes.as('text')}
 						>{remote.fields.notes.value() || ''}</textarea
 					>
 
@@ -172,13 +163,19 @@
 
 						<input
 							placeholder={placeholder.price?.toFixed(2)}
-							{...(remote.fields.price as unknown as RemoteFormField<string>).as('text')}
+							{...(remote.fields.price as unknown as RemoteFormField<string>).as(
+								'text',
+							)}
 							step="0.01"
 							min="0"
 						/>
 
 						{#if issue(remote.fields.price)}
-							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							<p
+								in:fade={{ duration: 150 }}
+								out:fade={{ duration: 150 }}
+								class="error"
+							>
 								{issue(remote.fields.price)}
 							</p>
 						{/if}
@@ -189,15 +186,19 @@
 
 						<input
 							placeholder={placeholder.priceCurrency}
-							{...(remote.fields.priceCurrency as unknown as RemoteFormField<string>).as(
-								'text',
-							)}
+							{...(
+								remote.fields.priceCurrency as unknown as RemoteFormField<string>
+							).as('text')}
 							list="currency-list"
 							autocomplete="off"
 						/>
 
 						{#if issue(remote.fields.priceCurrency)}
-							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+							<p
+								in:fade={{ duration: 150 }}
+								out:fade={{ duration: 150 }}
+								class="error"
+							>
 								{issue(remote.fields.priceCurrency)}
 							</p>
 						{/if}
@@ -231,7 +232,10 @@
 				<label class="input-group">
 					<span class="input-group-label">Image Link</span>
 
-					<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
+					<input
+						placeholder={placeholder.imageUrl}
+						{...remote.fields.imageUrl.as('text')}
+					/>
 
 					{#if issue(remote.fields.imageUrl)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
@@ -268,7 +272,7 @@
 						disabled={isGenerating}
 						oninput={() => {
 							generateError = '';
-							generateRemote.validate({ preflightOnly: true });
+							generateRemote.validate();
 						}}
 						placeholder="Enter a product link"
 						{...generateRemote.fields.url.as('text')}
@@ -320,7 +324,7 @@
 		place-items: center;
 	}
 
-	.container.scroll-possible .preview-pane {
+	.container.has-scroll .preview-pane {
 		display: initial;
 	}
 
@@ -344,7 +348,7 @@
 		border-bottom: 1px dashed rgba(255, 0, 0, 0.3);
 	}
 
-	.container.scroll-possible .preview-snap {
+	.container.has-scroll .preview-snap {
 		position: sticky;
 		top: 2rem;
 	}
