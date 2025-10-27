@@ -4,12 +4,14 @@ import { load as cheerio } from 'cheerio';
 import { chromium } from 'playwright';
 import z from 'zod';
 import ENV from '../env.server';
+import type { Item } from '$lib/schemas/item';
 
 const SYSTEM_PROMPT = `
 You are to extract the single best product candidate from the given input.
-If any product closely relates to the title, it is the core product.
+The page title often indicates the name of the core product on the page.
 
 **Name Formatting Guidelines**
+- MUST be below 30 characters (including whitespace and punctuation), so please summarize the name diligently
 - Keep the core product identity—what a person would call it.
 - Remove redundant details: sizes, color codes, SKUs, store names, promo text, “New,” duplicates.
 - Keep essential identifiers like brand + model, but not descriptors of function or appearance of the product.
@@ -32,7 +34,7 @@ const google = createGoogleGenerativeAI({ apiKey: ENV.GOOGLE_AI_KEY });
 
 const CandidateSchema = z
 	.object({
-		name: z.string().max(30),
+		name: z.string(),
 		imageUrl: z.string(),
 		price: z.number(),
 		priceCurrency: z.string().length(3).toUpperCase(),
@@ -74,7 +76,11 @@ function distillPage(html: string, baseUrl: string) {
 		const property = $el.attr('name') || $el.attr('property');
 		const content = $el.attr('content');
 
-		if (property && content && (property.startsWith('og:') || property.startsWith('twitter:'))) {
+		if (
+			property &&
+			content &&
+			(property.startsWith('og:') || property.startsWith('twitter:'))
+		) {
 			meta[property] = content;
 		}
 	});
@@ -104,22 +110,32 @@ function distillPage(html: string, baseUrl: string) {
 	return JSON.stringify({ pageTitle, pageDescription, meta, images, textContent });
 }
 
-export async function generateItemCandidates(url: string) {
+export async function generateItemCandidates(
+	url: string,
+): Promise<
+	| { success: true; candidate?: z.infer<typeof CandidateSchema> }
+	| { success: false; error: string }
+> {
 	const parsedUrl = new URL(url);
 
 	const html = await renderUrl(url);
-	if (!html) return;
+	if (!html) return { success: false, error: 'Cannot load page' };
 
 	const distilledPage = distillPage(html, parsedUrl.origin);
-	const { object: candidate } = await generateObject({
-		model: google('gemini-2.5-flash'),
-		schema: CandidateSchema.optional(),
-		messages: [
-			{ role: 'system', content: SYSTEM_PROMPT },
-			{ role: 'user', content: `URL: ${url}` },
-			{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
-		],
-	});
 
-	return { ...candidate, url };
+	try {
+		const { object: candidate } = await generateObject({
+			model: google('gemini-2.5-flash'),
+			schema: CandidateSchema.optional(),
+			messages: [
+				{ role: 'system', content: SYSTEM_PROMPT },
+				{ role: 'user', content: `URL: ${url}` },
+				{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
+			],
+		});
+
+		return { success: true, candidate };
+	} catch (err) {
+		return { success: false, error: 'Generation failed' };
+	}
 }

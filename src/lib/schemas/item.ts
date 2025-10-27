@@ -44,7 +44,7 @@ export const ItemSchema = z.object({
 		.trim()
 		.nonempty('A name is required')
 		.min(2, { error: 'Minimum 2 characters' })
-		.max(30, { error: 'Maximum 30 characters' }),
+		.max(50, { error: 'Maximum 50 characters' }),
 	notes: z.string().trim().max(250, { error: 'Maximum 250 characters' }).default(''),
 	imageUrl: z.string().trim().transform(normalizeUrl),
 	url: z.string().trim().transform(normalizeUrl),

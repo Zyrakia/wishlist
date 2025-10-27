@@ -1,7 +1,7 @@
 import { form, getRequestEvent } from '$app/server';
 import { WishlistItemTable } from '../server/db/schema';
 import { db } from '../server/db';
-import { error, redirect } from '@sveltejs/kit';
+import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { ItemSchema } from '$lib/schemas/item';
@@ -99,12 +99,31 @@ export const deleteItem = form(
 	},
 );
 
-export const generateItem = form(z.object({ url: ItemSchema.shape.url }), async (data) => {
-	if (typeof data.url !== 'string') error(400, 'A URL is required to generate an item.');
+export const generateItem = form(
+	z.object({
+		url: ItemSchema.shape.url.transform((v, ctx) => {
+			if (v === null) {
+				ctx.addIssue({ code: 'custom', message: 'URL is required' });
+				return z.NEVER;
+			}
 
-	try {
-		return await generateItemCandidates(data.url);
-	} catch (err) {
-		console.warn(err);
-	}
-});
+			return v;
+		}),
+	}),
+	async (data) => {
+		const {
+			locals: { user },
+		} = getRequestEvent();
+
+		// if (!user) error(401);
+
+		try {
+			const res = await generateItemCandidates(data.url);
+			if (res.success) return res.candidate;
+			else error(422, res.error);
+		} catch (err) {
+			if (isHttpError(err)) throw err;
+			console.warn(err);
+		}
+	},
+);
