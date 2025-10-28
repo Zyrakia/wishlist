@@ -51,10 +51,10 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 		where: (t, { eq }) => eq(t.email, email),
 	});
 
-	if (!user) return invalid(invalid.email('Invalid credentials'));
+	if (!user) return invalid('Invalid credentials');
 
 	const passwordValid = await compare(password, user.password);
-	if (!passwordValid) invalid(invalid.password('Invalid credentials'));
+	if (!passwordValid) invalid('Invalid credentials');
 
 	const token = await issueToken({ sub: user.id, name: user.name });
 	setSession(cookies, token);
