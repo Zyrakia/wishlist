@@ -3,7 +3,7 @@ import type { User } from '$lib/server/db/schema';
 declare global {
 	namespace App {
 		interface Locals {
-			user?: User;
+			user?: {id: string, name: string};
 		}
 
 		interface PageData {

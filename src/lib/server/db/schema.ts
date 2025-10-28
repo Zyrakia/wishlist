@@ -6,6 +6,8 @@ import type z from 'zod';
 export const UserTable = sqliteTable('user', {
 	id: text().primaryKey(),
 	name: text().notNull(),
+	email: text().notNull().unique(),
+	password: text().notNull(),
 	createdAt: integer({ mode: 'timestamp' }).notNull(),
 });
 
