@@ -1,7 +1,9 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 
-	let { children } = $props();
+	import { SquareUser as UserIcon } from '@lucide/svelte';
+
+	let { children, data } = $props();
 </script>
 
 <svelte:head>
@@ -15,9 +17,43 @@
 	/>
 </svelte:head>
 
+<header>
+	<a class="auth" href={data.user ? '/' : 'login'}>
+		<UserIcon />
+
+		{#if data.user}
+			{data.user.name}
+		{:else}
+			Login
+		{/if}
+	</a>
+</header>
+
 {@render children?.()}
 
 <style>
+	header {
+		padding: 0.5rem;
+
+		display: flex;
+		gap: 0.5rem;
+
+		border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+	}
+
+	.auth {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+
+		transition: color 150ms ease;
+	}
+
+	.auth:hover {
+		color: blue;
+	}
+
 	:global {
 		*,
 		*::before,
@@ -73,7 +109,7 @@
 		.button {
 			position: relative;
 
-			padding: 0.2rem 0.7rem;
+			padding: 0.35rem 0.7rem;
 
 			border: 1px solid black;
 			border-radius: 5px;
