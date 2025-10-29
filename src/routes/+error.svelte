@@ -5,55 +5,46 @@
 	onMount(() => console.error(page.error));
 </script>
 
-<div class="container">
+<div class="w-full h-full p-4 flex flex-col items-center justify-center gap-6">
 	<div class="letters">
 		<div class="letters">
-			<h2 class="block">O</h2>
-			<h2 class="block">H</h2>
+			<h2 class="letters-box">O</h2>
+			<h2 class="letters-box">H</h2>
 		</div>
 
 		<br />
 
 		<div class="letters">
-			<h2 class="block">S</h2>
-			<h2 class="block">N</h2>
-			<h2 class="block">A</h2>
-			<h2 class="block">P</h2>
+			<h2 class="letters-box">S</h2>
+			<h2 class="letters-box">N</h2>
+			<h2 class="letters-box">A</h2>
+			<h2 class="letters-box">P</h2>
 		</div>
 	</div>
 
-	<h1 class="block error-status">
+	<h1 class="letters-box error-status">
 		{page.status}
 	</h1>
 
-	<hr />
+	<hr class="divide" />
 
 	<a href="/" class="exit-button">Return to Safety</a>
 </div>
 
 <style>
-	.container {
-		width: 100%;
-		height: 100%;
-		padding: 1rem;
-
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 2rem;
-	}
-
-	.block {
+	.letters-box {
 		border: 1px solid black;
 		border-radius: 8px;
 		padding: 0.5em;
 
+		font-size: x-large;
+		cursor: not-allowed;
+
 		animation: rotate-box-shadow 500ms ease infinite alternate;
-		transition: transform 100ms ease-in-out;
+		transition: transform 100ms ease-out;
 	}
 
-	.block:hover {
+	.letters-box:hover {
 		transform: scale(1.3) translateY(-10%);
 	}
 
