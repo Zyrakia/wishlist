@@ -4,7 +4,6 @@ import { load as cheerio } from 'cheerio';
 import { chromium } from 'playwright';
 import z from 'zod';
 import ENV from '../env.server';
-import type { Item } from '$lib/schemas/item';
 
 const SYSTEM_PROMPT = `
 You are to extract the single best product candidate from the given input.

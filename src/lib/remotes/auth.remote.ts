@@ -41,7 +41,7 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	redirect(303, '/');
 });
 
-const ReturnUrlSchema = z.string().startsWith('/');
+const ReturnUrlSchema = z.string().regex(/^\/(?!\/)/);
 
 export const login = form(CredentialsSchema.omit({ username: true }), async (data, invalid) => {
 	const { email, password } = data;

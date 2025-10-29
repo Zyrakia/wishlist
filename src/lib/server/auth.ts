@@ -47,5 +47,5 @@ export const readSession = async (cookies: Cookies) => {
 };
 
 export const clearSession = (cookies: Cookies) => {
-	setSession(cookies, '');
+	cookies.delete(COOKIE_NAME, { path: '/' });
 };
