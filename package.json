@@ -25,6 +25,7 @@
 		"drizzle-orm": "^0.44.7",
 		"svelte": "^5.42.3",
 		"svelte-check": "^4.3.3",
+		"tailwindcss": "^4.1.16",
 		"typescript": "^5.9.3",
 		"vite": "^7.1.12"
 	},
@@ -32,6 +33,7 @@
 		"@ai-sdk/google": "^2.0.24",
 		"@lucide/svelte": "^0.546.0",
 		"@t3-oss/env-core": "^0.13.8",
+		"@tailwindcss/vite": "^4.1.16",
 		"ai": "^5.0.81",
 		"bcryptjs": "^3.0.2",
 		"better-sqlite3": "^12.4.1",
