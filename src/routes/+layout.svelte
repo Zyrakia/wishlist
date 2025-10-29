@@ -1,7 +1,8 @@
 <script lang="ts">
+	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
-	import { SquareUser as UserIcon } from '@lucide/svelte';
+	import { SquareUserIcon, LogInIcon, GiftIcon } from '@lucide/svelte';
 
 	let { children, data } = $props();
 </script>
@@ -15,93 +16,66 @@
 		href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
 		rel="stylesheet"
 	/>
+
+	<title>Wishii</title>
 </svelte:head>
 
-<header>
-	<a class="auth" href={data.user ? '/' : 'login'}>
-		<UserIcon />
+<div class="min-h-dvh flex flex-col">
+	<header class="shrink-0 min-h-10">
+		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
+			<a href="/" class="font-semibold">Wishii</a>
 
-		{#if data.user}
-			{data.user.name}
-		{:else}
-			Login
-		{/if}
-	</a>
-</header>
+			<nav class="flex gap-6">
+				{#if data.user}
+					<a class="truncate" href="/lists">
+						<GiftIcon />
 
-{@render children?.()}
+						My Lists
+					</a>
+
+					<a class="truncate" href="/account">
+						<SquareUserIcon />
+
+						{data.user.name}
+					</a>
+				{:else}
+					<a href="login">
+						Login
+
+						<LogInIcon />
+					</a>
+				{/if}
+			</nav>
+		</div>
+	</header>
+
+	<main class="flex-1 flex overflow-y-auto">
+		{@render children()}
+	</main>
+</div>
 
 <style>
 	header {
-		padding: 0.5rem;
+		padding: 1rem;
 
 		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 
 		border-bottom: 1px solid rgba(0, 0, 0, 0.5);
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 	}
 
-	.auth {
+	a {
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
 
-		transition: color 150ms ease;
+		transition: color 100ms ease;
 	}
 
-	.auth:hover {
+	a:hover {
 		color: blue;
-	}
-
-	:global {
-		*,
-		*::before,
-		*::after {
-			box-sizing: border-box;
-		}
-
-		html,
-		body {
-			height: 100%;
-		}
-
-		body {
-			margin: 0;
-
-			font-family: 'Lato', sans-serif;
-			font-weight: 400;
-			font-style: normal;
-		}
-
-		img {
-			display: block;
-			width: 100%;
-			height: auto;
-		}
-
-		input,
-		button,
-		textarea,
-		select {
-			font: inherit;
-			color: inherit;
-		}
-
-		h1,
-		h2,
-		h3,
-		h4,
-		h5,
-		h6,
-		p {
-			margin: 0;
-		}
-
-		a {
-			color: initial;
-			text-decoration: none;
-		}
 	}
 
 	:global {
