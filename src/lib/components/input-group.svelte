@@ -40,8 +40,8 @@
 		gap: 0.25rem;
 	}
 
-	.container > :global(input),
-	.container > :global(textarea) {
+	.container :global(input),
+	.container :global(textarea) {
 		outline: none;
 		border: 1px solid black;
 
@@ -49,15 +49,15 @@
 		border-radius: 6px;
 	}
 
-	.container > :global(input:focus),
-	.container > :global(textarea:focus),
-	.container > :global(select:focus) {
+	.container :global(input:focus),
+	.container :global(textarea:focus),
+	.container :global(select:focus) {
 		border-color: blue;
 	}
 
-	.container > :global(input[aria-invalid]),
-	.container > :global(textarea[aria-invalid]),
-	.container > :global(select[aria-invalid]) {
+	.container :global(input[aria-invalid]),
+	.container :global(textarea[aria-invalid]),
+	.container :global(select[aria-invalid]) {
 		border-color: red;
 	}
 

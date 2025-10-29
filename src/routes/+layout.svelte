@@ -21,7 +21,7 @@
 </svelte:head>
 
 <div class="min-h-dvh flex flex-col">
-	<header class="shrink-0 min-h-10">
+	<header class="shrink-0 min-h-16">
 		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
 			<a href="/" class="font-semibold">Wishii</a>
 
@@ -89,7 +89,6 @@
 			border-radius: 5px;
 
 			outline: none;
-			background: whitesmoke;
 			cursor: pointer;
 
 			transition: filter 150ms ease;
