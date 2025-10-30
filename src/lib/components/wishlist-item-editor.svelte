@@ -101,7 +101,6 @@
 
 <div
 	use:pageScroll
-	class="container"
 	style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}"
 >
 	{#if hasJs() && preview}

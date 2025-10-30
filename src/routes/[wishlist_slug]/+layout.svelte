@@ -8,80 +8,52 @@
 	const wishlist = $derived(data.wishlist);
 	const description = $derived(wishlist.description.trim());
 	const badges = $derived(page.data.headerBadges || []);
+
+	const isOwn = $derived(wishlist.userId === data.user?.id);
 </script>
 
 <svelte:head>
 	<title>{wishlist.name} by {wishlist.user.name}</title>
 </svelte:head>
 
-<div class="container">
-	<div class="header">
-		<h1>{wishlist.name}</h1>
-		<p>by {wishlist.user.name}</p>
+<div class="w-full h-full">
+	<div class="p-5 border-b shadow">
+		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>
+		<p class="font-light text-lg italic">
+			by {wishlist.user.name}
+			{#if isOwn}
+				<span class="not-italic font-bold text-red-400">(You)</span>
+			{/if}
+		</p>
 
 		{#if description}
-			<br />
-			<p class="description">{description}</p>
+			<p class="description text-lg mt-2">"{description}"</p>
 		{/if}
 
 		{#if badges.length}
-			<div class="badges">
+			<div class="flex flex-wrap gap-4 mt-4">
 				{#each badges as badge}
-					<p class="badge">{badge}</p>
+					<p class="px-3 py-2 bg-emerald-100 rounded-xl border text-sm">
+						{badge}
+					</p>
 				{/each}
 			</div>
 		{/if}
 	</div>
 
-	<div class="content">
+	<div class="flex-1 relative">
 		{@render children()}
 	</div>
 </div>
 
 <style>
-	.container {
-		width: 100%;
-		height: 100%;
-
-		display: flex;
-		flex-direction: column;
-	}
-
-	.header {
-		padding: 1rem;
-		border-bottom: 1px solid black;
-
-		box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
-	}
-
-	.badges {
-		margin-top: 1rem;
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.badge {
-		padding: 0.3rem 0.7rem;
-		background-color: rgba(128, 239, 128, 0.5);
-
-		border: 1px solid black;
-		border-radius: 12px;
-	}
-
 	.description {
 		white-space: pre-wrap;
 		overflow-wrap: break-word;
-		font-size: larger;
 
 		padding: 0.5rem 0.75rem;
 
 		border-left: 2px solid rgba(0, 0, 0, 0.5);
 		border-radius: 3px;
-	}
-
-	.content {
-		position: relative;
-		width: 100%;
-		flex-grow: 1;
 	}
 </style>
