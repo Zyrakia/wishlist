@@ -68,15 +68,17 @@
 	}
 
 	.error {
+		
 		position: absolute;
 		top: 0;
 		right: 0;
-
+		
 		padding-right: 0.5rem;
 		border-right: 1px dashed red;
-
+		
 		font-weight: bold;
 		font-size: small;
+		text-transform: uppercase;
 		color: crimson;
 	}
 </style>

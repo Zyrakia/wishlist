@@ -13,10 +13,6 @@ body {
 
 body {
 	margin: 0;
-
-	font-family: 'Lato', sans-serif;
-	font-weight: 400;
-	font-style: normal;
 }
 
 img {
@@ -33,16 +29,6 @@ select {
 	color: inherit;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p {
-}
-
 a {
-	color: initial;
 	text-decoration: none;
 }

@@ -13,7 +13,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<link
-		href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+		href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
 		rel="stylesheet"
 	/>
 
@@ -21,7 +21,7 @@
 </svelte:head>
 
 <div class="min-h-dvh flex flex-col">
-	<header class="shrink-0 min-h-16">
+	<header class="shrink-0 min-h-16 drop-shadow-xs">
 		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
 			<a href="/" class="font-semibold">Wishii</a>
 
@@ -79,11 +79,17 @@
 	}
 
 	:global {
+		body {
+			font-family: 'Roboto', sans-serif;
+			font-weight: 400;
+			font-style: normal;
+		}
+	}
+
+	:global {
 		button,
 		.button {
 			position: relative;
-
-			padding: 0.35rem 0.7rem;
 
 			border: 1px solid black;
 			border-radius: 5px;
