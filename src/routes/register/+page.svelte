@@ -1,8 +1,8 @@
 <script lang="ts">
 	import InputGroup from '$lib/components/input-group.svelte';
-	import { login } from '$lib/remotes/auth.remote.js';
+	import { register } from '$lib/remotes/auth.remote.js';
 	import { useHasJs } from '$lib/runes/has-js.svelte.js';
-	import { CredentialsSchema } from '$lib/schemas/auth.js';
+	import { CreateCredentialsSchema } from '$lib/schemas/auth.js';
 	import { EyeClosedIcon, EyeIcon } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';
 
@@ -11,7 +11,7 @@
 	const hasJs = useHasJs();
 	const getIssue = () => remote.fields.issues()?.[0]?.message;
 
-	const remote = login.preflight(CredentialsSchema.omit({ username: true }));
+	const remote = register.preflight(CreateCredentialsSchema);
 
 	let showPassword = $state(false);
 	let issue = $state(getIssue());
@@ -34,10 +34,10 @@
 >
 	<div class="container max-w-2xl flex flex-col">
 		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">
-			Sign in to get started
+			Register to get started
 		</p>
-		<h1 class="text-3xl md:text-5xl mb-6 font-bold uppercase">Welcome Back</h1>
-		<p>Don't have an account yet? <a href="/register" class="text-blue-600">Create One</a></p>
+		<h1 class="text-3xl md:text-5xl mb-6 font-bold uppercase">Create an Account</h1>
+		<p>Already have an account? <a href="/login" class="text-blue-600">Login</a></p>
 
 		<form
 			{...remote}
@@ -54,29 +54,52 @@
 				{/snippet}
 			</InputGroup>
 
-			<InputGroup label="Password" error={remote.fields.password.issues()}>
+			<InputGroup label="Username" error={remote.fields.username.issues()}>
 				{#snippet control()}
-					<div class="w-full relative flex gap-2">
+					<input
+						class="bg-white"
+						placeholder="Enter your preferred username"
+						{...remote.fields.username.as('text')}
+					/>
+				{/snippet}
+			</InputGroup>
+
+			<InputGroup
+				label="Password"
+				error={remote.fields.password.issues() || remote.fields.passwordConfirm.issues()}
+			>
+				{#snippet control()}
+					<div class="w-full relative flex flex-col md:flex-row gap-2">
 						<input
-							class="w-full bg-white"
+							class="flex-1/2 bg-white"
 							placeholder="Enter your password"
 							{...remote.fields.password.as(showPassword ? 'text' : 'password')}
 						/>
 
-						{#if hasJs()}
-							<button
-								title={showPassword ? 'Hide Password' : 'Show Password'}
-								class="button px-3 bg-white"
-								type="button"
-								onclick={() => (showPassword = !showPassword)}
-							>
-								{#if showPassword}
-									<EyeIcon />
-								{:else}
-									<EyeClosedIcon />
-								{/if}
-							</button>
-						{/if}
+						<div class="flex-2/3 flex gap-2">
+							<input
+								class="w-full bg-white"
+								placeholder="Confirm your password"
+								{...remote.fields.passwordConfirm.as(
+									showPassword ? 'text' : 'password',
+								)}
+							/>
+
+							{#if hasJs()}
+								<button
+									title={showPassword ? 'Hide Password' : 'Show Password'}
+									class="button px-3 bg-white"
+									type="button"
+									onclick={() => (showPassword = !showPassword)}
+								>
+									{#if showPassword}
+										<EyeIcon />
+									{:else}
+										<EyeClosedIcon />
+									{/if}
+								</button>
+							{/if}
+						</div>
 					</div>
 				{/snippet}
 			</InputGroup>
@@ -95,7 +118,7 @@
 					}
 				})}
 			>
-				Login
+				Register
 			</button>
 
 			<p
