@@ -18,30 +18,25 @@
 	});
 </script>
 
-<label class="container">
-	<p class="label">{label}</p>
+<label class="wrapper w-full relative flex flex-col gap-1">
+	<p class="label font-bold">{label}</p>
 
 	{@render control()}
 
 	{#if errorMessage}
-		<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+		<p
+			in:fade={{ duration: 150 }}
+			out:fade={{ duration: 150 }}
+			class="absolute top-0 right-0 font-bold text-xs uppercase border-r border-dashed border-red-400 pr-2 text-red-600"
+		>
 			{errorMessage}
 		</p>
 	{/if}
 </label>
 
 <style>
-	.container {
-		width: 100%;
-		position: relative;
-
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.container :global(input),
-	.container :global(textarea) {
+	.wrapper :global(input),
+	.wrapper :global(textarea) {
 		outline: none;
 		border: 1px solid black;
 
@@ -49,36 +44,21 @@
 		border-radius: 6px;
 	}
 
-	.container :global(input:focus),
-	.container :global(textarea:focus),
-	.container :global(select:focus) {
+	.wrapper :global(input:focus),
+	.wrapper :global(textarea:focus),
+	.wrapper :global(select:focus) {
 		border-color: blue;
 	}
 
-	.container :global(input[aria-invalid]),
-	.container :global(textarea[aria-invalid]),
-	.container :global(select[aria-invalid]) {
+	.wrapper :global(input[aria-invalid]),
+	.wrapper :global(textarea[aria-invalid]),
+	.wrapper :global(select[aria-invalid]) {
 		border-color: red;
 	}
 
-	.container:has(:global(:is(input, textarea, select)[required])) .label::after {
+	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
 		content: ' *';
 		color: red;
 		font-weight: bold;
-	}
-
-	.error {
-		
-		position: absolute;
-		top: 0;
-		right: 0;
-		
-		padding-right: 0.5rem;
-		border-right: 1px dashed red;
-		
-		font-weight: bold;
-		font-size: small;
-		text-transform: uppercase;
-		color: crimson;
 	}
 </style>
