@@ -57,7 +57,7 @@
 				<div class="flex flex-col gap-2 items-center py-6">
 					<p class="italic font-light">You have no wishlists...</p>
 
-					<a href="/new-list" class="bg-green-200 px-4 py-2 rounded">Add Wishlist</a>
+					<a href="/new-list" class="button bg-green-200 px-4 py-2 rounded">Add Wishlist</a>
 				</div>
 			{/if}
 		</div>
