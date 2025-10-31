@@ -2,7 +2,7 @@
 	import { deleteItem } from '$lib/remotes/item.remote';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { slide } from 'svelte/transition';
-	import { Settings as EditIcon, Trash2 as TrashIcon } from '@lucide/svelte';
+	import { Settings2 as EditIcon, Trash2 as TrashIcon } from '@lucide/svelte';
 
 	let { wishlistSlug, itemId }: { wishlistSlug: string; itemId: string } = $props();
 
@@ -15,18 +15,13 @@
 	const confirmYes = () => confirmResolver && confirmResolver(true);
 	const confirmNo = () => confirmResolver && confirmResolver(false);
 
-	let lastFocused: HTMLElement | null = null;
 	const startConfirm = () => {
 		if (confirming) return;
-
-		lastFocused = document.activeElement as HTMLElement | null;
 
 		return new Promise<boolean>((res) => {
 			confirmResolver = res;
 		}).finally(() => {
 			confirmResolver = undefined;
-			lastFocused?.focus?.();
-			lastFocused = null;
 		});
 	};
 
@@ -35,10 +30,10 @@
 	};
 </script>
 
-<div class="container">
+<div class="py-3 px-2 max-h-12 h-12">
 	{#if confirmResolver}
 		<div
-			class="confirm-container"
+			class="flex items-center gap-2 h-full"
 			role="alertdialog"
 			aria-modal="true"
 			tabindex="-1"
@@ -46,23 +41,31 @@
 			out:slide={{ duration: 150 }}
 			onkeydown={onConfirmKeydown}
 		>
-			<p>Are you sure?</p>
+			<p class="w-full">Are you sure?</p>
 
-			<button type="button" title="Yes" onclick={confirmYes} class="button">Yes</button>
-			<button type="button" title="No" onclick={confirmNo} class="button">No</button>
+			<button type="button" title="Yes" onclick={confirmYes}>Yes</button>
+			<button type="button" title="No" onclick={confirmNo}>No</button>
 		</div>
 	{:else}
-		<div class="actions-container" in:slide={{ duration: 150 }} out:slide={{ duration: 150 }}>
-			<a title="Edit" class="button" href="/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a>
+		<div
+			class="flex flex-row-reverse gap-4"
+			in:slide={{ duration: 150 }}
+			out:slide={{ duration: 150 }}
+		>
+			<a
+				title="Edit"
+				class="button p-0.5 border-none"
+				href="/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a
+			>
 
-			<form class="delete-form" {...deleteForm}>
+			<form class="text-red-500" {...deleteForm}>
 				<input {...deleteForm.fields.wishlistSlug.as('hidden', wishlistSlug)} />
 				<input {...deleteForm.fields.itemId.as('hidden', itemId)} />
 				<input {...deleteForm.fields.confirm.as('hidden', `${hasJs()}`)} />
 
 				<button
 					title="Delete"
-					class="button"
+					class="p-0.5 border-none"
 					disabled={confirming}
 					{...deleteForm.buttonProps.enhance(async ({ submit }) => {
 						const res = await startConfirm();
@@ -78,35 +81,17 @@
 </div>
 
 <style>
-	.container {
-		max-height: 48px;
-		min-height: 48px;
-		padding: 0.5rem;
-		transition: scale 100ms ease;
-	}
+	@reference "tailwindcss";
 
-	.actions-container {
-		display: flex;
-		flex-direction: row-reverse;
-		gap: 0.5rem;
-	}
+	@layer components {
+		button,
+		.button {
+			@apply bg-transparent;
+		}
 
-	.button {
-		background: none;
-		border: none;
-	}
-
-	.delete-form {
-		color: red;
-	}
-
-	.confirm-container {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.confirm-container p {
-		margin-right: auto;
+		button:focus,
+		.button:focus {
+			@apply ring-2;
+		}
 	}
 </style>

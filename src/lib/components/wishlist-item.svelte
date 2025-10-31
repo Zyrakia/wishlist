@@ -56,7 +56,7 @@
 	const hasJs = useHasJs();
 </script>
 
-<div class="item-wrapper">
+<div class="w-full max-w-xl relative flex flex-col">
 	<svelte:element
 		this={!hasJs() && canClick ? 'a' : 'button'}
 		onclick={() => {
@@ -66,44 +66,53 @@
 		disabled={!canClick}
 		role="link"
 		tabindex="0"
-		class={['item', canClick && 'interactive']}
+		class={[
+			'button w-full h-full flex flex-col justify-center p-4 border-2 bg-white brightness-100 border-zinc-300 shadow-sm text-left transition-shadow',
+			canClick && 'interactive cursor-pointer hover:shadow-xl',
+		]}
 		href={item.url}
 		target="_blank"
 	>
-		<div class="item-header">
+		<div class="flex flex-col justify-center gap-2 flex-1">
 			{#if item.imageUrl}
-				<div class="item-image-wrapper">
-					<img class="item-image" src={item.imageUrl} alt="{item.name} Primary Image" />
+				<div class="aspect-video flex justify-center overflow-hidden p-2">
+					<img
+						class="object-contain w-full"
+						src={item.imageUrl}
+						alt="{item.name} Primary Image"
+					/>
 				</div>
 			{/if}
 
-			<p class="item-name">
+			<p class="text-lg font-bold whitespace-normal wrap-break-word">
 				{item.name}
 			</p>
 		</div>
 
 		{#if renderBody}
-			<div class="item-body">
-				<hr class="divider" />
+			<div class="h-full text-left">
+				<hr class="border-zinc-400" />
 
 				{#if item.notes}
-					<p class="item-notes">{item.notes.trim()}</p>
+					<p class="whitespace-pre-wrap wrap-break-word font-light mt-2 text-base">
+						{item.notes.trim()}
+					</p>
 				{/if}
 			</div>
 
-			<div class="item-purchase-details">
+			<div class="pt-2 flex gap-1">
 				{#if currFormats && item.price}
 					<p
 						title="Priced around {currFormats.long.format(item.price)}"
 						class="item-price"
 					>
-						<span class="item-price-prefix">~</span>
+						<span class="font-bold text-red-500">~</span>
 						{currFormats.short.format(item.price)}
 					</p>
 				{/if}
 
 				{#if urlSummary}
-					<span class="item-link-prefix">
+					<span>
 						{currFormats && item.price ? 'at' : '🔗'}
 					</span>
 					<span class="item-link-name" title={item.url}>{urlSummary}</span>
@@ -118,106 +127,6 @@
 </div>
 
 <style>
-	.item-wrapper {
-		width: 100%;
-		max-width: 600px;
-
-		position: relative;
-
-		display: flex;
-		flex-direction: column;
-	}
-
-	.item {
-		width: 100%;
-		height: 100%;
-
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		padding: 1rem;
-
-		border: 2px solid #ccc;
-		border-radius: 6px;
-
-		background-color: white;
-
-		box-shadow: 0 0 transparent;
-		transition: box-shadow 200ms ease;
-
-		text-align: left;
-
-		filter: brightness(1);
-	}
-
-	.item.interactive {
-		cursor: pointer;
-	}
-
-	.item.interactive:hover {
-		box-shadow: -3px 2px 5px rgba(0, 0, 0, 0.4);
-	}
-
-	.item-header {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-
-		text-align: center;
-
-		gap: 0.5rem;
-
-		flex: 1 1;
-
-		padding-bottom: 0;
-	}
-
-	.item-image-wrapper {
-		aspect-ratio: 16/9;
-		overflow: hidden;
-	}
-
-	.item-image {
-		width: 100%;
-		height: 100%;
-		padding: 1rem;
-
-		object-fit: contain;
-	}
-
-	.item-name {
-		font-size: large;
-		font-weight: bold;
-
-		white-space: normal;
-		overflow-wrap: break-word;
-	}
-
-	.divider {
-		width: 100%;
-		height: 1px;
-
-		border: none;
-		background-color: gray;
-	}
-
-	.item-body {
-		height: 100%;
-		text-align: left;
-	}
-
-	.item-purchase-details {
-		padding-top: 0.5rem;
-		display: flex;
-		gap: 0.25rem;
-	}
-
-	.item-notes {
-		white-space: pre-wrap;
-		overflow-wrap: break-word;
-		font-weight: 300;
-	}
-
 	.item-price {
 		text-shadow: 0 0 0 transparent;
 		transition: text-shadow 300ms ease;
@@ -226,12 +135,7 @@
 		font-weight: bold;
 	}
 
-	.item-price-prefix {
-		font-weight: bold;
-		color: red;
-	}
-
-	.item.interactive:hover .item-price {
+	.interactive:hover .item-price {
 		text-shadow: 0 0 5px hotpink;
 	}
 
@@ -258,7 +162,7 @@
 		transition: width 150ms ease-in;
 	}
 
-	.item.interactive:hover .item-link-name::before {
+	.interactive:hover .item-link-name::before {
 		width: 100%;
 	}
 </style>

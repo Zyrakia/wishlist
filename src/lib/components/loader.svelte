@@ -17,7 +17,7 @@
 	} = $props();
 </script>
 
-<div class="container">
+<div class="relative w-full h-full grid place-items-center">
 	{#each { length: pulseCount }, i}
 		<div
 			style="border-color: {color}; border-width: {thickness}; animation-direction: {alternate
@@ -29,16 +29,6 @@
 </div>
 
 <style>
-	.container {
-		position: relative;
-
-		width: 100%;
-		height: 100%;
-
-		display: grid;
-		place-items: center;
-	}
-
 	.pulse {
 		z-index: 1;
 		position: absolute;

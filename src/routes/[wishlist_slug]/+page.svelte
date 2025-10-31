@@ -18,21 +18,21 @@
 
 <div class="flex gap-3 items-center p-4">
 	{#if isOwn}
-		<a class="toolbar-button" href="/{wishlist.slug}/item/create">
+		<a class="button" href="/{wishlist.slug}/item/create">
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>
 	{/if}
 
 	<button
-		disabled={!hasJs() || !navigator.canShare()}
+		disabled={!hasJs() || !navigator.canShare?.()}
 		onclick={async () => {
 			await navigator.share({
 				title: `${wishlist.name} by ${wishlist.user.name}`,
 				url: location.href,
 			});
 		}}
-		class="toolbar-button"
+		class="button"
 	>
 		<ShareIcon size={16} />
 		<span>Share</span>
@@ -59,16 +59,10 @@
 </main>
 
 <style>
-	.toolbar-button {
+	.button {
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
-
-		padding: 0.25rem 0.75rem;
-		background-color: white;
-
-		border: 1px solid black;
-		border-radius: 8px;
 	}
 
 	.items-wrapper {

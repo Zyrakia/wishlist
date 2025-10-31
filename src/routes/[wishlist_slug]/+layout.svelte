@@ -27,7 +27,11 @@
 		</p>
 
 		{#if description}
-			<p class="description text-lg mt-2">"{description}"</p>
+			<p
+				class="whitespace-pre-wrap wrap-break-word px-2 py-3 border-l-2 border-zinc-400 rounded-sm text-lg mt-4"
+			>
+				"{description}"
+			</p>
 		{/if}
 
 		{#if badges.length}
@@ -45,15 +49,3 @@
 		{@render children()}
 	</div>
 </div>
-
-<style>
-	.description {
-		white-space: pre-wrap;
-		overflow-wrap: break-word;
-
-		padding: 0.5rem 0.75rem;
-
-		border-left: 2px solid rgba(0, 0, 0, 0.5);
-		border-radius: 3px;
-	}
-</style>
