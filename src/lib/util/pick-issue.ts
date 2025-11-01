@@ -12,6 +12,6 @@ export const asIssue = (
 	if (!input) return;
 
 	if (typeof input === 'string') return input;
-	if ('issues' in input) return asIssue(input.issues());
-	else if (input.length) return input[at]?.message;
+	if (Array.isArray(input)) return input[at]?.message;
+	else return asIssue(input.issues());
 };
