@@ -56,7 +56,7 @@
 	const hasJs = useHasJs();
 </script>
 
-<div class="w-full max-w-xl relative flex flex-col">
+<div class="w-full max-w-full lg:max-w-md xl:max-w-xl relative flex flex-col">
 	<svelte:element
 		this={!hasJs() && canClick ? 'a' : 'button'}
 		onclick={() => {

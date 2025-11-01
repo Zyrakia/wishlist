@@ -1,6 +1,7 @@
 <script lang="ts">
+	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { getWishlistActivity } from '$lib/remotes/wishlist.remote.js';
-	import { MoonIcon, SunIcon, SunMoonIcon } from '@lucide/svelte';
+	import { MoonIcon, MoveRightIcon, SunIcon, SunMoonIcon } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -14,7 +15,12 @@
 					? 'afternoon'
 					: 'evening';
 
-	const activityQuery = getWishlistActivity({ limit: 10 });
+	const activityQuery = getWishlistActivity({ limit: 5 });
+
+	const dtf = new Intl.DateTimeFormat(navigator.languages, {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	});
 </script>
 
 {#if data.user}
@@ -38,26 +44,48 @@
 			</h1>
 		</div>
 
-		<div>
-			<p class="font-light">Your recent list activity</p>
-			<hr class="border-dashed" />
+		<div class="w-full">
+			<p class="font-bold flex items-center flex-wrap gap-4">
+				Your recent list activity
+
+				<a
+					href="/lists"
+					class="flex items-center py-1 gap-2 hover:text-blue-600 font-light ms-auto"
+				>
+					[<MoveRightIcon size={16} />
+					View all lists ]
+				</a>
+			</p>
+
+			<hr class="border-dashed mb-1" />
 
 			{#if (await activityQuery).length}
-				{#each await activityQuery as { wishlist, lastItemAt }}
-					<a href="/{wishlist.slug}" class="flex flex-col p-3 border my-2">
-						<p>Temporary wishlist</p>
+				<div class="w-full flex flex-wrap gap-x-4">
+					{#each await activityQuery as { wishlist, lastItemAt }}
+						<WishlistSummary {wishlist}>
+							{#snippet footer()}
+								{#if lastItemAt || wishlist.createdAt}
+									{@const modDate = new Date(
+										lastItemAt * 1000 || wishlist.createdAt.getTime(),
+									)}
 
-						<p>{wishlist.name}</p>
-						<p>{wishlist.description}</p>
-						<p>{wishlist.slug}</p>
-						<p>{new Date(lastItemAt).toISOString()}</p>
-					</a>
-				{/each}
+									<hr class="my-2" />
+									<p class="font-light text-xs text-neutral-500">
+										Modified
+										{dtf.format(modDate)}
+									</p>
+								{/if}
+							{/snippet}
+						</WishlistSummary>
+					{/each}
+				</div>
 			{:else}
 				<div class="flex flex-col gap-2 items-center py-6">
 					<p class="italic font-light">You have no wishlists...</p>
 
-					<a href="/new-list" class="button bg-green-200 px-4 py-2 rounded">Add Wishlist</a>
+					<a href="/new-list" class="button bg-green-200 px-4 py-2 rounded"
+						>Add Wishlist</a
+					>
 				</div>
 			{/if}
 		</div>

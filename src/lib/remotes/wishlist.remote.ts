@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { WishlistItemTable, WishlistTable } from '$lib/server/db/schema';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
-import { sql, eq, desc } from 'drizzle-orm';
+import { sql, eq, desc, asc } from 'drizzle-orm';
 import z from 'zod';
 
 export const createWishlist = form(WishlistSchema, async (data, invalid) => {
@@ -40,32 +40,37 @@ export const getWishlistActivity = query(
 		} = getRequestEvent();
 		if (!user) error(401);
 
-		const u = db
-			.select({ id: WishlistTable.id })
-			.from(WishlistTable)
-			.where(eq(WishlistTable.userId, user.id))
-			.as('u');
+		const lastItem = db.$with('last_item').as(
+			db
+				.select({
+					wishlistId: WishlistItemTable.wishlistId,
+					modifiedAt: sql<number>`max(${WishlistItemTable.createdAt})`.as('modifiedAt'),
+				})
+				.from(WishlistItemTable)
+				.innerJoin(WishlistTable, eq(WishlistTable.id, WishlistItemTable.wishlistId))
+				.where(eq(WishlistTable.userId, user.id))
+				.groupBy(WishlistItemTable.wishlistId),
+		);
 
-		const lastItem = db
-			.select({
-				wishlistId: WishlistItemTable.wishlistId,
-				lastItemAt: sql<number>`max(${WishlistItemTable.createdAt})`.as('lastItemAt'),
-			})
-			.from(WishlistItemTable)
-			.innerJoin(u, eq(u.id, WishlistItemTable.wishlistId))
-			.groupBy(WishlistItemTable.wishlistId)
-			.as('lastItem');
+		const sortGroup = sql<number>`CASE WHEN ${lastItem.modifiedAt} IS NULL THEN 0 ELSE 1 END`;
+
+		const sortWhen = sql<number>`
+      CASE
+        WHEN ${lastItem.modifiedAt} IS NULL THEN ${WishlistTable.createdAt}
+        ELSE ${lastItem.modifiedAt}
+      END
+    `;
 
 		return db
-			.select({ wishlist: WishlistTable, lastItemAt: lastItem.lastItemAt })
+			.with(lastItem)
+			.select({
+				wishlist: WishlistTable,
+				lastItemAt: lastItem.modifiedAt,
+			})
 			.from(WishlistTable)
 			.leftJoin(lastItem, eq(lastItem.wishlistId, WishlistTable.id))
 			.where(eq(WishlistTable.userId, user.id))
-			.orderBy(
-				desc(sql`${lastItem.lastItemAt} IS NOT NULL`),
-				desc(lastItem.lastItemAt),
-				desc(WishlistTable.createdAt),
-			)
+			.orderBy(asc(sortGroup), desc(sortWhen))
 			.limit(limit);
 	},
 );

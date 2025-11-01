@@ -39,7 +39,7 @@
 	</button>
 </div>
 
-<main class="w-full px-4 items-wrapper">
+<main class="w-full flex flex-wrap gap-4 p-4">
 	{#if items.length !== 0}
 		{#each items as item}
 			<WishlistItem {item}>
@@ -63,19 +63,5 @@
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
-	}
-
-	.items-wrapper {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 550px));
-		grid-auto-rows: auto;
-		align-content: start;
-		gap: 1.5rem 1rem;
-	}
-
-	@media (max-width: 600px) {
-		.items-wrapper {
-			padding: 0.5rem;
-		}
 	}
 </style>
