@@ -1,14 +1,9 @@
 import z from 'zod';
 
 export const CredentialsSchema = z.object({
-	email: z.email({ error: 'Invalid email' }).trim().nonempty('Email is required'),
-	username: z
-		.string({ error: 'Username is required' })
-		.trim()
-		.nonempty({ error: 'Username is required' }),
-	password: z
-		.string({ error: 'Password is required' })
-		.nonempty({ error: 'Password is required' }),
+	email: z.email({ error: 'Invalid email' }).toLowerCase().trim().nonempty('Email is required'),
+	username: z.string({ error: 'Username is required' }).trim().nonempty({ error: 'Username is required' }),
+	password: z.string({ error: 'Password is required' }).nonempty({ error: 'Password is required' }),
 });
 
 export const CreateCredentialsSchema = CredentialsSchema.extend({

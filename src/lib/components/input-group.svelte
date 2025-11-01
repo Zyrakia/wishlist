@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import { asIssue } from '$lib/util/pick-issue';
+	import { type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	let {
@@ -12,10 +13,7 @@
 		error?: string | { message: string }[];
 	} = $props();
 
-	const errorMessage = $derived.by(() => {
-		if (typeof error === 'string') return error;
-		return error?.[0]?.message;
-	});
+	const errorMessage = $derived(asIssue(error));
 </script>
 
 <label class="wrapper w-full relative flex flex-col gap-1">

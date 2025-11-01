@@ -13,6 +13,7 @@
 	import Loader from './loader.svelte';
 	import { browser } from '$app/environment';
 	import { pageScroll } from '$lib/actions/page-scroll';
+	import { asIssue } from '$lib/util/pick-issue';
 
 	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
 
@@ -34,7 +35,7 @@
 	const isCreate = mode === 'create' || mode === 'create-auto';
 	const remote = (isCreate ? createItem : updateItem).preflight(ItemSchema);
 
-	const hasIssue = $derived(remote.fields.issues() !== undefined);
+	const hasIssue = $derived(!!asIssue(remote.fields));
 	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
 
 	const generateRemote = generateItem.preflight(
@@ -78,9 +79,6 @@
 		remote.validate();
 	};
 
-	const issue = (field: { issues(): RemoteFormIssue[] | undefined }) =>
-		field.issues()?.[0]?.message;
-
 	const seed = () => {
 		const seedItem = safePrune(ItemSchema, {
 			...(mode === 'create-auto' && isGenerateDone ? generateRemote.result : {}),
@@ -99,10 +97,7 @@
 	});
 </script>
 
-<div
-	use:pageScroll
-	style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}"
->
+<div use:pageScroll style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}">
 	{#if hasJs() && preview}
 		<aside class="preview-pane">
 			<div class="preview-snap">
@@ -134,15 +129,11 @@
 				<label class="input-group required">
 					<span class="input-group-label">Name</span>
 
-					<input
-						placeholder={placeholder.name}
-						required
-						{...remote.fields.name.as('text')}
-					/>
+					<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
 
-					{#if issue(remote.fields.name)}
+					{#if asIssue(remote.fields.name)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.name)}
+							{asIssue(remote.fields.name)}
 						</p>
 					{/if}
 				</label>
@@ -150,16 +141,13 @@
 				<label class="input-group">
 					<span class="input-group-label">Notes</span>
 
-					<textarea
-						rows="6"
-						placeholder={placeholder.notes}
-						{...remote.fields.notes.as('text')}
+					<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
 						>{remote.fields.notes.value() || ''}</textarea
 					>
 
-					{#if issue(remote.fields.notes)}
+					{#if asIssue(remote.fields.notes)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.notes)}
+							{asIssue(remote.fields.notes)}
 						</p>
 					{/if}
 				</label>
@@ -170,20 +158,14 @@
 
 						<input
 							placeholder={placeholder.price?.toFixed(2)}
-							{...(remote.fields.price as unknown as RemoteFormField<string>).as(
-								'text',
-							)}
+							{...(remote.fields.price as unknown as RemoteFormField<string>).as('text')}
 							step="0.01"
 							min="0"
 						/>
 
-						{#if issue(remote.fields.price)}
-							<p
-								in:fade={{ duration: 150 }}
-								out:fade={{ duration: 150 }}
-								class="error"
-							>
-								{issue(remote.fields.price)}
+						{#if asIssue(remote.fields.price)}
+							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+								{asIssue(remote.fields.price)}
 							</p>
 						{/if}
 					</label>
@@ -193,20 +175,16 @@
 
 						<input
 							placeholder={placeholder.priceCurrency}
-							{...(
-								remote.fields.priceCurrency as unknown as RemoteFormField<string>
-							).as('text')}
+							{...(remote.fields.priceCurrency as unknown as RemoteFormField<string>).as(
+								'text',
+							)}
 							list="currency-list"
 							autocomplete="off"
 						/>
 
-						{#if issue(remote.fields.priceCurrency)}
-							<p
-								in:fade={{ duration: 150 }}
-								out:fade={{ duration: 150 }}
-								class="error"
-							>
-								{issue(remote.fields.priceCurrency)}
+						{#if asIssue(remote.fields.priceCurrency)}
+							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
+								{asIssue(remote.fields.priceCurrency)}
 							</p>
 						{/if}
 
@@ -229,9 +207,9 @@
 
 					<input placeholder={placeholder.url} {...remote.fields.url.as('text')} />
 
-					{#if issue(remote.fields.url)}
+					{#if asIssue(remote.fields.url)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.url)}
+							{asIssue(remote.fields.url)}
 						</p>
 					{/if}
 				</label>
@@ -239,14 +217,11 @@
 				<label class="input-group">
 					<span class="input-group-label">Image Link</span>
 
-					<input
-						placeholder={placeholder.imageUrl}
-						{...remote.fields.imageUrl.as('text')}
-					/>
+					<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
 
-					{#if issue(remote.fields.imageUrl)}
+					{#if asIssue(remote.fields.imageUrl)}
 						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{issue(remote.fields.imageUrl)}
+							{asIssue(remote.fields.imageUrl)}
 						</p>
 					{/if}
 				</label>
@@ -306,9 +281,9 @@
 					onclick={() => (isGenerateDone = true)}>Create Manually</button
 				>
 
-				{#if generateError || issue(generateRemote.fields.url)}
+				{#if generateError || asIssue(generateRemote.fields.url)}
 					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{generateError || issue(generateRemote.fields.url)}
+						{generateError || asIssue(generateRemote.fields.url)}
 					</p>
 				{/if}
 			</form>

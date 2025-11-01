@@ -7,9 +7,10 @@
 	import { fade } from 'svelte/transition';
 
 	import backgroundImage from '$lib/assets/authentication-background.webp';
+	import { asIssue } from '$lib/util/pick-issue';
 
 	const hasJs = useHasJs();
-	const getIssue = () => remote.fields.issues()?.[0]?.message;
+	const getIssue = () => asIssue(remote.fields);
 
 	const remote = register.preflight(CreateCredentialsSchema);
 
@@ -33,9 +34,7 @@
 	class="flex-1 p-6 py-12 md:p-12 flex md:items-center justify-center md:justify-start bg-no-repeat bg-bottom-right bg-cover"
 >
 	<div class="container max-w-2xl flex flex-col">
-		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">
-			Register to get started
-		</p>
+		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">Register to get started</p>
 		<h1 class="text-3xl md:text-5xl mb-6 font-bold uppercase">Create an Account</h1>
 		<p>Already have an account? <a href="/login" class="text-blue-600">Login</a></p>
 
@@ -80,9 +79,7 @@
 							<input
 								class="w-full bg-white"
 								placeholder="Confirm your password"
-								{...remote.fields.passwordConfirm.as(
-									showPassword ? 'text' : 'password',
-								)}
+								{...remote.fields.passwordConfirm.as(showPassword ? 'text' : 'password')}
 							/>
 
 							{#if hasJs()}

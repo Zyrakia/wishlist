@@ -7,5 +7,5 @@ export const load: PageServerLoad = () => {
 		locals: { user },
 	} = getRequestEvent();
 
-	if (!user) redirect(301, `/login?redirect=${encodeURIComponent('/lists')}`);
+	if (!user) redirect(301, `/login`);
 };
