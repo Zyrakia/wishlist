@@ -8,7 +8,7 @@ import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import z from 'zod';
 import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
 
-export const createItem = form(ItemSchema, async (data) => {
+export const createItem = form(ItemSchema, async (data, invalid) => {
 	const {
 		params: { wishlist_slug },
 		locals: { user },

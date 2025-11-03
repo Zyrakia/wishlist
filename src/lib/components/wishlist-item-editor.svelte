@@ -11,8 +11,7 @@
 	import Loader from './loader.svelte';
 	import WishlistItem from './wishlist-item.svelte';
 	import InputGroup from './input-group.svelte';
-	import { ArrowLeftFromLineIcon, CheckIcon, CrossIcon, LinkIcon, PenIcon, XIcon } from '@lucide/svelte';
-	import { page } from '$app/state';
+	import { ArrowLeftFromLineIcon, CheckIcon, LinkIcon, PenIcon, XIcon } from '@lucide/svelte';
 
 	let {
 		handler,
@@ -26,7 +25,11 @@
 	let loading = $state(false);
 
 	const generalIssue = $derived(asIssue(handler.fields.issues()));
-	const generateRemote = generateItem.preflight(z.object({ url: RequiredUrlSchema }));
+	// SEE: https://github.com/sveltejs/kit/issues/14802
+	// Prevent generation value from persisting
+	const generateRemote = generateItem
+		.preflight(z.object({ url: RequiredUrlSchema }))
+		.for(hasJs() ? crypto.randomUUID() : 1);
 
 	let formMirror: Partial<Item> = $state({});
 	const hasMirror = $derived(!!Object.keys(formMirror).length);
@@ -191,6 +194,10 @@
 				</div>
 
 				{#if mode === 'form'}
+					{#if generalIssue}
+						<p class="text-red-500">{generalIssue}</p>
+					{/if}
+
 					<div class="flex gap-2">
 						{#if generate !== false}
 							<svelte:element
