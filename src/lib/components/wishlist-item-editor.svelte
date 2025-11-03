@@ -104,7 +104,7 @@
 <div
 	use:pageScroll={(_, hasScroll) => (pageHasScroll = hasScroll)}
 	class:has-scroll={pageHasScroll}
-	class="h-full w-full flex flex-col xl:flex-row"
+	class="min-h-full w-full flex flex-col xl:flex-row"
 >
 	{#if showPreview}
 		<aside class="pane flex-4/12 p-4 bg-neutral-200 grid place-items-center">
@@ -116,7 +116,9 @@
 						<Loader />
 					</div>
 				{:else}
-					<div class="w-full border border-dashed border-red-800/50 p-4 rounded">
+					<div
+						class="w-full border border-dashed border-red-800/50 p-4 rounded grid place-items-center"
+					>
 						<WishlistItem item={formMirror} interactive={false} />
 					</div>
 				{/if}
