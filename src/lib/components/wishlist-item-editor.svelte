@@ -17,7 +17,11 @@
 		handler,
 		init,
 		generate = true,
-	}: { handler: typeof createItem | typeof updateItem; init?: Partial<Item>; generate: boolean } = $props();
+	}: {
+		handler: typeof createItem | typeof updateItem;
+		init?: Partial<Item>;
+		generate: boolean;
+	} = $props();
 
 	const hasJs = useHasJs();
 
@@ -131,7 +135,7 @@
 					? 'xl:m-0 xl:max-w-full'
 					: 'xl:max-w-6xl'} w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
 			>
-				<div style="display: {mode === 'form' ? 'contents' : 'none'}">
+				<div class:hidden={mode !== 'form'} class="flex flex-col gap-2">
 					<InputGroup label="Name" error={handler.fields.name.issues()}>
 						{#snippet control()}
 							<input required {...handler.fields.name.as('text')} />
@@ -140,9 +144,7 @@
 
 					<InputGroup label="Notes" error={handler.fields.notes.issues()}>
 						{#snippet control()}
-							<textarea rows="6" {...handler.fields.notes.as('text')}>
-								{handler.fields.notes.value()?.trim()}
-							</textarea>
+							<textarea rows="6" {...handler.fields.notes.as('text')}></textarea>
 						{/snippet}
 					</InputGroup>
 
@@ -156,7 +158,10 @@
 						</div>
 
 						<div class="flex-2/5">
-							<InputGroup label="Currency" error={handler.fields.priceCurrency.issues()}>
+							<InputGroup
+								label="Currency"
+								error={handler.fields.priceCurrency.issues()}
+							>
 								{#snippet control()}
 									<datalist id="currency-list">
 										<option value="USD">USD ($)</option>
@@ -214,14 +219,19 @@
 							</svelte:element>
 						{/if}
 
-						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}>Submit</button>
+						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}
+							>Submit</button
+						>
 					</div>
 				{:else}
 					<div class="w-full h-full flex flex-col gap-6 items-center justify-center">
 						<h1 class="text-2xl">Is this right?</h1>
 
 						<div class="flex gap-y-2 gap-x-4 flex-col md:flex-row">
-							<button class="flex items-center gap-2 bg-green-200" {...submitButtonProps}>
+							<button
+								class="flex items-center gap-2 bg-green-200"
+								{...submitButtonProps}
+							>
 								<CheckIcon />
 								Add to List
 							</button>
