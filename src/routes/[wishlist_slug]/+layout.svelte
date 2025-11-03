@@ -28,14 +28,6 @@
 			{/if}
 		</p>
 
-		{#if description}
-			<p
-				class="whitespace-pre-wrap wrap-break-word px-2 py-3 border-l-2 border-zinc-400 rounded-sm text-lg mt-4"
-			>
-				"{description}"
-			</p>
-		{/if}
-
 		{#if badges.length || !isAtRoot}
 			<div class="flex flex-wrap gap-4 mt-4 items-center">
 				{#if !isAtRoot}
@@ -53,7 +45,15 @@
 		{/if}
 	</div>
 
-	<div class="h-full">
+	<div class="h-full w-full">
+		{#if description && isAtRoot}
+			<div class="p-4 m-4 mb-0 border rounded border-zinc-500/30 shadow-sm">
+				<p class="whitespace-pre-wrap wrap-break-word text-base">
+					"{description}"
+				</p>
+			</div>
+		{/if}
+
 		{@render children()}
 	</div>
 </div>
