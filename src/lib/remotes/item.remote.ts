@@ -4,7 +4,7 @@ import { db } from '../server/db';
 import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { ItemSchema } from '$lib/schemas/item';
+import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import z from 'zod';
 import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
 
@@ -95,31 +95,23 @@ export const deleteItem = form(
 	},
 );
 
-export const generateItem = form(
-	z.object({
-		url: ItemSchema.shape.url.transform((v, ctx) => {
-			if (v === null) {
-				ctx.addIssue({ code: 'custom', message: 'URL is required' });
-				return z.NEVER;
-			}
+export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
+	const {
+		locals: { user },
+	} = getRequestEvent();
 
-			return v;
-		}),
-	}),
-	async (data) => {
-		const {
-			locals: { user },
-		} = getRequestEvent();
+	if (!user) error(401);
 
-		if (!user) error(401);
-
-		try {
-			const res = await generateItemCandidates(data.url);
-			if (res.success) return { ...res.candidate, url: data.url };
-			else error(422, res.error);
-		} catch (err) {
-			if (isHttpError(err)) throw err;
-			console.warn(err);
-		}
-	},
-);
+	try {
+		const res = await generateItemCandidates(data.url);
+		if (res.success) {
+			if (!res.candidate || !res.candidate.name) {
+				invalid('No product found');
+			} else return { ...res.candidate, url: data.url };
+		} else invalid('Cannot process URL');
+	} catch (err) {
+		if (isHttpError(err)) throw err;
+		invalid('Cannot process URL');
+		console.warn(err);
+	}
+});

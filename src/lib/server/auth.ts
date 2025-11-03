@@ -34,7 +34,6 @@ export const setSession = (cookies: Cookies, value: string) => {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: true,
 		maxAge: value ? ENV.JWT_LIFETIME.seconds : 0,
 	});
 };

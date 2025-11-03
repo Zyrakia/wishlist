@@ -20,7 +20,7 @@
 	<title>Wishii</title>
 </svelte:head>
 
-<div class="min-h-dvh flex flex-col">
+<div class="h-full flex flex-col">
 	<header class="shrink-0 min-h-16 drop-shadow-md p-4 flex items-center gap-2 border-b">
 		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
 			<a href="/" class="font-semibold">Wishii</a>
@@ -49,7 +49,7 @@
 		</div>
 	</header>
 
-	<main class="flex-1 flex overflow-y-auto">
+	<main class="w-full h-full">
 		{@render children()}
 	</main>
 </div>

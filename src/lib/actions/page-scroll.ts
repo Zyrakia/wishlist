@@ -3,15 +3,15 @@ import type { Action } from 'svelte/action';
 /**
  * Toggles a class on an element when the document is scrollable.
  */
-export const pageScroll: Action<HTMLElement, { toggleClass: string } | undefined> = (
+export const pageScroll: Action<HTMLElement, (element: HTMLElement, pageScrollable: boolean) => void> = (
 	node,
-	props = { toggleClass: 'has-scroll' },
+	handler,
 ) => {
 	const target = document.scrollingElement || document.documentElement;
-
 	const update = () => {
+		if (!target || !node) return;
 		const has = target.scrollHeight > target.clientHeight + 1;
-		node.classList.toggle(props.toggleClass, has);
+		handler(node, has);
 	};
 
 	const ro = new ResizeObserver(update);

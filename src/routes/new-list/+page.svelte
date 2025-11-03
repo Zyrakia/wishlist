@@ -1,7 +1,6 @@
 <script lang="ts">
 	import InputGroup from '$lib/components/input-group.svelte';
 	import { createWishlist } from '$lib/remotes/wishlist.remote';
-	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { WishlistSchema } from '$lib/schemas/wishlist';
 
 	const remote = createWishlist.preflight(WishlistSchema);

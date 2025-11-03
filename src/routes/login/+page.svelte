@@ -31,7 +31,7 @@
 
 <div
 	style="background-image: url({backgroundImage});"
-	class="flex-1 p-6 py-12 md:p-12 flex md:items-center justify-center md:justify-start bg-no-repeat bg-bottom-right bg-cover"
+	class="w-full h-full p-6 py-12 md:p-12 flex md:items-center justify-center md:justify-start bg-no-repeat bg-bottom-right bg-cover"
 >
 	<div class="container max-w-2xl flex flex-col">
 		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">Sign in to get started</p>

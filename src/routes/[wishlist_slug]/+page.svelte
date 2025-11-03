@@ -18,7 +18,7 @@
 
 <div class="flex gap-3 items-center p-4">
 	{#if isOwn}
-		<a class="button" href="/{wishlist.slug}/item/create">
+		<a class="button" href="/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>

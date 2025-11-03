@@ -1,472 +1,335 @@
 <script lang="ts">
-	import { createItem, generateItem, updateItem } from '$lib/remotes/item.remote';
-	import { ItemSchema } from '$lib/schemas/item';
-	import WishlistItem from './wishlist-item.svelte';
-	import type { WishlistItem as _WishlistItemType } from '$lib/server/db/schema';
-	import z from 'zod';
-	import { fade } from 'svelte/transition';
-	import { isHttpError, type RemoteFormField, type RemoteFormIssue } from '@sveltejs/kit';
-	import type { FormEventHandler } from 'svelte/elements';
-	import { onMount } from 'svelte';
-	import { safePrune } from '$lib/util/safe-prune';
-	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import Loader from './loader.svelte';
-	import { browser } from '$app/environment';
+	import { formEdit, type FormEditHandler } from '$lib/actions/form-edit';
 	import { pageScroll } from '$lib/actions/page-scroll';
+	import { generateItem, updateItem, type createItem } from '$lib/remotes/item.remote';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
 	import { asIssue } from '$lib/util/pick-issue';
-
-	type ItemType = Omit<_WishlistItemType, 'id' | 'wishlistId' | 'createdAt'>;
+	import { safePrune } from '$lib/util/safe-prune';
+	import { onMount } from 'svelte';
+	import z from 'zod';
+	import Loader from './loader.svelte';
+	import WishlistItem from './wishlist-item.svelte';
+	import InputGroup from './input-group.svelte';
+	import { ArrowLeftFromLineIcon, CheckIcon, CrossIcon, LinkIcon, PenIcon, XIcon } from '@lucide/svelte';
+	import { page } from '$app/state';
 
 	let {
-		item: initProperties = {},
-		mode = 'create',
-	}: { item?: Partial<ItemType>; mode?: 'edit' | 'create' | 'create-auto' } = $props();
-
-	let item = $state<Partial<z.infer<typeof ItemSchema>>>({});
-	const placeholder: ItemType = {
-		name: 'New Item',
-		notes: '',
-		price: 19.99,
-		priceCurrency: 'USD',
-		imageUrl: 'https://placehold.co/1080x720?text=Item+Image&font=roboto',
-		url: 'https://example.com',
-	};
-
-	const isCreate = mode === 'create' || mode === 'create-auto';
-	const remote = (isCreate ? createItem : updateItem).preflight(ItemSchema);
-
-	const hasIssue = $derived(!!asIssue(remote.fields));
-	const preview = $derived({ ...(isCreate ? placeholder : {}), ...item });
-
-	const generateRemote = generateItem.preflight(
-		z.object({
-			url: ItemSchema.shape.url.transform((v, ctx) => {
-				if (v === null) {
-					ctx.addIssue({ code: 'custom', message: 'URL is required' });
-					return z.NEVER;
-				}
-
-				return v;
-			}),
-		}),
-	);
+		handler,
+		init,
+		generate = true,
+	}: { handler: typeof createItem | typeof updateItem; init?: Partial<Item>; generate: boolean } = $props();
 
 	const hasJs = useHasJs();
 
-	let isGenerating = $derived(generateRemote.pending !== 0);
-	let generateError = $state('');
+	let pageHasScroll = $state(false);
+	let loading = $state(false);
 
-	let isGenerateDone = $state(browser ? false : generateRemote.result);
-	onMount(() => (isGenerateDone = false));
+	const generalIssue = $derived(asIssue(handler.fields.issues()));
+	const generateRemote = generateItem.preflight(z.object({ url: RequiredUrlSchema }));
 
-	const onInput: FormEventHandler<HTMLFormElement> = (ev) => {
-		const input = ev.target;
-		if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement)) return;
+	let formMirror: Partial<Item> = $state({});
+	const hasMirror = $derived(!!Object.keys(formMirror).length);
 
-		const key = input.name;
-		if (!(key in ItemSchema.shape)) return;
+	let mode: 'generate' | 'generate-confirm' | 'form' = $state(
+		generateRemote.result ? 'generate-confirm' : generate ? 'generate' : 'form',
+	);
 
-		const fieldName = key as keyof z.infer<typeof ItemSchema>;
-		const schema = ItemSchema.shape[fieldName];
-		const value = input.value;
+	const isInputLinkGenerated = $derived.by(() => {
+		const inputUrl = generateRemote.fields.url.value();
+		const previewUrl = formMirror.url;
 
-		const res = schema.safeParse(value);
+		return previewUrl && previewUrl === inputUrl;
+	});
+
+	const showPreview = $derived.by(() => {
+		if (mode === 'generate-confirm') return true;
+
+		if (!hasJs()) return;
+
+		if (mode === 'form') return true;
+		if (loading) return true;
+
+		return isInputLinkGenerated && hasMirror;
+	});
+
+	const safeUpdateMirror = (key: keyof Item, rawValue: unknown) => {
+		const schema = ItemSchema.shape[key];
+
+		const res = schema.safeParse(rawValue);
 		if (res.success) {
-			if (res.data === undefined) delete item[fieldName];
-			else (item[fieldName] as any) = res.data;
-		}
-
-		remote.validate();
-	};
-
-	const seed = () => {
-		const seedItem = safePrune(ItemSchema, {
-			...(mode === 'create-auto' && isGenerateDone ? generateRemote.result : {}),
-			...initProperties,
-		});
-		if (Object.keys(seedItem).length !== 0) {
-			remote.fields.set(seedItem as any);
-			item = seedItem;
+			if (res.data === undefined) delete formMirror[key];
+			else (formMirror[key] as any) = res.data;
 		}
 	};
 
-	seed();
+	const seed = (props?: Partial<Item>) => {
+		if (!props) return;
+
+		const cleanProps = safePrune(ItemSchema, props);
+		handler.fields.set(cleanProps as any);
+		formMirror = safePrune(ItemSchema, handler.fields.value());
+	};
+
+	const onInput: FormEditHandler = (name, value) => {
+		if (!(name in ItemSchema.shape)) return;
+
+		const key = name as keyof Item;
+
+		safeUpdateMirror(key, value);
+		handler.validate({ preflightOnly: true });
+	};
+
+	const submitButtonProps = handler.buttonProps.enhance(async ({ submit }) => {
+		await submit();
+		generateRemote.fields.url.set('');
+	});
+
+	const seedProperties = { ...(generateRemote.result || {}), ...(init || {}) };
+	seed(seedProperties);
+
 	onMount(() => {
-		remote.validate();
-		generateRemote.validate();
+		handler.validate();
+		if (generate) generateRemote.validate();
 	});
 </script>
 
-<div use:pageScroll style="grid-template-columns: {hasJs() && preview ? '1fr 1px 1.5fr' : '100% !important'}">
-	{#if hasJs() && preview}
-		<aside class="preview-pane">
-			<div class="preview-snap">
-				<h3 class="preview-label">Preview</h3>
+<div
+	use:pageScroll={(_, hasScroll) => (pageHasScroll = hasScroll)}
+	class:has-scroll={pageHasScroll}
+	class="h-full w-full flex flex-col xl:flex-row"
+>
+	{#if showPreview}
+		<aside class="pane flex-4/12 p-4 bg-neutral-200 grid place-items-center">
+			<div class="snap w-full max-w-2xl relative p-4 rounded-xl bg-white shadow-md">
+				<h3 class="text-lg font-bold">Preview</h3>
 
-				{#if mode === 'create-auto' && isGenerating}
-					<div class="loader-wrapper">
+				{#if loading}
+					<div class="w-full h-32">
 						<Loader />
 					</div>
 				{:else}
-					<WishlistItem item={preview} interactive={false} />
+					<div class="w-full border border-dashed border-red-800/50 p-4 rounded">
+						<WishlistItem item={formMirror} interactive={false} />
+					</div>
 				{/if}
 			</div>
 		</aside>
-
-		<div class="divider"></div>
 	{/if}
 
-	<section class="form-pane">
-		{#if mode !== 'create-auto' || isGenerateDone}
+	<section
+		class="flex-8/12 bg-neutral-200 drop-shadow-2xl border-t border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center"
+	>
+		{#if mode === 'generate-confirm' || mode === 'form'}
 			<form
-				{...remote.enhance(async ({ form, submit }) => {
-					await submit();
-					isGenerateDone = false;
-					form.reset();
-				})}
-				oninput={onInput}
+				{...handler}
+				use:formEdit={onInput}
+				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col gap-4 max-w-full md:max-w-2xl lg:max-w-4xl {hasJs()
+					? 'xl:m-0 xl:max-w-full'
+					: 'xl:max-w-6xl'} w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
 			>
-				<label class="input-group required">
-					<span class="input-group-label">Name</span>
+				<div style="display: {mode === 'form' ? 'contents' : 'none'}">
+					<InputGroup label="Name" error={handler.fields.name.issues()}>
+						{#snippet control()}
+							<input required {...handler.fields.name.as('text')} />
+						{/snippet}
+					</InputGroup>
 
-					<input placeholder={placeholder.name} required {...remote.fields.name.as('text')} />
+					<InputGroup label="Notes" error={handler.fields.notes.issues()}>
+						{#snippet control()}
+							<textarea rows="6" {...handler.fields.notes.as('text')}>
+								{handler.fields.notes.value()?.trim()}
+							</textarea>
+						{/snippet}
+					</InputGroup>
 
-					{#if asIssue(remote.fields.name)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{asIssue(remote.fields.name)}
-						</p>
-					{/if}
-				</label>
+					<div class="flex flex-col gap-x-2 gap-y-4 lg:flex-row">
+						<div class="flex-3/5">
+							<InputGroup label="Price" error={handler.fields.price.issues()}>
+								{#snippet control()}
+									<input {...handler.fields.price.as('text')} />
+								{/snippet}
+							</InputGroup>
+						</div>
 
-				<label class="input-group">
-					<span class="input-group-label">Notes</span>
+						<div class="flex-2/5">
+							<InputGroup label="Currency" error={handler.fields.priceCurrency.issues()}>
+								{#snippet control()}
+									<datalist id="currency-list">
+										<option value="USD">USD ($)</option>
+										<option value="EUR">EUR (€)</option>
+										<option value="GBP">GBP (£)</option>
+										<option value="JPY">JPY (¥)</option>
+										<option value="AUD">AUD ($)</option>
+										<option value="CAD">CAD ($)</option>
+										<option value="CNY">CNY (¥)</option>
+										<option value="INR">INR (₹)</option>
+										<option value="MXN">MXN ($)</option>
+									</datalist>
 
-					<textarea rows="6" placeholder={placeholder.notes} {...remote.fields.notes.as('text')}
-						>{remote.fields.notes.value() || ''}</textarea
-					>
+									<input
+										{...handler.fields.priceCurrency.as('text')}
+										list="currency-list"
+										autocomplete="off"
+									/>
+								{/snippet}
+							</InputGroup>
+						</div>
+					</div>
 
-					{#if asIssue(remote.fields.notes)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{asIssue(remote.fields.notes)}
-						</p>
-					{/if}
-				</label>
+					<InputGroup label="Purchase Link" error={handler.fields.url.issues()}>
+						{#snippet control()}
+							<input {...handler.fields.url.as('text')} />
+						{/snippet}
+					</InputGroup>
 
-				<div class="price-group">
-					<label class="input-group price-value-group">
-						<span class="input-group-label">Price</span>
-
-						<input
-							placeholder={placeholder.price?.toFixed(2)}
-							{...(remote.fields.price as unknown as RemoteFormField<string>).as('text')}
-							step="0.01"
-							min="0"
-						/>
-
-						{#if asIssue(remote.fields.price)}
-							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-								{asIssue(remote.fields.price)}
-							</p>
-						{/if}
-					</label>
-
-					<label class="input-group currency-group">
-						<span class="input-group-label">Currency</span>
-
-						<input
-							placeholder={placeholder.priceCurrency}
-							{...(remote.fields.priceCurrency as unknown as RemoteFormField<string>).as(
-								'text',
-							)}
-							list="currency-list"
-							autocomplete="off"
-						/>
-
-						{#if asIssue(remote.fields.priceCurrency)}
-							<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-								{asIssue(remote.fields.priceCurrency)}
-							</p>
-						{/if}
-
-						<datalist id="currency-list">
-							<option value="USD">USD ($)</option>
-							<option value="EUR">EUR (€)</option>
-							<option value="GBP">GBP (£)</option>
-							<option value="JPY">JPY (¥)</option>
-							<option value="AUD">AUD ($)</option>
-							<option value="CAD">CAD ($)</option>
-							<option value="CNY">CNY (¥)</option>
-							<option value="INR">INR (₹)</option>
-							<option value="MXN">MXN ($)</option>
-						</datalist>
-					</label>
+					<InputGroup label="Image Link" error={handler.fields.imageUrl.issues()}>
+						{#snippet control()}
+							<input {...handler.fields.imageUrl.as('text')} />
+						{/snippet}
+					</InputGroup>
 				</div>
 
-				<label class="input-group">
-					<span class="input-group-label">Purchase Link</span>
+				{#if mode === 'form'}
+					<div class="flex gap-2">
+						{#if generate !== false}
+							<svelte:element
+								this={hasJs() ? 'button' : 'a'}
+								href="./generate"
+								class="button text-center w-max bg-red-200"
+								onclick={() => (mode = 'generate')}
+								type="button"
+								role="button"
+								tabindex="0"
+								title="Back to Generate"
+							>
+								<ArrowLeftFromLineIcon />
+							</svelte:element>
+						{/if}
 
-					<input placeholder={placeholder.url} {...remote.fields.url.as('text')} />
+						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}>Submit</button>
+					</div>
+				{:else}
+					<div class="w-full h-full flex flex-col gap-6 items-center justify-center">
+						<h1 class="text-2xl">Is this right?</h1>
 
-					{#if asIssue(remote.fields.url)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{asIssue(remote.fields.url)}
-						</p>
-					{/if}
-				</label>
+						<div class="flex gap-y-2 gap-x-4 flex-col md:flex-row">
+							<button class="flex items-center gap-2 bg-green-200" {...submitButtonProps}>
+								<CheckIcon />
+								Add to List
+							</button>
 
-				<label class="input-group">
-					<span class="input-group-label">Image Link</span>
+							<button
+								type="submit"
+								formaction="./create"
+								formmethod="get"
+								class="button flex items-center gap-2 bg-blue-200"
+								onclick={() => (mode = 'form')}
+							>
+								<PenIcon />
+								Edit
+							</button>
 
-					<input placeholder={placeholder.imageUrl} {...remote.fields.imageUrl.as('text')} />
-
-					{#if asIssue(remote.fields.imageUrl)}
-						<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-							{asIssue(remote.fields.imageUrl)}
-						</p>
-					{/if}
-				</label>
-
-				<button disabled={hasIssue && hasJs()} {...remote.buttonProps}
-					>{mode === 'edit' ? 'Save' : 'Submit'}</button
-				>
-			</form>
-		{:else if mode === 'create-auto'}
-			<form
-				style="position: relative;"
-				{...generateRemote.enhance(async ({ submit, form }) => {
-					try {
-						await submit();
-
-						const res = generateRemote.result;
-						if (res && res.price) {
-							form.reset();
-							isGenerateDone = true;
-							seed();
-						} else {
-							isGenerateDone = false;
-							generateError = 'No product found';
-						}
-					} catch (err) {
-						console.warn(err);
-						if (isHttpError(err)) {
-							generateError = err.body.message;
-						}
-					}
-				})}
-			>
-				<label class="input-group">
-					<span class="input-group-label">Product Link</span>
-
-					<input
-						disabled={isGenerating}
-						oninput={() => {
-							generateError = '';
-							generateRemote.validate();
-						}}
-						placeholder="Enter a product link"
-						{...generateRemote.fields.url.as('text')}
-					/>
-				</label>
-
-				<button type="submit" disabled={isGenerating || !!generateRemote.fields.issues()}
-					>Create From Link</button
-				>
-
-				<p style="text-align: center;">OR</p>
-
-				<button
-					type="button"
-					style="background-color: whitesmoke"
-					disabled={isGenerating}
-					onclick={() => (isGenerateDone = true)}>Create Manually</button
-				>
-
-				{#if generateError || asIssue(generateRemote.fields.url)}
-					<p in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} class="error">
-						{generateError || asIssue(generateRemote.fields.url)}
-					</p>
+							<svelte:element
+								this={hasJs() ? 'button' : 'a'}
+								href="./generate"
+								class="button flex items-center gap-2 bg-red-200"
+								onclick={() => (mode = 'generate')}
+								type="button"
+								role="button"
+								tabindex="0"
+							>
+								<XIcon />
+								Go Back
+							</svelte:element>
+						</div>
+					</div>
 				{/if}
+			</form>
+		{:else if mode === 'generate'}
+			<form
+				{...generateRemote}
+				oninput={() => generateRemote.validate({ preflightOnly: true })}
+				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col max-w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
+			>
+				<h1 class="font-bold text-2xl">Create a new Item</h1>
+
+				<hr class="mb-4" />
+
+				<p class="font-light italic">Automatically generate from:</p>
+
+				<div class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4">
+					<InputGroup
+						label="Item Link"
+						error={generateRemote.fields.url.issues() || generateRemote.fields.issues()}
+					>
+						{#snippet control()}
+							<div class="flex gap-4 items-center">
+								<LinkIcon />
+								<input
+									{...generateRemote.fields.url.as('text')}
+									placeholder="Enter a product page URL"
+									class="w-full"
+								/>
+							</div>
+						{/snippet}
+					</InputGroup>
+
+					<button
+						disabled={loading}
+						{...generateRemote.buttonProps.enhance(async ({ submit }) => {
+							if (isInputLinkGenerated) {
+								mode = 'generate-confirm';
+								return;
+							}
+
+							loading = true;
+							try {
+								await submit();
+								if (generateRemote.result) {
+									seed(generateRemote.result);
+									mode = 'generate-confirm';
+								}
+							} finally {
+								loading = false;
+							}
+						})}
+						class="mt-4 bg-green-200"
+					>
+						{#if isInputLinkGenerated}
+							Review
+						{:else}
+							Generate
+						{/if}
+					</button>
+				</div>
+
+				<p class="font-bold my-6 text-center">OR</p>
+
+				<svelte:element
+					this={hasJs() ? 'button' : 'a'}
+					href="./create"
+					class="button text-center"
+					onclick={() => {
+						mode = 'form';
+						seed({});
+					}}
+					type="button"
+					role="button"
+					tabindex="0">Create Manually</svelte:element
+				>
 			</form>
 		{/if}
 	</section>
 </div>
 
 <style>
-	.container {
-		height: 100%;
-
-		display: grid;
-	}
-
-	.preview-pane {
-		padding: 2rem;
-
-		background-color: rgb(233, 233, 233);
-
-		display: grid;
-		place-items: center;
-	}
-
-	.container.has-scroll .preview-pane {
+	.has-scroll .pane {
 		display: initial;
 	}
 
-	.preview-snap {
-		width: 100%;
-		max-width: 600px;
-
-		position: relative;
-
-		padding: 1rem;
-		border: 1px solid rgba(255, 0, 0, 0.3);
-		border-radius: 12px;
-
-		background-color: white;
-		box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.3);
-	}
-
-	.preview-label {
-		padding-bottom: 1rem;
-		margin-bottom: 1rem;
-		border-bottom: 1px dashed rgba(255, 0, 0, 0.3);
-	}
-
-	.container.has-scroll .preview-snap {
+	.has-scroll .snap {
 		position: sticky;
 		top: 2rem;
-	}
-
-	.divider {
-		background: black;
-		box-shadow: -4px 0 5px rgba(0, 0, 0, 0.5);
-	}
-
-	.form-pane {
-		width: 100%;
-		padding: 1.5rem;
-
-		overflow: auto;
-	}
-
-	@media (max-width: 1000px) {
-		.container {
-			grid-template-columns: 100% !important;
-			grid-template-rows: auto 1px auto !important;
-		}
-
-		.divider {
-			box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
-		}
-	}
-
-	form {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-
-		gap: 1.5rem;
-	}
-
-	.input-group {
-		width: 100%;
-		position: relative;
-
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.input-group-label {
-		font-weight: 700;
-	}
-
-	.price-group {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.price-value-group {
-		flex: 2 1 0;
-		min-width: 250px;
-	}
-
-	.currency-group {
-		flex: 1 0 250px;
-		min-width: 250px;
-		max-width: 300px;
-	}
-
-	@media (max-width: 600px) {
-		.currency-group {
-			max-width: 100%;
-		}
-	}
-
-	input,
-	textarea {
-		outline: none;
-		border: 1px solid black;
-
-		padding: 0.5rem;
-		border-radius: 6px;
-	}
-
-	input:focus,
-	textarea:focus {
-		border-color: blue;
-	}
-
-	input[aria-invalid],
-	textarea[aria-invalid] {
-		border-color: red;
-	}
-
-	textarea {
-		resize: vertical;
-	}
-
-	button {
-		padding: 0.5rem;
-		background-color: #bbf451;
-	}
-
-	button:disabled {
-		filter: brightness(0.75);
-		cursor: initial;
-	}
-
-	.required {
-		position: relative;
-	}
-
-	.required::before {
-		content: '*';
-		position: absolute;
-		right: calc(100% + 0.2em);
-		color: red;
-	}
-
-	.error {
-		position: absolute;
-		top: 0;
-		right: 0;
-
-		padding-right: 0.5rem;
-		border-right: 1px dashed red;
-
-		font-weight: bold;
-		font-size: small;
-		color: crimson;
-	}
-
-	.price-section {
-		display: flex;
-		gap: 1rem;
-	}
-
-	.loader-wrapper {
-		width: 100%;
-		height: 128px;
 	}
 </style>

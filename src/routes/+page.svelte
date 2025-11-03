@@ -24,7 +24,7 @@
 </script>
 
 {#if data.user}
-	<div class="w-full mx-6 my-12 flex flex-col gap-6">
+	<div class="w-full px-6 py-12 flex flex-col gap-6">
 		<div class="flex gap-3 items-center">
 			<p>
 				{#if periodOfDay === 'early morning'}

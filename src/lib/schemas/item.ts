@@ -59,4 +59,13 @@ export const ItemSchema = z.object({
 		}),
 });
 
+export const RequiredUrlSchema = ItemSchema.shape.url.transform((v, ctx) => {
+	if (v === null) {
+		ctx.addIssue({ code: 'custom', message: 'URL is required' });
+		return z.NEVER;
+	}
+
+	return v;
+});
+
 export type Item = z.infer<typeof ItemSchema>;
