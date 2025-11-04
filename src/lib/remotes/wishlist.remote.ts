@@ -27,7 +27,7 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 		...data,
 	});
 
-	redirect(303, `/${data.slug}`);
+	redirect(303, `/lists/${data.slug}`);
 });
 
 export const updateWishlist = form(WishlistSchema.partial(), async (data, invalid) => {
@@ -49,7 +49,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 	if (!updateTarget) error(400, 'No wishlist to edit was found');
 
 	await db.update(WishlistTable).set(data).where(eq(WishlistTable.id, updateTarget.id));
-	redirect(303, `/${data.slug ?? wishlist_slug}`);
+	redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
@@ -80,7 +80,7 @@ export const deleteWishlist = form(
 		} = getRequestEvent();
 		if (!user) error(401);
 
-		if (!data.confirm) redirect(303, `/${data.slug}/delete-confirm`);
+		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),

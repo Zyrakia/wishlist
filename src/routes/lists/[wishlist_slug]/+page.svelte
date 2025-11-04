@@ -57,12 +57,12 @@
 
 <div class="flex gap-3 flex-wrap items-stretch justify-between p-4 mt-2">
 	{#if isOwn}
-		<a class="button bg-green-200" href="/{wishlist.slug}/item/generate">
+		<a class="button bg-green-200" href="/lists/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>
 
-		<a class="button bg-blue-200" href="/{wishlist.slug}/edit">
+		<a class="button bg-blue-200" href="/lists/{wishlist.slug}/edit">
 			<EditIcon size={16} />
 			<span>Edit</span>
 		</a>

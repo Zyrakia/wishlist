@@ -30,7 +30,7 @@ export const createItem = form(ItemSchema, async (data, invalid) => {
 		...data,
 	});
 
-	redirect(303, `/${wishlist_slug}`);
+	redirect(303, `/lists/${wishlist_slug}`);
 });
 
 export const updateItem = form(ItemSchema.partial(), async (data) => {
@@ -54,7 +54,7 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 		.set({ ...data })
 		.where(and(eq(WishlistItemTable.id, item_id), eq(WishlistItemTable.wishlistId, wl.id)));
 
-	redirect(303, `/${wishlist_slug}`);
+	redirect(303, `/lists/${wishlist_slug}`);
 });
 
 export const deleteItem = form(
@@ -80,7 +80,7 @@ export const deleteItem = form(
 		if (!user) error(401);
 
 		if (!data.confirm)
-			redirect(303, `/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
@@ -94,7 +94,7 @@ export const deleteItem = form(
 				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
 			);
 
-		redirect(303, `/${data.wishlistSlug}`);
+		redirect(303, `/lists/${data.wishlistSlug}`);
 	},
 );
 

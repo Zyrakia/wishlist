@@ -48,7 +48,7 @@
 		</div>
 	{:else}
 		<div class="flex flex-row-reverse gap-4" in:slide={{ duration: 150 }} out:slide={{ duration: 150 }}>
-			<a title="Edit" class="button p-0.5 border-none" href="/{wishlistSlug}/item/{itemId}/edit"
+			<a title="Edit" class="button p-0.5 border-none" href="/lists/{wishlistSlug}/item/{itemId}/edit"
 				><EditIcon /></a
 			>
 

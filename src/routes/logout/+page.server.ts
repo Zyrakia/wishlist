@@ -1,4 +1,3 @@
-import { logout } from '$lib/remotes/auth.remote';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { clearSession } from '$lib/server/auth';

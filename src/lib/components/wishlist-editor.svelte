@@ -111,8 +111,8 @@
 			{#snippet control()}
 				<div class="w-full flex">
 					<span
-						class="flex items-center border px-2 border-red rounded rounded-tr-none rounded-br-none"
-						>/</span
+						class="font-mono flex items-center border px-2 border-red rounded rounded-tr-none rounded-br-none"
+						>/lists/</span
 					>
 
 					<input

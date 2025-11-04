@@ -31,7 +31,7 @@
 		{#if badges.length || !isAtRoot}
 			<div class="flex flex-wrap gap-4 mt-4 items-center">
 				{#if !isAtRoot}
-					<a title="Go Back" href="/{data.wishlist.slug}">
+					<a title="Go Back" href="/lists/{data.wishlist.slug}">
 						<CircleArrowLeftIcon />
 					</a>
 				{/if}
