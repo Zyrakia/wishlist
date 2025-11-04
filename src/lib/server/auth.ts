@@ -34,6 +34,7 @@ export const setSession = (cookies: Cookies, value: string) => {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
+		secure: ENV.NODE_ENV === 'production',
 		maxAge: value ? ENV.JWT_LIFETIME.seconds : 0,
 	});
 };
