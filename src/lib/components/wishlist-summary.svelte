@@ -8,7 +8,7 @@
 
 <a
 	href="/{wishlist.slug}"
-	class="button flex flex-col justify-center p-3 border my-2 max-w-full flex-1 min-w-xs md:max-w-xs lg:max-w-sm bg-white"
+	class="button flex flex-col justify-center p-3 border max-w-full flex-1 min-w-xs md:max-w-xs lg:max-w-sm bg-white"
 >
 	<div class="flex gap-2 items-center">
 		<GiftIcon class="text-red-400" />
