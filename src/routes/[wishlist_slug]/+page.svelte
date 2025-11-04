@@ -87,9 +87,9 @@
 		<form {...deleteWishlist} class="ms-auto">
 			<input {...deleteWishlist.fields.id.as('hidden', data.wishlist.id)} />
 			<input {...deleteWishlist.fields.slug.as('hidden', data.wishlist.slug)} />
-			<input {...deleteWishlist.fields.confirm.as('hidden', data.wishlist.slug)} />
+			<input {...deleteWishlist.fields.confirm.as('hidden', 'no')} />
 
-			<button class="bg-red-200" {...deleteWishlist.buttonProps}>
+			<button class="border-0 bg-transparent text-red-600" {...deleteWishlist.buttonProps}>
 				<Trash2Icon />
 			</button>
 		</form>

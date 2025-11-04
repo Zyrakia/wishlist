@@ -47,15 +47,9 @@
 			<button type="button" title="No" onclick={confirmNo}>No</button>
 		</div>
 	{:else}
-		<div
-			class="flex flex-row-reverse gap-4"
-			in:slide={{ duration: 150 }}
-			out:slide={{ duration: 150 }}
-		>
-			<a
-				title="Edit"
-				class="button p-0.5 border-none"
-				href="/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a
+		<div class="flex flex-row-reverse gap-4" in:slide={{ duration: 150 }} out:slide={{ duration: 150 }}>
+			<a title="Edit" class="button p-0.5 border-none" href="/{wishlistSlug}/item/{itemId}/edit"
+				><EditIcon /></a
 			>
 
 			<form class="text-red-500" {...deleteForm}>
