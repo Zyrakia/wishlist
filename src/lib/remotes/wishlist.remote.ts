@@ -83,8 +83,7 @@ export const deleteWishlist = form(
 		if (!data.confirm) redirect(303, `/${data.slug}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
-			where: (t, { and, eq }) =>
-				and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
+			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
 		});
 
 		if (!wl) error(400, 'Invalid wishlist slug and ID provided');

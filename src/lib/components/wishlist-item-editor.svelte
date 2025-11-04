@@ -11,13 +11,7 @@
 	import Loader from './loader.svelte';
 	import WishlistItem from './wishlist-item.svelte';
 	import InputGroup from './input-group.svelte';
-	import {
-		ArrowLeftFromLineIcon,
-		CheckIcon,
-		LinkIcon,
-		Settings2Icon,
-		XIcon,
-	} from '@lucide/svelte';
+	import { ArrowLeftFromLineIcon, CheckIcon, LinkIcon, Settings2Icon, XIcon } from '@lucide/svelte';
 
 	let {
 		handler,
@@ -110,7 +104,7 @@
 <div
 	use:pageScroll={(_, hasScroll) => (pageHasScroll = hasScroll)}
 	class:has-scroll={pageHasScroll}
-	class="min-h-full w-full flex flex-col xl:flex-row"
+	class="min-h-full h-full w-full flex flex-col xl:flex-row"
 >
 	{#if showPreview}
 		<aside
@@ -138,15 +132,17 @@
 
 	<section
 		class:border-t={showPreview}
-		class="flex-8/12 bg-neutral-200 drop-shadow-2xl border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center"
+		class="{showPreview
+			? 'flex-8/12'
+			: 'w-full h-full'} bg-neutral-200 drop-shadow-2xl border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center items-center"
 	>
 		{#if mode === 'generate-confirm' || mode === 'form'}
 			<form
 				{...handler}
 				use:formEdit={onInput}
-				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col gap-4 max-w-full md:max-w-2xl lg:max-w-4xl {hasJs()
-					? 'xl:m-0 xl:max-w-full'
-					: 'xl:max-w-6xl'} w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
+				class="p-8 float-container flex flex-col gap-4 {showPreview
+					? 'xl:h-full xl:m-0 xl:max-w-full'
+					: ''}"
 			>
 				<div class:hidden={mode !== 'form'} class="flex flex-col gap-2">
 					<InputGroup label="Name" error={handler.fields.name.issues()}>
@@ -171,10 +167,7 @@
 						</div>
 
 						<div class="flex-2/5">
-							<InputGroup
-								label="Currency"
-								error={handler.fields.priceCurrency.issues()}
-							>
+							<InputGroup label="Currency" error={handler.fields.priceCurrency.issues()}>
 								{#snippet control()}
 									<datalist id="currency-list">
 										<option value="USD">USD ($)</option>
@@ -232,19 +225,14 @@
 							</svelte:element>
 						{/if}
 
-						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}
-							>Submit</button
-						>
+						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}>Submit</button>
 					</div>
 				{:else}
 					<div class="w-full h-full flex flex-col gap-6 items-center justify-center">
 						<h1 class="text-2xl">Is this right?</h1>
 
 						<div class="flex gap-y-2 gap-x-4 flex-col md:flex-row">
-							<button
-								class="flex items-center gap-2 bg-green-200"
-								{...submitButtonProps}
-							>
+							<button class="flex items-center gap-2 bg-green-200" {...submitButtonProps}>
 								<CheckIcon />
 								Add to List
 							</button>
@@ -280,7 +268,7 @@
 			<form
 				{...generateRemote}
 				oninput={() => generateRemote.validate({ preflightOnly: true })}
-				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col gap-1 max-w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
+				class="p-8 h-full sm:h-max float-container flex flex-col gap-1"
 			>
 				<h1 class="font-bold text-2xl">Create a new Item</h1>
 
@@ -289,13 +277,10 @@
 				<div class="flex-1 flex flex-col justify-center">
 					<p class="font-light italic">Automatically generate from:</p>
 
-					<div
-						class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4"
-					>
+					<div class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4">
 						<InputGroup
 							label="Item Link"
-							error={generateRemote.fields.url.issues() ||
-								generateRemote.fields.issues()}
+							error={generateRemote.fields.url.issues() || generateRemote.fields.issues()}
 						>
 							{#snippet control()}
 								<div class="flex gap-4 py-0.5 items-center">
@@ -338,7 +323,7 @@
 						</button>
 					</div>
 
-					<p class="font-bold my-auto text-center">OR</p>
+					<p class="font-bold my-5 text-center">OR</p>
 
 					<svelte:element
 						this={hasJs() ? 'button' : 'a'}

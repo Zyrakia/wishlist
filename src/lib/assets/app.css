@@ -26,9 +26,7 @@
 	.button:disabled {
 		@apply cursor-default brightness-80;
 	}
-}
 
-@layer components {
 	input,
 	textarea,
 	select {
@@ -48,5 +46,11 @@
 	textarea[aria-invalid='true'],
 	select[aria-invalid='true'] {
 		@apply border-red-400;
+	}
+}
+
+@layer components {
+	.float-container {
+		@apply max-w-full w-full md:max-w-2xl lg:max-w-4xl sm:mx-12 sm:my-6 rounded-lg shadow-xl shadow-black/20 bg-neutral-100;
 	}
 }
