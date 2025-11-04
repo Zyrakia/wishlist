@@ -15,9 +15,7 @@
 	let { data }: { data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
-	const items = $derived(
-		wishlist.items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-	);
+	const items = $derived(wishlist.items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 
 	let shareEnabled = $state(true);
@@ -28,11 +26,15 @@
 		if (navigator.share) {
 			const payload: ShareData = {
 				url: location.href,
-				title: `${wishlist.name} by ${wishlist.user.name}`,
+				title: `Check out this wish list: ${wishlist.name}`,
+				text: isOwn
+					? `This is my wishlist: "${wishlist.name}"`
+					: `This is ${wishlist.user.name}'s wishlist: "${wishlist.name}"`,
 			};
 
 			if (!navigator.canShare || navigator.canShare(payload)) {
-				navigator.share(payload);
+				const res = navigator.share(payload);
+				if (res instanceof Promise) return;
 			}
 		}
 
