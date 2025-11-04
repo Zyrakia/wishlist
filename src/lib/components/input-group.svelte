@@ -33,30 +33,10 @@
 </label>
 
 <style>
-	.wrapper :global(input),
-	.wrapper :global(textarea) {
-		outline: none;
-		border: 1px solid black;
-
-		padding: 0.5rem;
-		border-radius: 6px;
-	}
-
-	.wrapper :global(input:focus),
-	.wrapper :global(textarea:focus),
-	.wrapper :global(select:focus) {
-		border-color: blue;
-	}
-
-	.wrapper :global(input[aria-invalid]),
-	.wrapper :global(textarea[aria-invalid]),
-	.wrapper :global(select[aria-invalid]) {
-		border-color: red;
-	}
+	@reference "tailwindcss";
 
 	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
+		@apply text-red-500 font-bold;
 		content: ' *';
-		color: red;
-		font-weight: bold;
 	}
 </style>
