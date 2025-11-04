@@ -1,7 +1,7 @@
 <script lang="ts">
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { getWishlistActivity } from '$lib/remotes/wishlist.remote.js';
-	import { MoonIcon, MoveRightIcon, SunIcon, SunMoonIcon } from '@lucide/svelte';
+	import { MoonIcon, MoveRightIcon, PlusIcon, SunIcon, SunMoonIcon } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -57,10 +57,18 @@
 				</a>
 			</p>
 
-			<hr class="border-dashed mb-1" />
+			<hr class="border-dashed mb-3" />
 
 			{#if (await activityQuery).length}
 				<div class="w-full flex flex-wrap gap-x-4">
+					<a
+						href="/new-list"
+						class="button bg-green-200 flex flex-col justify-evenly items-center"
+					>
+						<PlusIcon />
+						Add List
+					</a>
+
 					{#each await activityQuery as { wishlist, lastItemAt }}
 						<WishlistSummary {wishlist}>
 							{#snippet footer()}
@@ -84,7 +92,7 @@
 					<p class="italic font-light">You have no wishlists...</p>
 
 					<a href="/new-list" class="button bg-green-200 px-4 py-2 rounded"
-						>Add Wishlist</a
+						>Create Your First List</a
 					>
 				</div>
 			{/if}

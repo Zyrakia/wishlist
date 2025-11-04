@@ -6,9 +6,11 @@
 		Share2 as ShareIcon,
 		ClipboardCheck as CopiedIcon,
 		Settings2Icon as EditIcon,
+		Trash2Icon,
 	} from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
+	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 
 	let { data }: { data: PageData } = $props();
 
@@ -51,7 +53,7 @@
 	onMount(() => (shareEnabled = !!navigator.share || !!navigator.clipboard));
 </script>
 
-<div class="flex gap-3 items-center p-4 mt-2">
+<div class="flex gap-3 flex-wrap items-stretch justify-between p-4 mt-2">
 	{#if isOwn}
 		<a class="button bg-green-200" href="/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
@@ -78,6 +80,18 @@
 			<span>Share</span>
 		{/if}
 	</button>
+
+	{#if isOwn}
+		<form {...deleteWishlist} class="ms-auto">
+			<input {...deleteWishlist.fields.id.as('hidden', data.wishlist.id)} />
+			<input {...deleteWishlist.fields.slug.as('hidden', data.wishlist.slug)} />
+			<input {...deleteWishlist.fields.confirm.as('hidden', data.wishlist.slug)} />
+
+			<button class="bg-red-200" {...deleteWishlist.buttonProps}>
+				<Trash2Icon />
+			</button>
+		</form>
+	{/if}
 </div>
 
 <main class="w-full flex flex-wrap justify-center gap-4 px-4 pt-2 pb-12">

@@ -27,3 +27,26 @@
 		@apply cursor-default brightness-80;
 	}
 }
+
+@layer components {
+	input,
+	textarea,
+	select {
+		@apply outline-none border border-black p-2  rounded-md;
+	}
+
+	input:focus,
+	textarea:focus,
+	select:focus {
+		@apply border-blue-500;
+	}
+
+	input:invalid,
+	textarea:invalid,
+	select:invalid,
+	input[aria-invalid='true'],
+	textarea[aria-invalid='true'],
+	select[aria-invalid='true'] {
+		@apply border-red-400;
+	}
+}

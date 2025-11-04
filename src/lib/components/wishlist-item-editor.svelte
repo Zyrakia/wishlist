@@ -11,7 +11,13 @@
 	import Loader from './loader.svelte';
 	import WishlistItem from './wishlist-item.svelte';
 	import InputGroup from './input-group.svelte';
-	import { ArrowLeftFromLineIcon, CheckIcon, LinkIcon, PenIcon, XIcon } from '@lucide/svelte';
+	import {
+		ArrowLeftFromLineIcon,
+		CheckIcon,
+		LinkIcon,
+		Settings2Icon,
+		XIcon,
+	} from '@lucide/svelte';
 
 	let {
 		handler,
@@ -107,7 +113,11 @@
 	class="min-h-full w-full flex flex-col xl:flex-row"
 >
 	{#if showPreview}
-		<aside class="pane flex-4/12 p-4 bg-neutral-200 grid place-items-center">
+		<aside
+			class="pane {mode === 'generate-confirm'
+				? 'flex-8/12'
+				: 'flex-4/12'} p-4 px-6 bg-neutral-200 grid place-items-center"
+		>
 			<div class="snap w-full max-w-2xl relative p-4 rounded-xl bg-white shadow-md">
 				<h3 class="text-lg font-bold">Preview</h3>
 
@@ -127,7 +137,8 @@
 	{/if}
 
 	<section
-		class="flex-8/12 bg-neutral-200 drop-shadow-2xl border-t border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center"
+		class:border-t={showPreview}
+		class="flex-8/12 bg-neutral-200 drop-shadow-2xl border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center"
 	>
 		{#if mode === 'generate-confirm' || mode === 'form'}
 			<form
@@ -245,7 +256,7 @@
 								class="button flex items-center gap-2 bg-blue-200"
 								onclick={() => (mode = 'form')}
 							>
-								<PenIcon />
+								<Settings2Icon />
 								Edit
 							</button>
 
@@ -269,74 +280,81 @@
 			<form
 				{...generateRemote}
 				oninput={() => generateRemote.validate({ preflightOnly: true })}
-				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col max-w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
+				class="p-8 m-0 sm:mx-12 sm:my-6 flex flex-col gap-1 max-w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full bg-neutral-100 rounded-lg shadow-xl shadow-black/20"
 			>
 				<h1 class="font-bold text-2xl">Create a new Item</h1>
 
 				<hr class="mb-4" />
 
-				<p class="font-light italic">Automatically generate from:</p>
+				<div class="flex-1 flex flex-col justify-center">
+					<p class="font-light italic">Automatically generate from:</p>
 
-				<div class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4">
-					<InputGroup
-						label="Item Link"
-						error={generateRemote.fields.url.issues() || generateRemote.fields.issues()}
+					<div
+						class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4"
 					>
-						{#snippet control()}
-							<div class="flex gap-4 items-center">
-								<LinkIcon />
-								<input
-									{...generateRemote.fields.url.as('text')}
-									placeholder="Enter a product page URL"
-									class="w-full"
-								/>
-							</div>
-						{/snippet}
-					</InputGroup>
+						<InputGroup
+							label="Item Link"
+							error={generateRemote.fields.url.issues() ||
+								generateRemote.fields.issues()}
+						>
+							{#snippet control()}
+								<div class="flex gap-4 py-0.5 items-center">
+									<LinkIcon />
+									<input
+										{...generateRemote.fields.url.as('text')}
+										placeholder="Enter a product page URL"
+										class="w-full"
+									/>
+								</div>
+							{/snippet}
+						</InputGroup>
 
-					<button
-						disabled={loading}
-						{...generateRemote.buttonProps.enhance(async ({ submit }) => {
-							if (isInputLinkGenerated) {
-								mode = 'generate-confirm';
-								return;
-							}
-
-							loading = true;
-							try {
-								await submit();
-								if (generateRemote.result) {
-									seed(generateRemote.result);
+						<button
+							disabled={loading}
+							{...generateRemote.buttonProps.enhance(async ({ submit }) => {
+								if (isInputLinkGenerated) {
 									mode = 'generate-confirm';
+									return;
 								}
-							} finally {
-								loading = false;
-							}
-						})}
-						class="mt-4 bg-green-200"
+
+								loading = true;
+								try {
+									await submit();
+									if (generateRemote.result) {
+										seed(generateRemote.result);
+										mode = 'generate-confirm';
+									}
+								} finally {
+									loading = false;
+								}
+							})}
+							class="mt-2 bg-green-200"
+						>
+							{#if isInputLinkGenerated}
+								Review
+							{:else}
+								Generate
+							{/if}
+						</button>
+					</div>
+
+					<p class="font-bold my-auto text-center">OR</p>
+
+					<svelte:element
+						this={hasJs() ? 'button' : 'a'}
+						href="./create"
+						class="button w-full text-center"
+						onclick={() => {
+							mode = 'form';
+							seed({});
+						}}
+						type="button"
+						role="button"
+						tabindex="0"
 					>
-						{#if isInputLinkGenerated}
-							Review
-						{:else}
-							Generate
-						{/if}
-					</button>
+						Create Manually
+					</svelte:element>
 				</div>
-
-				<p class="font-bold my-6 text-center">OR</p>
-
-				<svelte:element
-					this={hasJs() ? 'button' : 'a'}
-					href="./create"
-					class="button text-center"
-					onclick={() => {
-						mode = 'form';
-						seed({});
-					}}
-					type="button"
-					role="button"
-					tabindex="0">Create Manually</svelte:element
-				>
 			</form>
 		{/if}
 	</section>

@@ -49,7 +49,7 @@
 		{#if description && isAtRoot}
 			<div class="p-4 m-4 mb-0 border rounded border-zinc-500/30 shadow-sm">
 				<p class="whitespace-pre-wrap wrap-break-word text-base">
-					"{description}"
+					{description}
 				</p>
 			</div>
 		{/if}

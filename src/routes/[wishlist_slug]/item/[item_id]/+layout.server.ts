@@ -11,5 +11,5 @@ export const load: LayoutServerLoad = async ({ params, parent }) => {
 
 	if (!item) error(404);
 
-	return { item };
+	return { item, headerBadges: [item.name] };
 };
