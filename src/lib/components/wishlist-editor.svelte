@@ -57,8 +57,6 @@
 		const inputSlug = handler.fields.slug.value();
 		if (inputSlug?.trim() && inputSlug !== lastGeneratedSlug) return;
 
-		console.log('overriding slug');
-
 		handler.fields.slug.set(generatedSlug);
 		lastGeneratedSlug = generatedSlug;
 
