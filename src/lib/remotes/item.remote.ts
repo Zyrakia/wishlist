@@ -74,13 +74,14 @@ export const deleteItem = form(
 		]),
 	}),
 	async (data) => {
-		if (!data.confirm) redirect(303, `/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
-
 		const {
 			locals: { user },
 		} = getRequestEvent();
-
 		if (!user) error(401);
+
+		if (!data.confirm)
+			redirect(303, `/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+
 		const wl = await db.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
 		});
@@ -89,7 +90,9 @@ export const deleteItem = form(
 
 		await db
 			.delete(WishlistItemTable)
-			.where(and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)));
+			.where(
+				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
+			);
 
 		redirect(303, `/${data.wishlistSlug}`);
 	},

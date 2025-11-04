@@ -58,6 +58,42 @@ export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }
 	});
 });
 
+export const deleteWishlist = form(
+	z.object({
+		slug: z.string(),
+		id: z.string(),
+		confirm: z.union([
+			z.boolean(),
+			z
+				.string()
+				.trim()
+				.toLowerCase()
+				.transform((v) => {
+					if (v === 'yes' || v === 'true') return true;
+					else return false;
+				}),
+		]),
+	}),
+	async (data) => {
+		const {
+			locals: { user },
+		} = getRequestEvent();
+		if (!user) error(401);
+
+		if (!data.confirm) redirect(303, `/${data.slug}/delete-confirm`);
+
+		const wl = await db.query.WishlistTable.findFirst({
+			where: (t, { and, eq }) =>
+				and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
+		});
+
+		if (!wl) error(400, 'Invalid wishlist slug and ID provided');
+
+		await db.delete(WishlistTable).where(eq(WishlistTable.id, wl.id));
+		redirect(303, '/');
+	},
+);
+
 export const getWishlistActivity = query(
 	z.object({ limit: z.number().min(1).max(10) }),
 	async ({ limit }) => {
