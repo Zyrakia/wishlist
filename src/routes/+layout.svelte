@@ -33,7 +33,7 @@
 						{data.user.name}
 					</a>
 				{:else}
-					<a href="login">
+					<a href="/login">
 						Login
 
 						<LogInIcon />

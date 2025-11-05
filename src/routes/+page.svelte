@@ -9,12 +9,14 @@
 	let { data } = $props();
 
 	const sortSchema = z.enum(['modified', 'created']);
-	const sort = $derived.by(() => sortSchema.parse(page.url.searchParams.get('sort') ?? 'modified'));
+	const sort = $derived.by(() =>
+		sortSchema.parse(page.url.searchParams.get('sort') ?? 'modified'),
+	);
 
-	const limit = $state(5);
+	const limit = $state(10);
 	// const page = $state(0);
-	const wishlists = $derived(          
-		sort === 'modified' ? getWishlistActivity({ limit }) : getWishlists({ limit }),
+	const wishlists = $derived(
+		sort === 'modified' ? getWishlistActivity({ limit: 5 }) : getWishlists({ limit }),
 	);
 	const dtf = new Intl.DateTimeFormat(navigator.languages, {
 		dateStyle: 'medium',
@@ -51,8 +53,11 @@
 			<hr class="border-dashed mb-3" />
 
 			{#if (await wishlists).length}
-				<div class="w-full flex flex-wrap gap-x-4">
-					<a href="/new-list" class="button bg-green-200 flex flex-col justify-evenly items-center">
+				<div class="w-full flex flex-wrap gap-4">
+					<a
+						href="/new-list"
+						class="button bg-green-200 flex flex-col justify-evenly items-center"
+					>
 						<PlusIcon />
 						Add List
 					</a>
