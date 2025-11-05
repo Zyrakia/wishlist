@@ -3,6 +3,7 @@ import z from 'zod';
 
 import flow from 'dotenv-flow';
 import ms from 'ms';
+
 const { error } = flow.config();
 if (error) console.warn(error);
 
@@ -14,7 +15,7 @@ const ENV = createEnv({
 	server: {
 		NODE_ENV: z.enum(['development', 'production']),
 		GOOGLE_AI_KEY: z.string(),
-		DATABASE_URL: z.string(),
+		DATABASE_PATH: z.string(),
 		JWT_SECRET: z.string(),
 		JWT_LIFETIME: z
 			.string()
