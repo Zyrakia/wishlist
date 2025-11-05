@@ -2,7 +2,7 @@
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
-	import { SquareUserIcon, LogInIcon, GiftIcon } from '@lucide/svelte';
+	import { SquareUserIcon, LogInIcon } from '@lucide/svelte';
 
 	let { children, data } = $props();
 </script>

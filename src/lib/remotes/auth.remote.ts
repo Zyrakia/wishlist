@@ -17,7 +17,7 @@ export const getMe = query(async () => {
 
 export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
-	const { cookies } = getRequestEvent();
+	const { cookies, url } = getRequestEvent();
 
 	const existing = await db.query.UserTable.findFirst({
 		where: (t, { eq }) => eq(t.email, email),
@@ -37,7 +37,8 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const token = await issueToken({ sub: id, name: username });
 	setSession(cookies, token);
 
-	redirect(303, '/');
+	const { data: returnUrl } = ReturnUrlSchema.safeParse(url.searchParams.get('redirect'));
+	redirect(303, returnUrl || '/');
 });
 
 const ReturnUrlSchema = z.string().regex(/^\/(?!\/)/);

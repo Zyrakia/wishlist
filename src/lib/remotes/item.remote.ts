@@ -8,14 +8,14 @@ import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import z from 'zod';
 import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
 import { touchList } from './wishlist.remote';
+import { verifyAuth } from '$lib/server/auth';
 
 export const createItem = form(ItemSchema, async (data) => {
 	const {
 		params: { wishlist_slug },
-		locals: { user },
 	} = getRequestEvent();
 
-	if (!user) error(401);
+	const user = verifyAuth();
 	if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
 	const wl = await db.query.WishlistTable.findFirst({
@@ -37,10 +37,10 @@ export const createItem = form(ItemSchema, async (data) => {
 export const updateItem = form(ItemSchema.partial(), async (data) => {
 	const {
 		params: { wishlist_slug, item_id },
-		locals: { user },
 	} = getRequestEvent();
 
-	if (!user) error(401);
+	const user = verifyAuth();
+
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
@@ -76,12 +76,10 @@ export const deleteItem = form(
 		]),
 	}),
 	async (data) => {
-		const {
-			locals: { user },
-		} = getRequestEvent();
-		if (!user) error(401);
+		const user = verifyAuth();
 
-		if (!data.confirm) redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+		if (!data.confirm)
+			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
@@ -91,7 +89,9 @@ export const deleteItem = form(
 
 		await db
 			.delete(WishlistItemTable)
-			.where(and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)));
+			.where(
+				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
+			);
 
 		touchList({ id: wl.id });
 		redirect(303, `/lists/${data.wishlistSlug}`);
@@ -99,11 +99,7 @@ export const deleteItem = form(
 );
 
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
-	const {
-		locals: { user },
-	} = getRequestEvent();
-
-	if (!user) error(401);
+	verifyAuth();
 
 	try {
 		const res = await generateItemCandidates(data.url);

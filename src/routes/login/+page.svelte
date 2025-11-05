@@ -8,6 +8,7 @@
 
 	import backgroundImage from '$lib/assets/authentication-background.webp';
 	import { asIssue } from '$lib/util/pick-issue';
+	import { page } from '$app/state';
 
 	const hasJs = useHasJs();
 	const getIssue = () => asIssue(remote.fields);
@@ -34,9 +35,15 @@
 	class="w-full h-full p-6 py-12 md:p-12 flex md:items-center justify-center md:justify-start bg-no-repeat bg-bottom-right bg-cover"
 >
 	<div class="container max-w-2xl flex flex-col">
-		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">Sign in to get started</p>
+		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">
+			Sign in to get started
+		</p>
 		<h1 class="text-3xl md:text-5xl mb-6 font-bold uppercase">Welcome Back</h1>
-		<p>Don't have an account yet? <a href="/register" class="text-blue-600">Create One</a></p>
+		<p>
+			Don't have an account yet? <a href="/register{page.url.search}" class="text-blue-600"
+				>Create One</a
+			>
+		</p>
 
 		<form
 			{...remote}

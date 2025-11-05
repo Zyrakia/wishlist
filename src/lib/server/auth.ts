@@ -1,8 +1,9 @@
-import type { Cookies } from '@sveltejs/kit';
+import { error, redirect, type Cookies } from '@sveltejs/kit';
 import { createSecretKey } from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import z from 'zod';
 import ENV from './env.server';
+import { getRequestEvent } from '$app/server';
 
 const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
@@ -13,6 +14,36 @@ const TokenSchema = z.object({
 });
 
 type Token = z.infer<typeof TokenSchema>;
+
+export const verifyAuth = ({
+	check,
+	failStrategy = 'login',
+}: {
+	failStrategy?: 'login' | 'register' | 'error';
+	check?: (user: Exclude<App.Locals['user'], undefined>) => boolean;
+} = {}) => {
+	const {
+		locals: { user },
+		url,
+	} = getRequestEvent();
+
+	const fail = () => {
+		const returnUrl = encodeURIComponent(url.pathname + url.search);
+		switch (failStrategy) {
+			case 'login':
+				redirect(303, `/login?redirect=${returnUrl}`);
+			case 'register':
+				redirect(303, `/register?redirect=${returnUrl}`);
+			case 'error':
+				error(401);
+		}
+	};
+
+	if (!user) return fail();
+	if (check && !check(user)) return fail();
+
+	return user;
+};
 
 export const issueToken = async (token: Token) => {
 	return await new SignJWT(token)

@@ -1,5 +1,6 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistSchema } from '$lib/schemas/wishlist';
+import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { WishlistTable } from '$lib/server/db/schema';
 import { error, redirect } from '@sveltejs/kit';
@@ -8,10 +9,7 @@ import { and, eq } from 'drizzle-orm';
 import z from 'zod';
 
 export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
-	const {
-		locals: { user },
-	} = getRequestEvent();
-	if (!user) error(401);
+	const user = verifyAuth({ failStrategy: 'error' });
 
 	await db
 		.update(WishlistTable)
@@ -25,10 +23,7 @@ export const isWishlistSlugOpen = query(z.object({ slug: z.string() }), async ({
 });
 
 export const createWishlist = form(WishlistSchema, async (data, invalid) => {
-	const {
-		locals: { user },
-	} = getRequestEvent();
-	if (!user) error(401);
+	const user = verifyAuth();
 
 	if (!(await isWishlistSlugOpen({ slug: data.slug }))) invalid(invalid.slug('Already taken'));
 
@@ -42,11 +37,11 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 });
 
 export const updateWishlist = form(WishlistSchema.partial(), async (data, invalid) => {
+	const user = verifyAuth();
+
 	const {
 		params: { wishlist_slug },
-		locals: { user },
 	} = getRequestEvent();
-	if (!user) error(401);
 	if (!wishlist_slug) error(400, 'Cannot update wishlist without slug');
 
 	if (data.slug !== undefined && data.slug !== wishlist_slug) {
@@ -86,15 +81,13 @@ export const deleteWishlist = form(
 		]),
 	}),
 	async (data) => {
-		const {
-			locals: { user },
-		} = getRequestEvent();
-		if (!user) error(401);
+		const user = verifyAuth();
 
 		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
+			where: (t, { and, eq }) =>
+				and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
 		});
 
 		if (!wl) error(400, 'Invalid wishlist slug and ID provided');
@@ -104,26 +97,23 @@ export const deleteWishlist = form(
 	},
 );
 
-export const getWishlists = query(z.object({ limit: z.number().min(1).max(10) }), async ({ limit }) => {
-	const {
-		locals: { user },
-	} = getRequestEvent();
-	if (!user) error(401);
+export const getWishlists = query(
+	z.object({ limit: z.number().min(1).max(10) }),
+	async ({ limit }) => {
+		const user = verifyAuth({ failStrategy: 'login' });
 
-	return await db.query.WishlistTable.findMany({
-		where: (t, { eq }) => eq(t.userId, user.id),
-		orderBy: (t, { desc }) => desc(t.createdAt),
-		limit: limit,
-	});
-});
+		return await db.query.WishlistTable.findMany({
+			where: (t, { eq }) => eq(t.userId, user.id),
+			orderBy: (t, { desc }) => desc(t.createdAt),
+			limit: limit,
+		});
+	},
+);
 
 export const getWishlistActivity = query(
 	z.object({ limit: z.number().min(1).max(10) }),
 	async ({ limit }) => {
-		const {
-			locals: { user },
-		} = getRequestEvent();
-		if (!user) error(401);
+		const user = verifyAuth({ failStrategy: 'login' });
 
 		return await db.query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, user.id),
