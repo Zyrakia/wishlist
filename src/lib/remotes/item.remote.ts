@@ -106,7 +106,7 @@ export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (da
 			if (!res.candidate?.name || !res.candidate?.valid) {
 				invalid('No product found');
 			} else return { ...res.candidate, url: data.url };
-		} else invalid('Cannot process URL');
+		} else throw res.error;
 	} catch (err) {
 		if (isHttpError(err)) throw err;
 		invalid('Cannot process URL');
