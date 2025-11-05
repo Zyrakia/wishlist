@@ -52,18 +52,16 @@
 </script>
 
 <div class="w-full h-full bg-neutral-200 grid place-items-center">
-	<div class="float-container my-0 h-full max-h-6/8 p-8 bg-white flex flex-col">
+	<div class="float-container my-0 min-h-6/8 p-8 bg-white flex flex-col">
 		<h1 class="font-bold text-2xl">Your Account</h1>
 
 		<hr class="mt-1 mb-4" />
 
-		<div class="flex flex-wrap gap-4">
+		<div class="flex flex-wrap gap-4 mb-4">
 			{#each info as infoCard}
 				{@const Icon = infoCard.icon}
 
-				<div
-					class="w-full p-4 shadow-md rounded-md border border-neutral-500/50 flex flex-col gap-4"
-				>
+				<div class="w-full p-4 shadow-md rounded-md border border-neutral-500/50 flex flex-col gap-4">
 					<div class="flex-1 flex justify-between">
 						<p class="font-bold">{infoCard.title}</p>
 

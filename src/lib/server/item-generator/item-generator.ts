@@ -65,6 +65,7 @@ async function renderUrl(url: string) {
 
 		return await page.content();
 	} catch (err) {
+		console.warn(err);
 		return;
 	} finally {
 		browser.close();
