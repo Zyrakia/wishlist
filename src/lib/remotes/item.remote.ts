@@ -18,17 +18,19 @@ export const createItem = form(ItemSchema, async (data) => {
 	const user = verifyAuth();
 	if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
-	const wl = await db.query.WishlistTable.findFirst({
+	const wl = await db().query.WishlistTable.findFirst({
 		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
 	});
 
 	if (!wl) error(400, 'Invalid wishlist slug provided');
 
-	await db.insert(WishlistItemTable).values({
-		id: randomUUID(),
-		wishlistId: wl.id,
-		...data,
-	});
+	await db()
+		.insert(WishlistItemTable)
+		.values({
+			id: randomUUID(),
+			wishlistId: wl.id,
+			...data,
+		});
 
 	touchList({ id: wl.id });
 	redirect(303, `/lists/${wishlist_slug}`);
@@ -44,13 +46,13 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
-	const wl = await db.query.WishlistTable.findFirst({
+	const wl = await db().query.WishlistTable.findFirst({
 		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
 	});
 
 	if (!wl) error(400, 'Invalid wishlist slug provided');
 
-	await db
+	await db()
 		.update(WishlistItemTable)
 		.set({ ...data })
 		.where(and(eq(WishlistItemTable.id, item_id), eq(WishlistItemTable.wishlistId, wl.id)));
@@ -81,13 +83,13 @@ export const deleteItem = form(
 		if (!data.confirm)
 			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
-		const wl = await db.query.WishlistTable.findFirst({
+		const wl = await db().query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
 		});
 
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
-		await db
+		await db()
 			.delete(WishlistItemTable)
 			.where(
 				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),

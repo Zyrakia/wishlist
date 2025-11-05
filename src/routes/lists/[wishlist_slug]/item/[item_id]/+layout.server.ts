@@ -5,7 +5,7 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async ({ params, parent }) => {
 	const { wishlist } = await parent();
 
-	const item = await db.query.WishlistItemTable.findFirst({
+	const item = await db().query.WishlistItemTable.findFirst({
 		where: (t, { and, eq }) => and(eq(t.wishlistId, wishlist.id), eq(t.id, params.item_id)),
 	});
 

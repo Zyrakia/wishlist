@@ -11,7 +11,7 @@ import z from 'zod';
 export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
 	const user = verifyAuth({ failStrategy: 'error' });
 
-	await db
+	await db()
 		.update(WishlistTable)
 		.set({ updatedAt: new Date() })
 		.where(and(eq(WishlistTable.id, id), eq(WishlistTable.userId, user.id)));
@@ -27,11 +27,13 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 
 	if (!(await isWishlistSlugOpen({ slug: data.slug }))) invalid(invalid.slug('Already taken'));
 
-	await db.insert(WishlistTable).values({
-		id: randomUUID(),
-		userId: user.id,
-		...data,
-	});
+	await db()
+		.insert(WishlistTable)
+		.values({
+			id: randomUUID(),
+			userId: user.id,
+			...data,
+		});
 
 	redirect(303, `/lists/${data.slug}`);
 });
@@ -49,7 +51,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 		if (!isOpen) invalid(invalid.slug('Already taken'));
 	}
 
-	const updateObject = await db
+	const updateObject = await db()
 		.update(WishlistTable)
 		.set({ ...data, updatedAt: new Date() })
 		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)));
@@ -59,7 +61,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
-	return await db.query.WishlistTable.findFirst({
+	return await db().query.WishlistTable.findFirst({
 		where: (t, { eq }) => eq(t.slug, slug),
 	});
 });
@@ -85,14 +87,14 @@ export const deleteWishlist = form(
 
 		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
 
-		const wl = await db.query.WishlistTable.findFirst({
+		const wl = await db().query.WishlistTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(eq(t.userId, user.id), eq(t.id, data.id), eq(t.slug, data.slug)),
 		});
 
 		if (!wl) error(400, 'Invalid wishlist slug and ID provided');
 
-		await db.delete(WishlistTable).where(eq(WishlistTable.id, wl.id));
+		await db().delete(WishlistTable).where(eq(WishlistTable.id, wl.id));
 		redirect(303, '/');
 	},
 );
@@ -102,7 +104,7 @@ export const getWishlists = query(
 	async ({ limit }) => {
 		const user = verifyAuth({ failStrategy: 'login' });
 
-		return await db.query.WishlistTable.findMany({
+		return await db().query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, user.id),
 			orderBy: (t, { desc }) => desc(t.createdAt),
 			limit: limit,
@@ -115,7 +117,7 @@ export const getWishlistActivity = query(
 	async ({ limit }) => {
 		const user = verifyAuth({ failStrategy: 'login' });
 
-		return await db.query.WishlistTable.findMany({
+		return await db().query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, user.id),
 			orderBy: (t, { desc }) => desc(t.updatedAt),
 			limit: limit,

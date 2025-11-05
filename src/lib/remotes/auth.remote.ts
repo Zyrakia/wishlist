@@ -19,7 +19,7 @@ export const resolveMe = query(async () => {
 	const me = await getMe();
 	if (!me) return;
 
-	return await db.query.UserTable.findFirst({
+	return await db().query.UserTable.findFirst({
 		where: (t, { eq }) => eq(t.id, me.id),
 	});
 });
@@ -28,7 +28,7 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const existing = await db.query.UserTable.findFirst({
+	const existing = await db().query.UserTable.findFirst({
 		where: (t, { eq }) => eq(t.email, email),
 	});
 	if (existing) invalid(invalid.email('Email is already registered'));
@@ -36,7 +36,7 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const passwordHash = await hash(password, ENV.SALT_ROUNDS);
 	const id = uuid4();
 
-	await db.insert(UserTable).values({
+	await db().insert(UserTable).values({
 		id,
 		email,
 		name: username,
@@ -56,7 +56,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const user = await db.query.UserTable.findFirst({
+	const user = await db().query.UserTable.findFirst({
 		where: (t, { eq }) => eq(t.email, email),
 	});
 
