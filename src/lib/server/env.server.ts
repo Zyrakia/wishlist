@@ -4,7 +4,7 @@ import z from 'zod';
 import flow from 'dotenv-flow';
 import ms from 'ms';
 const { error } = flow.config();
-if (error) throw error;
+if (error) console.warn(error);
 
 const ENV = createEnv({
 	runtimeEnv: process.env,
