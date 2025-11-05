@@ -27,12 +27,6 @@
 
 			<nav class="flex gap-6">
 				{#if data.user}
-					<a class="truncate" href="/lists">
-						<GiftIcon />
-
-						My Lists
-					</a>
-
 					<a class="truncate" href="/account">
 						<SquareUserIcon />
 

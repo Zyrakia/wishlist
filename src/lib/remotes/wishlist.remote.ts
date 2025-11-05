@@ -1,11 +1,23 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistSchema } from '$lib/schemas/wishlist';
 import { db } from '$lib/server/db';
-import { WishlistItemTable, WishlistTable } from '$lib/server/db/schema';
+import { WishlistTable } from '$lib/server/db/schema';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
-import { sql, eq, desc, asc } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import z from 'zod';
+
+export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
+	const {
+		locals: { user },
+	} = getRequestEvent();
+	if (!user) error(401);
+
+	await db
+		.update(WishlistTable)
+		.set({ updatedAt: new Date() })
+		.where(and(eq(WishlistTable.id, id), eq(WishlistTable.userId, user.id)));
+});
 
 export const isWishlistSlugOpen = query(z.object({ slug: z.string() }), async ({ slug }) => {
 	const existing = await getWishlist({ slug });
@@ -23,7 +35,6 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 	await db.insert(WishlistTable).values({
 		id: randomUUID(),
 		userId: user.id,
-		createdAt: new Date(),
 		...data,
 	});
 
@@ -43,13 +54,13 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 		if (!isOpen) invalid(invalid.slug('Already taken'));
 	}
 
-	const updateTarget = await db.query.WishlistTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.slug, wishlist_slug), eq(t.userId, user.id)),
-	});
-	if (!updateTarget) error(400, 'No wishlist to edit was found');
+	const updateObject = await db
+		.update(WishlistTable)
+		.set({ ...data, updatedAt: new Date() })
+		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)));
 
-	await db.update(WishlistTable).set(data).where(eq(WishlistTable.id, updateTarget.id));
-	redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
+	if (updateObject.changes) redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
+	else error(400, 'No wishlist can be updated');
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
@@ -93,6 +104,19 @@ export const deleteWishlist = form(
 	},
 );
 
+export const getWishlists = query(z.object({ limit: z.number().min(1).max(10) }), async ({ limit }) => {
+	const {
+		locals: { user },
+	} = getRequestEvent();
+	if (!user) error(401);
+
+	return await db.query.WishlistTable.findMany({
+		where: (t, { eq }) => eq(t.userId, user.id),
+		orderBy: (t, { desc }) => desc(t.createdAt),
+		limit: limit,
+	});
+});
+
 export const getWishlistActivity = query(
 	z.object({ limit: z.number().min(1).max(10) }),
 	async ({ limit }) => {
@@ -101,37 +125,10 @@ export const getWishlistActivity = query(
 		} = getRequestEvent();
 		if (!user) error(401);
 
-		const lastItem = db.$with('last_item').as(
-			db
-				.select({
-					wishlistId: WishlistItemTable.wishlistId,
-					modifiedAt: sql<number>`max(${WishlistItemTable.createdAt})`.as('modifiedAt'),
-				})
-				.from(WishlistItemTable)
-				.innerJoin(WishlistTable, eq(WishlistTable.id, WishlistItemTable.wishlistId))
-				.where(eq(WishlistTable.userId, user.id))
-				.groupBy(WishlistItemTable.wishlistId),
-		);
-
-		const sortGroup = sql<number>`CASE WHEN ${lastItem.modifiedAt} IS NULL THEN 0 ELSE 1 END`;
-
-		const sortWhen = sql<number>`
-      CASE
-        WHEN ${lastItem.modifiedAt} IS NULL THEN ${WishlistTable.createdAt}
-        ELSE ${lastItem.modifiedAt}
-      END
-    `;
-
-		return db
-			.with(lastItem)
-			.select({
-				wishlist: WishlistTable,
-				lastItemAt: lastItem.modifiedAt,
-			})
-			.from(WishlistTable)
-			.leftJoin(lastItem, eq(lastItem.wishlistId, WishlistTable.id))
-			.where(eq(WishlistTable.userId, user.id))
-			.orderBy(asc(sortGroup), desc(sortWhen))
-			.limit(limit);
+		return await db.query.WishlistTable.findMany({
+			where: (t, { eq }) => eq(t.userId, user.id),
+			orderBy: (t, { desc }) => desc(t.updatedAt),
+			limit: limit,
+		});
 	},
 );

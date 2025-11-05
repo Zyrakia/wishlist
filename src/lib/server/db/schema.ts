@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { integer, primaryKey, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 import { createSelectSchema } from 'drizzle-zod';
 import type z from 'zod';
@@ -8,7 +8,7 @@ export const UserTable = sqliteTable('user', {
 	name: text().notNull(),
 	email: text().notNull().unique(),
 	password: text().notNull(),
-	createdAt: integer({ mode: 'timestamp' }).notNull(),
+	createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
 
 export const _UserRelations = relations(UserTable, ({ many }) => ({
@@ -23,7 +23,8 @@ export const WishlistTable = sqliteTable('wishlist', {
 	slug: text().notNull().unique(),
 	name: text().notNull(),
 	description: text().notNull(),
-	createdAt: integer({ mode: 'timestamp' }).notNull(),
+	createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+	updatedAt: integer({mode: 'timestamp'}).notNull().default(sql`(unixepoch())`)
 });
 
 export const _WishlistRelations = relations(WishlistTable, ({ one, many }) => ({
@@ -48,7 +49,7 @@ export const WishlistItemTable = sqliteTable(
 		price: real(),
 		imageUrl: text(),
 		url: text(),
-		createdAt: integer({ mode: 'timestamp' }).notNull(),
+		createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 	},
 	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],
 );

@@ -7,8 +7,9 @@ import { and, eq } from 'drizzle-orm';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import z from 'zod';
 import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
+import { touchList } from './wishlist.remote';
 
-export const createItem = form(ItemSchema, async (data, invalid) => {
+export const createItem = form(ItemSchema, async (data) => {
 	const {
 		params: { wishlist_slug },
 		locals: { user },
@@ -26,10 +27,10 @@ export const createItem = form(ItemSchema, async (data, invalid) => {
 	await db.insert(WishlistItemTable).values({
 		id: randomUUID(),
 		wishlistId: wl.id,
-		createdAt: new Date(),
 		...data,
 	});
 
+	touchList({ id: wl.id });
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
@@ -54,6 +55,7 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 		.set({ ...data })
 		.where(and(eq(WishlistItemTable.id, item_id), eq(WishlistItemTable.wishlistId, wl.id)));
 
+	touchList({ id: wl.id });
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
@@ -79,8 +81,7 @@ export const deleteItem = form(
 		} = getRequestEvent();
 		if (!user) error(401);
 
-		if (!data.confirm)
-			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+		if (!data.confirm) redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
 		const wl = await db.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
@@ -90,10 +91,9 @@ export const deleteItem = form(
 
 		await db
 			.delete(WishlistItemTable)
-			.where(
-				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
-			);
+			.where(and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)));
 
+		touchList({ id: wl.id });
 		redirect(303, `/lists/${data.wishlistSlug}`);
 	},
 );

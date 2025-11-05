@@ -10,7 +10,7 @@
 	href="/lists/{wishlist.slug}"
 	class="button flex flex-col justify-center p-3 border max-w-full flex-1 min-w-xs md:max-w-xs lg:max-w-sm bg-white"
 >
-	<div class="flex gap-2 items-center">
+	<div class="flex-1 flex gap-2 items-center">
 		<GiftIcon class="text-red-400" />
 		<p class="font-bold text-lg">{wishlist.name}</p>
 	</div>

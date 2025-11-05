@@ -32,7 +32,6 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 		email,
 		name: username,
 		password: passwordHash,
-		createdAt: new Date(),
 	});
 
 	const token = await issueToken({ sub: id, name: username });
