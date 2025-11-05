@@ -12,7 +12,7 @@
 		'title': 'Wishii',
 		'description': 'Create a wishlist fast and share it to your friends with one short link!',
 		'og:type': 'website',
-		'og:url': page.url.href,
+		'og:url': `${page.url.origin}${page.url.pathname}`,
 		...page.data.meta,
 	});
 </script>
