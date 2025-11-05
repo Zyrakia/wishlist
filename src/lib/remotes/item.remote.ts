@@ -80,8 +80,7 @@ export const deleteItem = form(
 	async (data) => {
 		const user = verifyAuth();
 
-		if (!data.confirm)
-			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+		if (!data.confirm) redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
 		const wl = await db().query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
@@ -91,9 +90,7 @@ export const deleteItem = form(
 
 		await db()
 			.delete(WishlistItemTable)
-			.where(
-				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
-			);
+			.where(and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)));
 
 		touchList({ id: wl.id });
 		redirect(303, `/lists/${data.wishlistSlug}`);
@@ -106,7 +103,7 @@ export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (da
 	try {
 		const res = await generateItemCandidates(data.url);
 		if (res.success) {
-			if (!res.candidate || !res.candidate.name) {
+			if (!res.candidate?.name || !res.candidate?.valid) {
 				invalid('No product found');
 			} else return { ...res.candidate, url: data.url };
 		} else invalid('Cannot process URL');

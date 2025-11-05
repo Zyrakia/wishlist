@@ -1,7 +1,7 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
-import { chromium } from 'playwright';
+import { chromium, devices } from 'playwright';
 import z from 'zod';
 import ENV from '../env.server';
 
@@ -25,6 +25,12 @@ The page title often indicates the name of the core product on the page.
 - Infer currency via explicit symbols/codes, metadata, or URL/locale hints; otherwise default to USD.
 - Prefer a clear standalone product image near the name or price.
 
+If you find an item on the page that satisfies every criteria and is a very
+likely candidate, summarize it in the requested shape and set "valid" to "true".
+
+If you do not find anything, please do not return any of the fields, only "valid"
+set to "false".,
+
 **Output Requirements**
 - Omit any candidates missing both price and image.
 `;
@@ -33,19 +39,25 @@ const google = createGoogleGenerativeAI({ apiKey: ENV.GOOGLE_AI_KEY });
 
 const CandidateSchema = z
 	.object({
-		name: z.string(),
-		imageUrl: z.string(),
-		price: z.number(),
-		priceCurrency: z.string().length(3).toUpperCase(),
+		valid: z.boolean(),
+		name: z.string().optional(),
+		imageUrl: z.string().optional(),
+		price: z.number().optional(),
+		priceCurrency: z.string().length(3).toUpperCase().optional(),
 	})
 	.optional();
 
 async function renderUrl(url: string) {
-	const UA =
-		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36 ProductFinder';
+	const UA = devices['Desktop Chrome'].userAgent;
 
 	const browser = await chromium.launch({ headless: true });
-	const page = await browser.newPage({ userAgent: UA });
+	const page = await browser.newPage({
+		userAgent: UA,
+		locale: 'en-US',
+		timezoneId: 'America/New_York',
+		viewport: { width: 1366, height: 768 },
+		extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+	});
 
 	try {
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -75,11 +87,7 @@ function distillPage(html: string, baseUrl: string) {
 		const property = $el.attr('name') || $el.attr('property');
 		const content = $el.attr('content');
 
-		if (
-			property &&
-			content &&
-			(property.startsWith('og:') || property.startsWith('twitter:'))
-		) {
+		if (property && content && (property.startsWith('og:') || property.startsWith('twitter:'))) {
 			meta[property] = content;
 		}
 	});
@@ -112,8 +120,7 @@ function distillPage(html: string, baseUrl: string) {
 export async function generateItemCandidates(
 	url: string,
 ): Promise<
-	| { success: true; candidate?: z.infer<typeof CandidateSchema> }
-	| { success: false; error: string }
+	{ success: true; candidate?: z.infer<typeof CandidateSchema> } | { success: false; error: string }
 > {
 	const parsedUrl = new URL(url);
 
@@ -132,6 +139,8 @@ export async function generateItemCandidates(
 				{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
 			],
 		});
+
+		if (!candidate?.valid) return { success: false, error: 'No product found' };
 
 		return { success: true, candidate };
 	} catch (err) {
