@@ -3,7 +3,7 @@
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { getWishlistActivity, getWishlists } from '$lib/remotes/wishlist.remote.js';
-	import { MoveUpIcon, PlusIcon } from '@lucide/svelte';
+	import { FlameIcon, LayoutGridIcon, MoveUpIcon, PlusIcon } from '@lucide/svelte';
 	import z from 'zod';
 
 	let { data } = $props();
@@ -41,10 +41,10 @@
 					class="flex items-center py-1 gap-2 hover:text-blue-600 font-light ms-auto"
 				>
 					{#if sort === 'modified'}
-						[<MoveUpIcon size={16} />
+						[<LayoutGridIcon size={16} />
 						View all lists ]
 					{:else}
-						[<MoveUpIcon size={16} />
+						[<FlameIcon size={16} />
 						View recent activity ]
 					{/if}
 				</a>

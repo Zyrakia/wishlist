@@ -15,6 +15,15 @@ export const getMe = query(async () => {
 	if (payload) return { id: payload.sub, name: payload.name };
 });
 
+export const resolveMe = query(async () => {
+	const me = await getMe();
+	if (!me) return;
+
+	return await db.query.UserTable.findFirst({
+		where: (t, { eq }) => eq(t.id, me.id),
+	});
+});
+
 export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();

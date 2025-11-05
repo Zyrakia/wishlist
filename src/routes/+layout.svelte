@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
-	import { SquareUserIcon, LogInIcon } from '@lucide/svelte';
+	import { SquareUserIcon, LogInIcon, HouseIcon } from '@lucide/svelte';
 
 	let { children, data } = $props();
+
+	const isRoot = $derived(page.url.pathname === '/');
 </script>
 
 <svelte:head>
@@ -23,6 +26,10 @@
 <div class="h-full flex flex-col">
 	<header class="shrink-0 min-h-16 drop-shadow-md p-4 flex items-center gap-2 border-b">
 		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
+			{#if !isRoot}
+				<a href="/"><HouseIcon /> </a>
+			{/if}
+
 			<a href="/" class="font-semibold">Wishii</a>
 
 			<nav class="flex gap-6">
