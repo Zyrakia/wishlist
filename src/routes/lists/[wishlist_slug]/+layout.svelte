@@ -14,10 +14,6 @@
 	const isAtRoot = $derived(page.url.pathname.endsWith(data.wishlist.slug));
 </script>
 
-<svelte:head>
-	<title>{wishlist.name} by {wishlist.user.name}</title>
-</svelte:head>
-
 <div class="flex flex-col w-full h-full">
 	<div class="p-5 border-b shadow">
 		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>

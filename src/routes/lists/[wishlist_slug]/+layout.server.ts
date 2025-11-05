@@ -10,5 +10,13 @@ export const load: LayoutServerLoad = async ({ params }) => {
 
 	if (!wishlist) error(404);
 
-	return { wishlist };
+	return {
+		wishlist,
+		meta: {
+			title: `${wishlist.name} by ${wishlist.user.name}`,
+			description:
+				wishlist.description || `Check out this wishlist by ${wishlist.user.name}!`,
+			author: wishlist.user.name,
+		},
+	};
 };

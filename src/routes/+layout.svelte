@@ -8,6 +8,13 @@
 	let { children, data } = $props();
 
 	const isRoot = $derived(page.url.pathname === '/');
+	const meta = $derived({
+		'title': 'Wishii',
+		'description': 'Create a wishlist fast and share it to your friends with one short link!',
+		'og:type': 'website',
+		'og:url': page.url.href,
+		...page.data.meta,
+	});
 </script>
 
 <svelte:head>
@@ -20,7 +27,28 @@
 		rel="stylesheet"
 	/>
 
-	<title>Wishii</title>
+	{#if meta?.title}
+		<title>{meta.title}</title>
+		<meta name="title" content={meta.title} />
+		<meta name="og:title" content={meta.title} />
+		<meta name="twitter:title" content={meta.title} />
+	{/if}
+
+	{#if meta?.description}
+		<meta name="description" content={meta.description} />
+		<meta name="og:description" content={meta.description} />
+		<meta name="twitter:description" content={meta.description} />
+	{/if}
+
+	{#if meta?.canonical}
+		<link rel="canonical" href={meta.canonical} />
+	{/if}
+
+	{#each Object.entries(meta) as [name, content]}
+		{#if name !== 'title' && name !== 'description' && name !== 'canonical'}
+			<meta {name} {content} />
+		{/if}
+	{/each}
 </svelte:head>
 
 <div class="h-full flex flex-col">
