@@ -1,21 +1,23 @@
 <script lang="ts">
 	import WishlistItemToolbar from '$lib/components/wishlist-item-toolbar.svelte';
 	import WishlistItem from '$lib/components/wishlist-item.svelte';
+	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 	import {
 		Plus as AddIcon,
-		Share2 as ShareIcon,
 		ClipboardCheck as CopiedIcon,
 		Settings2Icon as EditIcon,
+		Share2 as ShareIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
-	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
-	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
+	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
-	const items = $derived(wishlist.items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+	const items = $derived(
+		wishlist.items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+	);
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 
 	let shareEnabled = $state(true);
@@ -55,7 +57,7 @@
 	onMount(() => (shareEnabled = !!navigator.share || !!navigator.clipboard));
 </script>
 
-<div class="flex gap-3 flex-wrap items-stretch justify-between p-4 mt-2">
+<div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
 	{#if isOwn}
 		<a class="button bg-green-200" href="/lists/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
@@ -96,7 +98,7 @@
 	{/if}
 </div>
 
-<main class="w-full flex flex-wrap justify-center gap-4 px-4 pt-2 pb-12">
+<main class="flex w-full flex-wrap justify-center gap-4 px-4 pt-2 pb-12">
 	{#if items.length !== 0}
 		{#each items as item}
 			<WishlistItem {item}>
@@ -108,9 +110,9 @@
 			</WishlistItem>
 		{/each}
 	{:else}
-		<p class="italic font-light">
+		<p class="font-light italic">
 			No items have been added to this list...
-			<span class="text-red-500 font-bold">yet.</span>
+			<span class="font-bold text-red-500">yet.</span>
 		</p>
 	{/if}
 </main>

@@ -3,10 +3,10 @@ import type { Action } from 'svelte/action';
 /**
  * Toggles a class on an element when the document is scrollable.
  */
-export const pageScroll: Action<HTMLElement, (element: HTMLElement, pageScrollable: boolean) => void> = (
-	node,
-	handler,
-) => {
+export const pageScroll: Action<
+	HTMLElement,
+	(element: HTMLElement, pageScrollable: boolean) => void
+> = (node, handler) => {
 	const target = document.scrollingElement || document.documentElement;
 	const update = () => {
 		if (!target || !node) return;

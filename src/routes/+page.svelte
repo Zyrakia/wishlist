@@ -25,11 +25,11 @@
 </script>
 
 {#if data.user}
-	<div class="w-full px-6 py-12 flex flex-col gap-6">
+	<div class="flex w-full flex-col gap-6 px-6 py-12">
 		<UserIntro name={data.user.name} />
 
 		<div class="w-full">
-			<p class="font-bold flex items-center flex-wrap gap-4">
+			<p class="flex flex-wrap items-center gap-4 font-bold">
 				{#if sort === 'modified'}
 					Your recent list activity
 				{:else}
@@ -38,7 +38,7 @@
 
 				<a
 					href="?sort={sort === 'modified' ? 'created' : 'modified'}"
-					class="flex items-center py-1 gap-2 hover:text-blue-600 font-light ms-auto"
+					class="ms-auto flex items-center gap-2 py-1 font-light hover:text-blue-600"
 				>
 					{#if sort === 'modified'}
 						[<LayoutGridIcon size={16} />
@@ -50,13 +50,13 @@
 				</a>
 			</p>
 
-			<hr class="border-dashed mb-3" />
+			<hr class="mb-3 border-dashed" />
 
 			{#if (await wishlists).length}
-				<div class="w-full flex flex-wrap gap-4">
+				<div class="flex w-full flex-wrap gap-4">
 					<a
 						href="/new-list"
-						class="button bg-green-200 flex flex-col justify-evenly items-center"
+						class="button flex flex-col items-center justify-evenly bg-green-200"
 					>
 						<PlusIcon />
 						Add List
@@ -69,7 +69,7 @@
 									{@const modDate = new Date(wishlist.updatedAt)}
 
 									<hr class="my-2" />
-									<p class="font-light text-xs text-neutral-500">
+									<p class="text-xs font-light text-neutral-500">
 										Modified
 										{dtf.format(modDate)}
 									</p>
@@ -79,10 +79,10 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="flex flex-col gap-2 items-center py-6">
-					<p class="italic font-light">You have no wishlists...</p>
+				<div class="flex flex-col items-center gap-2 py-6">
+					<p class="font-light italic">You have no wishlists...</p>
 
-					<a href="/new-list" class="button bg-green-200 px-4 py-2 rounded">
+					<a href="/new-list" class="button rounded bg-green-200 px-4 py-2">
 						Create Your First List
 					</a>
 				</div>

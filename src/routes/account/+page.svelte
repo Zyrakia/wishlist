@@ -51,30 +51,32 @@
 	);
 </script>
 
-<div class="w-full h-full bg-neutral-200 grid place-items-center">
-	<div class="float-container my-0 min-h-6/8 p-8 bg-white flex flex-col">
-		<h1 class="font-bold text-2xl">Your Account</h1>
+<div class="grid h-full w-full place-items-center bg-neutral-200">
+	<div class="float-container my-0 flex min-h-6/8 flex-col bg-white p-8">
+		<h1 class="text-2xl font-bold">Your Account</h1>
 
 		<hr class="mt-1 mb-4" />
 
-		<div class="flex flex-wrap gap-4 mb-4">
+		<div class="mb-4 flex flex-wrap gap-4">
 			{#each info as infoCard}
 				{@const Icon = infoCard.icon}
 
-				<div class="w-full p-4 shadow-md rounded-md border border-neutral-500/50 flex flex-col gap-4">
-					<div class="flex-1 flex justify-between">
+				<div
+					class="flex w-full flex-col gap-4 rounded-md border border-neutral-500/50 p-4 shadow-md"
+				>
+					<div class="flex flex-1 justify-between">
 						<p class="font-bold">{infoCard.title}</p>
 
 						<Icon />
 					</div>
 
-					<p class="flex-1 font-light whitespace-pre-wrap wrap-break-word">
+					<p class="flex-1 font-light wrap-break-word whitespace-pre-wrap">
 						{infoCard.content}
 					</p>
 				</div>
 			{/each}
 		</div>
 
-		<a class="button bg-red-200 mt-auto text-center" href="/logout">Logout</a>
+		<a class="button mt-auto bg-red-200 text-center" href="/logout">Logout</a>
 	</div>
 </div>

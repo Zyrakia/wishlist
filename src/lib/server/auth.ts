@@ -1,9 +1,11 @@
-import { error, redirect, type Cookies } from '@sveltejs/kit';
-import { createSecretKey } from 'crypto';
-import { SignJWT, jwtVerify } from 'jose';
-import z from 'zod';
-import ENV from './env.server';
 import { getRequestEvent } from '$app/server';
+import { createSecretKey } from 'crypto';
+import { jwtVerify, SignJWT } from 'jose';
+import z from 'zod';
+
+import { type Cookies, error, redirect } from '@sveltejs/kit';
+
+import ENV from './env.server';
 
 const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');

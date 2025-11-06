@@ -30,10 +30,10 @@
 	};
 </script>
 
-<div class="py-3 px-2 max-h-12 h-12">
+<div class="h-12 max-h-12 px-2 py-3">
 	{#if confirmResolver}
 		<div
-			class="flex items-center gap-2 h-full"
+			class="flex h-full items-center gap-2"
 			role="alertdialog"
 			aria-modal="true"
 			tabindex="-1"
@@ -47,9 +47,15 @@
 			<button type="button" title="No" onclick={confirmNo}>No</button>
 		</div>
 	{:else}
-		<div class="flex flex-row-reverse gap-4" in:slide={{ duration: 150 }} out:slide={{ duration: 150 }}>
-			<a title="Edit" class="button p-0.5 border-none" href="/lists/{wishlistSlug}/item/{itemId}/edit"
-				><EditIcon /></a
+		<div
+			class="flex flex-row-reverse gap-4"
+			in:slide={{ duration: 150 }}
+			out:slide={{ duration: 150 }}
+		>
+			<a
+				title="Edit"
+				class="button border-none p-0.5"
+				href="/lists/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a
 			>
 
 			<form class="text-red-500" {...deleteForm}>
@@ -59,7 +65,7 @@
 
 				<button
 					title="Delete"
-					class="p-0.5 border-none"
+					class="border-none p-0.5"
 					disabled={confirming}
 					{...deleteForm.buttonProps.enhance(async ({ submit }) => {
 						const res = await startConfirm();

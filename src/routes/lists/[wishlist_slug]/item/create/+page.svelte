@@ -6,4 +6,8 @@
 	let { data } = $props();
 </script>
 
-<WishlistItemEditor init={data.initItem} generate={false} handler={createItem.preflight(ItemSchema)} />
+<WishlistItemEditor
+	init={data.initItem}
+	generate={false}
+	handler={createItem.preflight(ItemSchema)}
+/>

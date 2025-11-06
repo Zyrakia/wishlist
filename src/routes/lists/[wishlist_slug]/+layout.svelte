@@ -14,18 +14,18 @@
 	const isAtRoot = $derived(page.url.pathname.endsWith(data.wishlist.slug));
 </script>
 
-<div class="flex flex-col w-full h-full">
-	<div class="p-5 border-b shadow">
+<div class="flex h-full w-full flex-col">
+	<div class="border-b p-5 shadow">
 		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>
-		<p class="font-light text-lg italic">
+		<p class="text-lg font-light italic">
 			by {wishlist.user.name}
 			{#if isOwn}
-				<span class="not-italic font-bold text-red-400">(You)</span>
+				<span class="font-bold text-red-400 not-italic">(You)</span>
 			{/if}
 		</p>
 
 		{#if badges.length || !isAtRoot}
-			<div class="flex flex-wrap gap-4 mt-4 items-center">
+			<div class="mt-4 flex flex-wrap items-center gap-4">
 				{#if !isAtRoot}
 					<a title="Go Back" href="/lists/{data.wishlist.slug}">
 						<CircleArrowLeftIcon />
@@ -33,7 +33,7 @@
 				{/if}
 
 				{#each badges as badge}
-					<p class="px-3 py-2 bg-emerald-100 rounded-xl border text-sm">
+					<p class="rounded-xl border bg-emerald-100 px-3 py-2 text-sm">
 						{badge}
 					</p>
 				{/each}
@@ -43,8 +43,8 @@
 
 	<div class="h-full w-full">
 		{#if description && isAtRoot}
-			<div class="p-4 m-4 mb-0 border rounded border-zinc-500/30 shadow-sm">
-				<p class="whitespace-pre-wrap wrap-break-word text-base">
+			<div class="m-4 mb-0 rounded border border-zinc-500/30 p-4 shadow-sm">
+				<p class="text-base wrap-break-word whitespace-pre-wrap">
 					{description}
 				</p>
 			</div>

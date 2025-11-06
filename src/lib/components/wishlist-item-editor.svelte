@@ -11,7 +11,13 @@
 	import Loader from './loader.svelte';
 	import WishlistItem from './wishlist-item.svelte';
 	import InputGroup from './input-group.svelte';
-	import { ArrowLeftFromLineIcon, CheckIcon, LinkIcon, Settings2Icon, XIcon } from '@lucide/svelte';
+	import {
+		ArrowLeftFromLineIcon,
+		CheckIcon,
+		LinkIcon,
+		Settings2Icon,
+		XIcon,
+	} from '@lucide/svelte';
 
 	let {
 		handler,
@@ -104,24 +110,24 @@
 <div
 	use:pageScroll={(_, hasScroll) => (pageHasScroll = hasScroll)}
 	class:has-scroll={pageHasScroll}
-	class="min-h-full h-full w-full flex flex-col xl:flex-row"
+	class="flex h-full min-h-full w-full flex-col xl:flex-row"
 >
 	{#if showPreview}
 		<aside
 			class="pane {mode === 'generate-confirm'
 				? 'flex-8/12'
-				: 'flex-4/12'} p-4 px-6 bg-neutral-200 grid place-items-center"
+				: 'flex-4/12'} grid place-items-center bg-neutral-200 p-4 px-6"
 		>
-			<div class="snap w-full max-w-2xl relative p-4 rounded-xl bg-white shadow-md">
+			<div class="snap relative w-full max-w-2xl rounded-xl bg-white p-4 shadow-md">
 				<h3 class="text-lg font-bold">Preview</h3>
 
 				{#if loading}
-					<div class="w-full h-32">
+					<div class="h-32 w-full">
 						<Loader />
 					</div>
 				{:else}
 					<div
-						class="w-full border border-dashed border-red-800/50 p-4 rounded grid place-items-center"
+						class="grid w-full place-items-center rounded border border-dashed border-red-800/50 p-4"
 					>
 						<WishlistItem item={formMirror} interactive={false} />
 					</div>
@@ -134,14 +140,14 @@
 		class:border-t={showPreview}
 		class="{showPreview
 			? 'flex-8/12'
-			: 'w-full h-full'} bg-neutral-200 drop-shadow-2xl border-black/50 xl:border-t-0 border-dashed xl:border-solid xl:border-l flex justify-center items-center"
+			: 'h-full w-full'} flex items-center justify-center border-dashed border-black/50 bg-neutral-200 drop-shadow-2xl xl:border-t-0 xl:border-l xl:border-solid"
 	>
 		{#if mode === 'generate-confirm' || mode === 'form'}
 			<form
 				{...handler}
 				use:formEdit={onInput}
-				class="p-8 float-container flex flex-col gap-4 {showPreview
-					? 'xl:h-full xl:m-0 xl:max-w-full'
+				class="float-container flex flex-col gap-4 p-8 {showPreview
+					? 'xl:m-0 xl:h-full xl:max-w-full'
 					: ''}"
 			>
 				<div class:hidden={mode !== 'form'} class="flex flex-col gap-2">
@@ -167,7 +173,10 @@
 						</div>
 
 						<div class="flex-2/5">
-							<InputGroup label="Currency" error={handler.fields.priceCurrency.issues()}>
+							<InputGroup
+								label="Currency"
+								error={handler.fields.priceCurrency.issues()}
+							>
 								{#snippet control()}
 									<datalist id="currency-list">
 										<option value="USD">USD ($)</option>
@@ -214,7 +223,7 @@
 							<svelte:element
 								this={hasJs() ? 'button' : 'a'}
 								href="./generate"
-								class="button text-center w-max bg-red-200"
+								class="button w-max bg-red-200 text-center"
 								onclick={() => (mode = 'generate')}
 								type="button"
 								role="button"
@@ -225,14 +234,19 @@
 							</svelte:element>
 						{/if}
 
-						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}>Submit</button>
+						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}
+							>Submit</button
+						>
 					</div>
 				{:else}
-					<div class="w-full h-full flex flex-col gap-6 items-center justify-center">
+					<div class="flex h-full w-full flex-col items-center justify-center gap-6">
 						<h1 class="text-2xl">Is this right?</h1>
 
-						<div class="flex gap-y-2 gap-x-4 flex-col md:flex-row">
-							<button class="flex items-center gap-2 bg-green-200" {...submitButtonProps}>
+						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
+							<button
+								class="flex items-center gap-2 bg-green-200"
+								{...submitButtonProps}
+							>
 								<CheckIcon />
 								Add to List
 							</button>
@@ -268,22 +282,25 @@
 			<form
 				{...generateRemote}
 				oninput={() => generateRemote.validate({ preflightOnly: true })}
-				class="p-8 h-full sm:h-max float-container flex flex-col gap-1"
+				class="float-container flex h-full flex-col gap-1 p-8 sm:h-max"
 			>
-				<h1 class="font-bold text-2xl">Create a new Item</h1>
+				<h1 class="text-2xl font-bold">Create a new Item</h1>
 
 				<hr class="mb-4" />
 
-				<div class="flex-1 flex flex-col justify-center">
+				<div class="flex flex-1 flex-col justify-center">
 					<p class="font-light italic">Automatically generate from:</p>
 
-					<div class="p-3 border rounded border-black/50 border-dashed flex flex-col gap-4">
+					<div
+						class="flex flex-col gap-4 rounded border border-dashed border-black/50 p-3"
+					>
 						<InputGroup
 							label="Item Link"
-							error={generateRemote.fields.url.issues() || generateRemote.fields.issues()}
+							error={generateRemote.fields.url.issues() ||
+								generateRemote.fields.issues()}
 						>
 							{#snippet control()}
-								<div class="flex gap-4 py-0.5 items-center">
+								<div class="flex items-center gap-4 py-0.5">
 									<LinkIcon />
 									<input
 										{...generateRemote.fields.url.as('text')}
@@ -294,7 +311,7 @@
 							{/snippet}
 						</InputGroup>
 
-						<div class="mt-2 w-full flex gap-4 justify-stretch">
+						<div class="mt-2 flex w-full justify-stretch gap-4">
 							<button
 								disabled={loading}
 								{...generateRemote.buttonProps.enhance(async ({ submit }) => {
@@ -330,7 +347,7 @@
 						</div>
 					</div>
 
-					<p class="font-bold my-5 text-center">OR</p>
+					<p class="my-5 text-center font-bold">OR</p>
 
 					<svelte:element
 						this={hasJs() ? 'button' : 'a'}

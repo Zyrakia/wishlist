@@ -56,7 +56,7 @@
 	const hasJs = useHasJs();
 </script>
 
-<div class="w-full max-w-full sm:max-w-2xs md:max-w-sm lg:max-w-md relative flex flex-col">
+<div class="relative flex w-full max-w-full flex-col sm:max-w-2xs md:max-w-sm lg:max-w-md">
 	<svelte:element
 		this={!hasJs() && canClick ? 'a' : 'button'}
 		onclick={() => {
@@ -67,24 +67,24 @@
 		role="link"
 		tabindex="0"
 		class={[
-			'button w-full h-full flex flex-col justify-center p-4 border-2 bg-white brightness-100 border-zinc-300 shadow-sm text-left transition-shadow',
+			'button flex h-full w-full flex-col justify-center border-2 border-zinc-300 bg-white p-4 text-left shadow-sm brightness-100 transition-shadow',
 			canClick && 'interactive cursor-pointer hover:shadow-xl',
 		]}
 		href={item.url}
 		target="_blank"
 	>
-		<div class="flex flex-col justify-center gap-2 flex-1">
+		<div class="flex flex-1 flex-col justify-center gap-2">
 			{#if item.imageUrl}
-				<div class="aspect-video flex justify-center overflow-hidden p-2">
+				<div class="flex aspect-video justify-center overflow-hidden p-2">
 					<img
-						class="object-contain w-full"
+						class="w-full object-contain"
 						src={item.imageUrl}
 						alt="{item.name} Primary Image"
 					/>
 				</div>
 			{/if}
 
-			<p class="text-lg font-bold whitespace-normal wrap-break-word">
+			<p class="text-lg font-bold wrap-break-word whitespace-normal">
 				{item.name}
 			</p>
 		</div>
@@ -94,13 +94,13 @@
 				<hr class="border-zinc-400" />
 
 				{#if item.notes}
-					<p class="whitespace-pre-wrap wrap-break-word font-light mt-2 text-base">
+					<p class="mt-2 text-base font-light wrap-break-word whitespace-pre-wrap">
 						{item.notes.trim()}
 					</p>
 				{/if}
 			</div>
 
-			<div class="pt-2 flex gap-1">
+			<div class="flex gap-1 pt-2">
 				{#if currFormats && item.price}
 					<p
 						title="Priced around {currFormats.long.format(item.price)}"

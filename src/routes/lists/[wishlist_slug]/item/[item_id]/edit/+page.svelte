@@ -6,4 +6,8 @@
 	const { data } = $props();
 </script>
 
-<WishlistItemEditor init={data.item} generate={false} handler={updateItem.preflight(ItemSchema.partial())} />
+<WishlistItemEditor
+	init={data.item}
+	generate={false}
+	handler={updateItem.preflight(ItemSchema.partial())}
+/>

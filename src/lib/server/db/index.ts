@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import * as schema from './schema';
+
 import ENV from '../env.server';
+import * as schema from './schema';
 
 const create = () => drizzle(ENV.DATABASE_PATH, { schema, casing: 'snake_case' });
 

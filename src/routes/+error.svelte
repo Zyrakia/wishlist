@@ -5,7 +5,7 @@
 	onMount(() => console.error(page.error));
 </script>
 
-<div class="h-full p-4 flex flex-col items-center justify-center gap-6">
+<div class="flex h-full flex-col items-center justify-center gap-6 p-4">
 	<div class="letters">
 		<div class="letters">
 			<h2 class="letters-box">O</h2>

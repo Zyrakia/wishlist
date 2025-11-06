@@ -8,15 +8,15 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button flex flex-col justify-center p-3 border max-w-full flex-1 min-w-xs md:max-w-xs lg:max-w-sm bg-white"
+	class="button flex max-w-full min-w-xs flex-1 flex-col justify-center border bg-white p-3 md:max-w-xs lg:max-w-sm"
 >
-	<div class="flex-1 flex gap-2 items-center">
+	<div class="flex flex-1 items-center gap-2">
 		<GiftIcon class="text-red-400" />
-		<p class="font-bold text-lg">{wishlist.name}</p>
+		<p class="text-lg font-bold">{wishlist.name}</p>
 	</div>
 
 	{#if wishlist.description}
-		<p class="font-light whitespace-pre-wrap wrap-break-word mt-1">{wishlist.description}</p>
+		<p class="mt-1 font-light wrap-break-word whitespace-pre-wrap">{wishlist.description}</p>
 	{/if}
 
 	<div class="mt-auto">

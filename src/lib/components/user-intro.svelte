@@ -14,7 +14,7 @@
 					: 'evening';
 </script>
 
-<div class="w-full flex gap-3 items-center">
+<div class="flex w-full items-center gap-3">
 	<p>
 		{#if periodOfDay === 'early morning'}
 			<MoonIcon class="text-purple-600" size={32} />

@@ -1,8 +1,10 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices } from 'playwright';
 import z from 'zod';
+
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
 import ENV from '../env.server';
 
 const SYSTEM_PROMPT = `
@@ -88,7 +90,11 @@ function distillPage(html: string, baseUrl: string) {
 		const property = $el.attr('name') || $el.attr('property');
 		const content = $el.attr('content');
 
-		if (property && content && (property.startsWith('og:') || property.startsWith('twitter:'))) {
+		if (
+			property &&
+			content &&
+			(property.startsWith('og:') || property.startsWith('twitter:'))
+		) {
 			meta[property] = content;
 		}
 	});
@@ -121,7 +127,8 @@ function distillPage(html: string, baseUrl: string) {
 export async function generateItemCandidates(
 	url: string,
 ): Promise<
-	{ success: true; candidate?: z.infer<typeof CandidateSchema> } | { success: false; error: string }
+	| { success: true; candidate?: z.infer<typeof CandidateSchema> }
+	| { success: false; error: string }
 > {
 	const parsedUrl = new URL(url);
 

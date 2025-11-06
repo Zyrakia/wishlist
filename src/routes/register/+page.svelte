@@ -31,16 +31,18 @@
 
 <div
 	style="background-image: url({backgroundImage});"
-	class="w-full h-full p-6 py-12 md:p-12 flex md:items-center justify-center md:justify-start bg-no-repeat bg-bottom-right bg-cover"
+	class="flex h-full w-full justify-center bg-cover bg-bottom-right bg-no-repeat p-6 py-12 md:items-center md:justify-start md:p-12"
 >
-	<div class="container max-w-2xl flex flex-col">
-		<p class="text-sm md:text-lg mb-2 md:mb-4 text-neutral-600 uppercase">Register to get started</p>
-		<h1 class="text-3xl md:text-5xl mb-6 font-bold uppercase">Create an Account</h1>
+	<div class="container flex max-w-2xl flex-col">
+		<p class="mb-2 text-sm text-neutral-600 uppercase md:mb-4 md:text-lg">
+			Register to get started
+		</p>
+		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Create an Account</h1>
 		<p>Already have an account? <a href="/login" class="text-blue-600">Login</a></p>
 
 		<form
 			{...remote}
-			class="container mt-6 w-full flex flex-col gap-5 rounded"
+			class="container mt-6 flex w-full flex-col gap-5 rounded"
 			oninput={() => remote.validate({ preflightOnly: true })}
 		>
 			<InputGroup label="Email" error={remote.fields.email.issues()}>
@@ -68,24 +70,26 @@
 				error={remote.fields.password.issues() || remote.fields.passwordConfirm.issues()}
 			>
 				{#snippet control()}
-					<div class="w-full relative flex flex-col md:flex-row gap-2">
+					<div class="relative flex w-full flex-col gap-2 md:flex-row">
 						<input
 							class="flex-1/2 bg-white"
 							placeholder="Enter your password"
 							{...remote.fields.password.as(showPassword ? 'text' : 'password')}
 						/>
 
-						<div class="flex-2/3 flex gap-2">
+						<div class="flex flex-2/3 gap-2">
 							<input
 								class="w-full bg-white"
 								placeholder="Confirm your password"
-								{...remote.fields.passwordConfirm.as(showPassword ? 'text' : 'password')}
+								{...remote.fields.passwordConfirm.as(
+									showPassword ? 'text' : 'password',
+								)}
 							/>
 
 							{#if hasJs()}
 								<button
 									title={showPassword ? 'Hide Password' : 'Show Password'}
-									class="button px-3 bg-white"
+									class="button bg-white px-3"
 									type="button"
 									onclick={() => (showPassword = !showPassword)}
 								>
@@ -119,7 +123,7 @@
 			</button>
 
 			<p
-				class="transition-opacity font-bold text-center opacity-0 bg-red-200 px-6 py-2 rounded"
+				class="rounded bg-red-200 px-6 py-2 text-center font-bold opacity-0 transition-opacity"
 				class:opacity-100={!!issue}
 			>
 				{#if issue}

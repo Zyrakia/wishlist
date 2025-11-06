@@ -1,13 +1,14 @@
 import { command, form, getRequestEvent, query } from '$app/server';
 import { CreateCredentialsSchema, CredentialsSchema } from '$lib/schemas/auth';
-import { readSession, issueToken, setSession, clearSession } from '$lib/server/auth';
+import { clearSession, issueToken, readSession, setSession } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
 import ENV from '$lib/server/env.server';
-import { redirect } from '@sveltejs/kit';
-import { hash, compare } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
+
+import { redirect } from '@sveltejs/kit';
 
 export const getMe = query(async () => {
 	const { cookies } = getRequestEvent();

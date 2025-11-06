@@ -9,7 +9,7 @@
 
 	button,
 	.button {
-		@apply font-medium rounded-md text-sm px-5 py-2 border outline-none bg-zinc-200 cursor-pointer;
+		@apply cursor-pointer rounded-md border bg-zinc-200 px-5 py-2 text-sm font-medium outline-none;
 	}
 
 	button:hover,
@@ -30,7 +30,7 @@
 	input,
 	textarea,
 	select {
-		@apply outline-none border border-black p-2  rounded-md;
+		@apply rounded-md border border-black p-2 outline-none;
 	}
 
 	input:focus,
@@ -51,6 +51,6 @@
 
 @layer components {
 	.float-container {
-		@apply max-w-full w-full md:max-w-2xl lg:max-w-4xl sm:mx-12 sm:my-6 rounded-lg shadow-xl shadow-black/20 bg-neutral-100;
+		@apply w-full max-w-full rounded-lg bg-neutral-100 shadow-xl shadow-black/20 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
 	}
 }

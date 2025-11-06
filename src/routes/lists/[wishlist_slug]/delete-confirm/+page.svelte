@@ -4,12 +4,12 @@
 	let { data } = $props();
 </script>
 
-<form {...deleteWishlist} class="w-full h-full flex flex-col items-center justify-center">
+<form {...deleteWishlist} class="flex h-full w-full flex-col items-center justify-center">
 	<input {...deleteWishlist.fields.id.as('hidden', data.wishlist.id)} />
 	<input {...deleteWishlist.fields.slug.as('hidden', data.wishlist.slug)} />
 	<input {...deleteWishlist.fields.confirm.as('hidden', 'true')} />
 
-	<p class="text-center mb-4">
+	<p class="mb-4 text-center">
 		Are you sure you want to delete <span class="font-bold">{data.wishlist.name}</span>
 	</p>
 

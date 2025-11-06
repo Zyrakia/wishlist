@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { isWishlistSlugOpen, updateWishlist, type createWishlist } from '$lib/remotes/wishlist.remote';
+	import {
+		isWishlistSlugOpen,
+		updateWishlist,
+		type createWishlist,
+	} from '$lib/remotes/wishlist.remote';
 	import { WishlistSchema, type Wishlist } from '$lib/schemas/wishlist';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { safePrune } from '$lib/util/safe-prune';
@@ -91,13 +95,13 @@
 	onMount(() => handler.validate());
 </script>
 
-<div class="w-full min-h-full h-full bg-neutral-200 flex flex-col items-center justify-center">
+<div class="flex h-full min-h-full w-full flex-col items-center justify-center bg-neutral-200">
 	<form
 		{...handler}
 		oninput={() => handler.validate({ preflightOnly: true })}
-		class="float-container p-8 flex flex-col gap-4"
+		class="float-container flex flex-col gap-4 p-8"
 	>
-		<h1 class="font-bold text-2xl">{mode === 'edit' ? 'Edit' : 'Create'} Wishlist</h1>
+		<h1 class="text-2xl font-bold">{mode === 'edit' ? 'Edit' : 'Create'} Wishlist</h1>
 
 		<hr class="-mt-3" />
 
@@ -109,9 +113,9 @@
 
 		<InputGroup label="Share Link" error={slugIssue}>
 			{#snippet control()}
-				<div class="w-full flex">
+				<div class="flex w-full">
 					<span
-						class="font-mono flex items-center border px-2 border-red rounded rounded-tr-none rounded-br-none"
+						class="border-red flex items-center rounded rounded-tr-none rounded-br-none border px-2 font-mono"
 						>/lists/</span
 					>
 
@@ -120,16 +124,16 @@
 						onblur={patchSlug}
 						aria-invalid={slugIssue ? 'true' : 'false'}
 						value={handler.fields.slug.value()}
-						class="flex-1 border-l-0 rounded-tl-none rounded-bl-none min-w-0"
+						class="min-w-0 flex-1 rounded-tl-none rounded-bl-none border-l-0"
 					/>
 
 					{#if hasJs()}
 						<div
-							class="ms-2 w-8 flex items-center justify-center aspect-square max-w-12"
+							class="ms-2 flex aspect-square w-8 max-w-12 items-center justify-center"
 							title={slugIssue ? 'Link is invalid' : 'Link is valid'}
 						>
 							{#if checkSlugTimeout}
-								<div class="w-full h-full p-1">
+								<div class="h-full w-full p-1">
 									<Loader
 										pulseDur="1s"
 										pulseCount={2}
@@ -161,7 +165,7 @@
 
 		{#if generalIssue}
 			<p
-				class="text-sm font-bold text-center w-max bg-red-200 p-2 rounded"
+				class="w-max rounded bg-red-200 p-2 text-center text-sm font-bold"
 				in:fade={{ duration: 150 }}
 				out:fade={{ duration: 150 }}
 			>

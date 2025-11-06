@@ -51,9 +51,9 @@
 	{/each}
 </svelte:head>
 
-<div class="h-full flex flex-col">
-	<header class="shrink-0 min-h-16 drop-shadow-md p-4 flex items-center gap-2 border-b">
-		<div class="w-full flex gap-6 items-center justify-between flex-wrap">
+<div class="flex h-full flex-col">
+	<header class="flex min-h-16 shrink-0 items-center gap-2 border-b p-4 drop-shadow-md">
+		<div class="flex w-full flex-wrap items-center justify-between gap-6">
 			{#if !isRoot}
 				<a href="/"><HouseIcon /> </a>
 			{/if}
@@ -78,7 +78,7 @@
 		</div>
 	</header>
 
-	<main class="w-full h-full">
+	<main class="h-full w-full">
 		{@render children()}
 	</main>
 </div>
@@ -87,7 +87,7 @@
 	@reference "tailwindcss";
 
 	a {
-		@apply flex gap-2 items-center transition-colors;
+		@apply flex items-center gap-2 transition-colors;
 	}
 
 	a:hover {

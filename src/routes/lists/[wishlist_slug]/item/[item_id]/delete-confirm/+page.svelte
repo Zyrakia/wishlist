@@ -5,7 +5,7 @@
 	const { data } = $props();
 </script>
 
-<div class="p-4 w-full h-full flex flex-col lg:flex-row items-center justify-center gap-8">
+<div class="flex h-full w-full flex-col items-center justify-center gap-8 p-4 lg:flex-row">
 	<WishlistItem interactive={false} item={data.item} />
 
 	<form {...deleteItem}>
@@ -13,7 +13,7 @@
 		<input {...deleteItem.fields.itemId.as('hidden', data.item.id)} />
 		<input {...deleteItem.fields.confirm.as('hidden', 'true')} />
 
-		<p class="text-center mb-4">
+		<p class="mb-4 text-center">
 			Are you sure you want to delete <span class="font-bold">{data.item.name}</span>
 		</p>
 

@@ -16,7 +16,7 @@
 	const errorMessage = $derived(asIssue(error));
 </script>
 
-<label class="wrapper w-full relative flex flex-col gap-1">
+<label class="wrapper relative flex w-full flex-col gap-1">
 	<p class="label font-bold">{label}</p>
 
 	{@render control()}
@@ -25,7 +25,7 @@
 		<p
 			in:fade={{ duration: 150 }}
 			out:fade={{ duration: 150 }}
-			class="absolute top-0 right-0 font-bold text-xs uppercase border-r border-dashed border-red-400 pr-2 text-red-600"
+			class="absolute top-0 right-0 border-r border-dashed border-red-400 pr-2 text-xs font-bold text-red-600 uppercase"
 		>
 			{errorMessage}
 		</p>
@@ -36,7 +36,7 @@
 	@reference "tailwindcss";
 
 	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
-		@apply text-red-500 font-bold;
+		@apply font-bold text-red-500;
 		content: ' *';
 	}
 </style>

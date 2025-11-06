@@ -3,10 +3,11 @@ import { WishlistSchema } from '$lib/schemas/wishlist';
 import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { WishlistTable } from '$lib/server/db/schema';
-import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import z from 'zod';
+
+import { error, redirect } from '@sveltejs/kit';
 
 export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
 	const user = verifyAuth({ failStrategy: 'error' });
