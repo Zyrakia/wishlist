@@ -120,12 +120,12 @@
 						onblur={patchSlug}
 						aria-invalid={slugIssue ? 'true' : 'false'}
 						value={handler.fields.slug.value()}
-						class="flex-1 border-l-0 rounded-tl-none rounded-bl-none"
+						class="flex-1 border-l-0 rounded-tl-none rounded-bl-none min-w-0"
 					/>
 
 					{#if hasJs()}
 						<div
-							class="ms-2 w-8 flex items-center justify-center"
+							class="ms-2 w-8 flex items-center justify-center aspect-square max-w-12"
 							title={slugIssue ? 'Link is invalid' : 'Link is valid'}
 						>
 							{#if checkSlugTimeout}

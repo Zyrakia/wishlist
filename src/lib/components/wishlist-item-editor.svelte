@@ -294,33 +294,40 @@
 							{/snippet}
 						</InputGroup>
 
-						<button
-							disabled={loading}
-							{...generateRemote.buttonProps.enhance(async ({ submit }) => {
-								if (isInputLinkGenerated) {
-									mode = 'generate-confirm';
-									return;
-								}
-
-								loading = true;
-								try {
-									await submit();
-									if (generateRemote.result) {
-										seed(generateRemote.result);
-										mode = 'generate-confirm';
+						<div class="mt-2 w-full flex gap-4 justify-stretch">
+							<button
+								disabled={loading}
+								{...generateRemote.buttonProps.enhance(async ({ submit }) => {
+									loading = true;
+									try {
+										await submit();
+										if (generateRemote.result) {
+											seed(generateRemote.result);
+											mode = 'generate-confirm';
+										}
+									} finally {
+										loading = false;
 									}
-								} finally {
-									loading = false;
-								}
-							})}
-							class="mt-2 bg-green-200"
-						>
+								})}
+								class="w-full bg-green-200"
+							>
+								{#if isInputLinkGenerated}
+									Regenerate
+								{:else}
+									Generate
+								{/if}
+							</button>
+
 							{#if isInputLinkGenerated}
-								Review
-							{:else}
-								Generate
+								<button
+									onclick={() => (mode = 'generate-confirm')}
+									disabled={loading}
+									class="w-full"
+								>
+									Review
+								</button>
 							{/if}
-						</button>
+						</div>
 					</div>
 
 					<p class="font-bold my-5 text-center">OR</p>
