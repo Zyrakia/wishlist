@@ -109,7 +109,7 @@ export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (da
 		} else throw res.error;
 	} catch (err) {
 		if (isHttpError(err)) throw err;
-		invalid('Cannot process URL');
 		console.warn(err);
+		invalid('Cannot process URL');
 	}
 });
