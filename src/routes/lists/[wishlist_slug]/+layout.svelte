@@ -15,12 +15,12 @@
 </script>
 
 <div class="flex h-full w-full flex-col">
-	<div class="border-b p-5 shadow">
+	<div class="border-b border-border px-5 py-4 shadow">
 		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>
 		<p class="text-lg font-light italic">
 			by {wishlist.user.name}
 			{#if isOwn}
-				<span class="font-bold text-red-400 not-italic">(You)</span>
+				<span class="font-bold text-danger not-italic">(You)</span>
 			{/if}
 		</p>
 
@@ -33,7 +33,7 @@
 				{/if}
 
 				{#each badges as badge}
-					<p class="rounded-xl border bg-emerald-100 px-3 py-2 text-sm">
+					<p class="rounded-xl border bg-accent px-3 py-2 text-sm text-accent-fg">
 						{badge}
 					</p>
 				{/each}
@@ -43,7 +43,7 @@
 
 	<div class="h-full w-full">
 		{#if description && isAtRoot}
-			<div class="m-4 mb-0 rounded border border-zinc-500/30 p-4 shadow-sm">
+			<div class="m-4 mb-0 rounded-sm border border-accent/50 bg-accent/10 p-4 shadow-sm">
 				<p class="text-base wrap-break-word whitespace-pre-wrap">
 					{description}
 				</p>

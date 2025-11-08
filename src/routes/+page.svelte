@@ -38,7 +38,7 @@
 
 				<a
 					href="?sort={sort === 'modified' ? 'created' : 'modified'}"
-					class="ms-auto flex items-center gap-2 py-1 font-light hover:text-blue-600"
+					class="ms-auto flex items-center gap-2 py-1 font-light hover:text-accent"
 				>
 					{#if sort === 'modified'}
 						[<LayoutGridIcon size={16} />
@@ -56,7 +56,7 @@
 				<div class="flex w-full flex-wrap gap-4">
 					<a
 						href="/new-list"
-						class="button flex flex-col items-center justify-evenly bg-green-200"
+						class="button flex flex-col items-center justify-evenly bg-success dark:text-accent-fg"
 					>
 						<PlusIcon />
 						Add List
@@ -69,7 +69,7 @@
 									{@const modDate = new Date(wishlist.updatedAt)}
 
 									<hr class="my-2" />
-									<p class="text-xs font-light text-neutral-500">
+									<p class="text-xs font-light text-text-muted">
 										Modified
 										{dtf.format(modDate)}
 									</p>
@@ -82,7 +82,10 @@
 				<div class="flex flex-col items-center gap-2 py-6">
 					<p class="font-light italic">You have no wishlists...</p>
 
-					<a href="/new-list" class="button rounded bg-green-200 px-4 py-2">
+					<a
+						href="/new-list"
+						class="button rounded bg-success px-4 py-2 dark:text-accent-fg"
+					>
 						Create Your First List
 					</a>
 				</div>

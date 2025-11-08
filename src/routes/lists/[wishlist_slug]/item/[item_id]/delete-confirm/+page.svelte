@@ -18,7 +18,9 @@
 		</p>
 
 		<div class="flex justify-center gap-4">
-			<button tabindex="0" class="bg-red-300" {...deleteItem.buttonProps}>Delete</button>
+			<button tabindex="0" class="bg-danger dark:text-accent-fg" {...deleteItem.buttonProps}
+				>Delete</button
+			>
 			<a class="button" href="/lists/{data.wishlist.slug}">Cancel</a>
 		</div>
 	</form>

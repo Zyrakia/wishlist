@@ -59,12 +59,15 @@
 
 <div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
 	{#if isOwn}
-		<a class="button bg-green-200" href="/lists/{wishlist.slug}/item/generate">
+		<a
+			class="button bg-success dark:text-accent-fg"
+			href="/lists/{wishlist.slug}/item/generate"
+		>
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>
 
-		<a class="button bg-blue-200" href="/lists/{wishlist.slug}/edit">
+		<a class="button" href="/lists/{wishlist.slug}/edit">
 			<EditIcon size={16} />
 			<span>Edit</span>
 		</a>
@@ -91,7 +94,7 @@
 			<input {...deleteWishlist.fields.slug.as('hidden', data.wishlist.slug)} />
 			<input {...deleteWishlist.fields.confirm.as('hidden', 'no')} />
 
-			<button class="border-0 bg-transparent text-red-600" {...deleteWishlist.buttonProps}>
+			<button class="border-0 bg-transparent text-danger" {...deleteWishlist.buttonProps}>
 				<Trash2Icon />
 			</button>
 		</form>
@@ -112,7 +115,7 @@
 	{:else}
 		<p class="font-light italic">
 			No items have been added to this list...
-			<span class="font-bold text-red-500">yet.</span>
+			<span class="font-bold text-danger">yet.</span>
 		</p>
 	{/if}
 </main>

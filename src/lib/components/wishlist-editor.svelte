@@ -75,7 +75,7 @@
 			checkSlugTimeout = setTimeout(async () => {
 				await checkSlug();
 				checkSlugTimeout = undefined;
-			}, 2000);
+			}, 1000);
 		}
 
 		return () => {
@@ -95,7 +95,7 @@
 	onMount(() => handler.validate());
 </script>
 
-<div class="flex h-full min-h-full w-full flex-col items-center justify-center bg-neutral-200">
+<div class="flex h-full min-h-full w-full flex-col items-center justify-center bg-background">
 	<form
 		{...handler}
 		oninput={() => handler.validate({ preflightOnly: true })}
@@ -115,7 +115,7 @@
 			{#snippet control()}
 				<div class="flex w-full">
 					<span
-						class="border-red flex items-center rounded rounded-tr-none rounded-br-none border px-2 font-mono"
+						class="flex items-center rounded rounded-tr-none rounded-br-none border border-border-strong px-3 font-mono"
 						>/lists/</span
 					>
 
@@ -139,13 +139,13 @@
 										pulseCount={2}
 										pulseStaggerDur="250ms"
 										thickness="2px"
-										color="black"
+										color="var(--color-accent)"
 									/>
 								</div>
 							{:else if slugIssue}
-								<XIcon class="text-red-500" />
+								<XIcon class="text-danger" />
 							{:else}
-								<CheckIcon class="text-green-600" />
+								<CheckIcon class="text-success" />
 							{/if}
 						</div>
 					{/if}
@@ -159,13 +159,13 @@
 			{/snippet}
 		</InputGroup>
 
-		<button {...handler.buttonProps} class="bg-green-200">
+		<button {...handler.buttonProps} class="bg-success dark:text-accent-fg">
 			{mode === 'create' ? 'Submit' : 'Save'}
 		</button>
 
 		{#if generalIssue}
 			<p
-				class="w-max rounded bg-red-200 p-2 text-center text-sm font-bold"
+				class="w-max rounded bg-danger p-2 text-center text-sm font-bold"
 				in:fade={{ duration: 150 }}
 				out:fade={{ duration: 150 }}
 			>

@@ -57,12 +57,10 @@
 
 	const showPreview = $derived.by(() => {
 		if (mode === 'generate-confirm') return true;
+		if (!hasJs()) return false;
 
-		if (!hasJs()) return;
-
-		if (mode === 'form') return true;
 		if (loading) return true;
-
+		if (mode === 'form') return hasMirror;
 		return isInputLinkGenerated && hasMirror;
 	});
 
@@ -116,9 +114,9 @@
 		<aside
 			class="pane {mode === 'generate-confirm'
 				? 'flex-8/12'
-				: 'flex-4/12'} grid place-items-center bg-neutral-200 p-4 px-6"
+				: 'flex-4/12'} grid place-items-center bg-background p-4 px-6"
 		>
-			<div class="snap relative w-full max-w-2xl rounded-xl bg-white p-4 shadow-md">
+			<div class="snap relative w-full max-w-2xl rounded-xl bg-surface p-4 shadow-md">
 				<h3 class="text-lg font-bold">Preview</h3>
 
 				{#if loading}
@@ -127,7 +125,7 @@
 					</div>
 				{:else}
 					<div
-						class="grid w-full place-items-center rounded border border-dashed border-red-800/50 p-4"
+						class="grid w-full place-items-center rounded border border-dashed border-accent/50 p-4"
 					>
 						<WishlistItem item={formMirror} interactive={false} />
 					</div>
@@ -138,9 +136,9 @@
 
 	<section
 		class:border-t={showPreview}
-		class="{showPreview
-			? 'flex-8/12'
-			: 'h-full w-full'} flex items-center justify-center border-dashed border-black/50 bg-neutral-200 drop-shadow-2xl xl:border-t-0 xl:border-l xl:border-solid"
+		class="flex items-center justify-center border-dashed border-border bg-background drop-shadow-2xl xl:border-t-0 xl:border-l xl:border-solid {showPreview
+			? 'flex-8/12 drop-shadow-none'
+			: 'h-full w-full'}"
 	>
 		{#if mode === 'generate-confirm' || mode === 'form'}
 			<form
@@ -150,7 +148,7 @@
 					? 'xl:m-0 xl:h-full xl:max-w-full'
 					: ''}"
 			>
-				<div class:hidden={mode !== 'form'} class="flex flex-col gap-2">
+				<div class:hidden={mode !== 'form'} class="flex flex-col gap-4">
 					<InputGroup label="Name" error={handler.fields.name.issues()}>
 						{#snippet control()}
 							<input required {...handler.fields.name.as('text')} />
@@ -215,7 +213,7 @@
 
 				{#if mode === 'form'}
 					{#if generalIssue}
-						<p class="text-red-500">{generalIssue}</p>
+						<p class="text-danger">{generalIssue}</p>
 					{/if}
 
 					<div class="flex gap-2">
@@ -223,7 +221,7 @@
 							<svelte:element
 								this={hasJs() ? 'button' : 'a'}
 								href="./generate"
-								class="button w-max bg-red-200 text-center"
+								class="button w-max bg-danger text-center dark:text-accent-fg"
 								onclick={() => (mode = 'generate')}
 								type="button"
 								role="button"
@@ -234,9 +232,12 @@
 							</svelte:element>
 						{/if}
 
-						<button class="flex-1 bg-green-200 font-bold" {...submitButtonProps}
-							>Submit</button
+						<button
+							class="flex-1 bg-success font-bold dark:text-accent-fg"
+							{...submitButtonProps}
 						>
+							Submit
+						</button>
 					</div>
 				{:else}
 					<div class="flex h-full w-full flex-col items-center justify-center gap-6">
@@ -244,7 +245,7 @@
 
 						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
 							<button
-								class="flex items-center gap-2 bg-green-200"
+								class="flex items-center gap-2 bg-success dark:text-accent-fg"
 								{...submitButtonProps}
 							>
 								<CheckIcon />
@@ -255,7 +256,7 @@
 								type="submit"
 								formaction="./create"
 								formmethod="get"
-								class="button flex items-center gap-2 bg-blue-200"
+								class="button flex items-center gap-2 bg-accent dark:text-accent-fg"
 								onclick={() => (mode = 'form')}
 							>
 								<Settings2Icon />
@@ -265,7 +266,7 @@
 							<svelte:element
 								this={hasJs() ? 'button' : 'a'}
 								href="./generate"
-								class="button flex items-center gap-2 bg-red-200"
+								class="button flex items-center gap-2 bg-danger dark:text-accent-fg"
 								onclick={() => (mode = 'generate')}
 								type="button"
 								role="button"
@@ -289,13 +290,9 @@
 				<hr class="mb-4" />
 
 				<div class="flex flex-1 flex-col justify-center">
-					<p class="font-light italic">Automatically generate from:</p>
-
-					<div
-						class="flex flex-col gap-4 rounded border border-dashed border-black/50 p-3"
-					>
+					<div class="flex flex-col gap-4 rounded">
 						<InputGroup
-							label="Item Link"
+							label="Generate From Link"
 							error={generateRemote.fields.url.issues() ||
 								generateRemote.fields.issues()}
 						>
@@ -326,7 +323,7 @@
 										loading = false;
 									}
 								})}
-								class="w-full bg-green-200"
+								class="w-full bg-success dark:text-accent-fg"
 							>
 								{#if isInputLinkGenerated}
 									Regenerate

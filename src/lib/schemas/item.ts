@@ -1,6 +1,6 @@
 import z from 'zod';
 
-const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
+const                                       normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
 	if (!raw) return null;
 
 	let candidate = raw;

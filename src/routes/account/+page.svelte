@@ -51,8 +51,8 @@
 	);
 </script>
 
-<div class="grid h-full w-full place-items-center bg-neutral-200">
-	<div class="float-container my-0 flex min-h-6/8 flex-col bg-white p-8">
+<div class="grid h-full w-full place-items-center bg-background">
+	<div class="float-container my-0 flex min-h-6/8 flex-col bg-surface p-8">
 		<h1 class="text-2xl font-bold">Your Account</h1>
 
 		<hr class="mt-1 mb-4" />
@@ -62,7 +62,7 @@
 				{@const Icon = infoCard.icon}
 
 				<div
-					class="flex w-full flex-col gap-4 rounded-md border border-neutral-500/50 p-4 shadow-md"
+					class="flex w-full flex-col gap-4 rounded-md border border-border p-4 shadow-md"
 				>
 					<div class="flex flex-1 justify-between">
 						<p class="font-bold">{infoCard.title}</p>
@@ -77,6 +77,7 @@
 			{/each}
 		</div>
 
-		<a class="button mt-auto bg-red-200 text-center" href="/logout">Logout</a>
+		<a class="button mt-auto bg-danger text-center dark:text-accent-fg" href="/logout">Logout</a
+		>
 	</div>
 </div>

@@ -30,15 +30,15 @@
 </script>
 
 <div
-	style="background-image: url({backgroundImage});"
-	class="flex h-full w-full justify-center bg-cover bg-bottom-right bg-no-repeat p-6 py-12 md:items-center md:justify-start md:p-12"
+	style="background-image: url({backgroundImage}); background-color: rgba(0, 0, 0, 0.3);"
+	class="relative flex h-full w-full justify-center bg-cover bg-bottom-right bg-no-repeat p-6 py-12 md:items-center md:justify-start md:p-12"
 >
-	<div class="container flex max-w-2xl flex-col">
-		<p class="mb-2 text-sm text-neutral-600 uppercase md:mb-4 md:text-lg">
-			Register to get started
-		</p>
+	<div class="absolute top-0 left-0 h-full w-full dark:bg-black/35"></div>
+
+	<div class="z-10 container flex h-max max-w-2xl flex-col rounded-xl p-8 dark:bg-surface/90">
+		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Register to get started</p>
 		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Create an Account</h1>
-		<p>Already have an account? <a href="/login" class="text-blue-600">Login</a></p>
+		<p>Already have an account? <a href="/login" class="text-accent">Login</a></p>
 
 		<form
 			{...remote}
@@ -47,18 +47,13 @@
 		>
 			<InputGroup label="Email" error={remote.fields.email.issues()}>
 				{#snippet control()}
-					<input
-						class="bg-white"
-						placeholder="Enter your email"
-						{...remote.fields.email.as('text')}
-					/>
+					<input placeholder="Enter your email" {...remote.fields.email.as('text')} />
 				{/snippet}
 			</InputGroup>
 
 			<InputGroup label="Username" error={remote.fields.username.issues()}>
 				{#snippet control()}
 					<input
-						class="bg-white"
 						placeholder="Enter your preferred username"
 						{...remote.fields.username.as('text')}
 					/>
@@ -72,14 +67,14 @@
 				{#snippet control()}
 					<div class="relative flex w-full flex-col gap-2 md:flex-row">
 						<input
-							class="flex-1/2 bg-white"
+							class="bg- flex-1/2"
 							placeholder="Enter your password"
 							{...remote.fields.password.as(showPassword ? 'text' : 'password')}
 						/>
 
 						<div class="flex flex-2/3 gap-2">
 							<input
-								class="w-full bg-white"
+								class="w-full"
 								placeholder="Confirm your password"
 								{...remote.fields.passwordConfirm.as(
 									showPassword ? 'text' : 'password',
@@ -89,7 +84,7 @@
 							{#if hasJs()}
 								<button
 									title={showPassword ? 'Hide Password' : 'Show Password'}
-									class="button bg-white px-3"
+									class="button bg-accent px-3 dark:text-accent-fg"
 									type="button"
 									onclick={() => (showPassword = !showPassword)}
 								>
@@ -106,9 +101,9 @@
 			</InputGroup>
 
 			<button
-				class="bg-emerald-200 px-6 py-3 font-bold transition-colors"
-				class:bg-emerald-200={!hasJs() || !issue}
-				class:bg-red-200={hasJs() && issue}
+				class="bg-success px-6 py-3 font-bold transition-colors dark:text-accent-fg"
+				class:bg-success={!hasJs() || !issue}
+				class:bg-danger={hasJs() && issue}
 				disabled={!!remote.pending}
 				{...remote.buttonProps.enhance(async ({ submit }) => {
 					try {
@@ -123,16 +118,12 @@
 			</button>
 
 			<p
-				class="rounded bg-red-200 px-6 py-2 text-center font-bold opacity-0 transition-opacity"
-				class:opacity-100={!!issue}
+				class="font-bold0 rounded bg-danger px-6 py-2 text-center text-accent-fg transition-opacity"
+				class:hidden={!issue}
 			>
-				{#if issue}
-					<span in:fade={{ duration: 150 }} out:fade={{ duration: 150 }}>
-						{issue}
-					</span>
-				{:else}
-					<br />
-				{/if}
+				<span in:fade={{ duration: 150 }} out:fade={{ duration: 150 }}>
+					{issue}
+				</span>
 			</p>
 		</form>
 	</div>
