@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { getRequestEvent } from '$app/server';
 import { createSecretKey } from 'crypto';
 import { jwtVerify, SignJWT } from 'jose';
@@ -67,7 +68,7 @@ export const setSession = (cookies: Cookies, value: string) => {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: ENV.NODE_ENV === 'production',
+		secure: !dev,
 		maxAge: value ? ENV.JWT_LIFETIME.seconds : 0,
 	});
 };
