@@ -17,7 +17,7 @@
 </script>
 
 <label class="wrapper relative flex w-full flex-col gap-1">
-	<p class="label font-bold">{label}</p>
+	<p class="label">{label}</p>
 
 	{@render control()}
 
@@ -25,7 +25,7 @@
 		<p
 			in:fade={{ duration: 150 }}
 			out:fade={{ duration: 150 }}
-			class="absolute top-0 right-0 border-r border-dashed border-red-400 pr-2 text-xs font-bold text-red-600 uppercase"
+			class="absolute top-0 right-0 border-r border-dashed border-danger pr-2 text-xs font-bold text-danger uppercase"
 		>
 			{errorMessage}
 		</p>
@@ -36,7 +36,7 @@
 	@reference "tailwindcss";
 
 	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
-		@apply font-bold text-red-500;
+		@apply font-bold text-danger;
 		content: ' *';
 	}
 </style>

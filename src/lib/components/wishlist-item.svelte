@@ -67,55 +67,59 @@
 		role="link"
 		tabindex="0"
 		class={[
-			'button flex h-full w-full flex-col justify-center border-2 border-zinc-300 bg-white p-4 text-left shadow-sm brightness-100 transition-shadow',
+			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong bg-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-shadow',
 			canClick && 'interactive cursor-pointer hover:shadow-xl',
 		]}
 		href={item.url}
 		target="_blank"
 	>
-		<div class="flex flex-1 flex-col justify-center gap-2">
-			{#if item.imageUrl}
-				<div class="flex aspect-video justify-center overflow-hidden p-2">
-					<img
-						class="w-full object-contain"
-						src={item.imageUrl}
-						alt="{item.name} Primary Image"
-					/>
-				</div>
-			{/if}
+		{#if item.imageUrl}
+			<div
+				class="flex aspect-video justify-center overflow-hidden rounded-xl rounded-br-none rounded-bl-none bg-linear-to-b from-muted from-20% to-surface p-4"
+			>
+				<img
+					class="w-full object-contain"
+					src={item.imageUrl}
+					alt="{item.name} Primary Image"
+				/>
+			</div>
+		{/if}
 
-			<p class="text-lg font-bold wrap-break-word whitespace-normal">
-				{item.name}
-			</p>
-		</div>
+		<p class="flex-1 p-4 py-2 text-lg font-bold wrap-break-word whitespace-normal">
+			{item.name}
+		</p>
 
 		{#if renderBody}
-			<div class="h-full text-left">
-				<hr class="border-zinc-400" />
+			{#if item.notes}
+				<p
+					class="px-4 pb-2 text-left text-base font-light wrap-break-word whitespace-pre-wrap"
+				>
+					{item.notes.trim()}
+				</p>
+			{/if}
 
-				{#if item.notes}
-					<p class="mt-2 text-base font-light wrap-break-word whitespace-pre-wrap">
-						{item.notes.trim()}
-					</p>
-				{/if}
-			</div>
+			<hr class=" w-full border-border" />
 
-			<div class="flex gap-1 pt-2">
+			<div class="flex items-center gap-2 px-4 py-3">
 				{#if currFormats && item.price}
 					<p
 						title="Priced around {currFormats.long.format(item.price)}"
 						class="item-price"
 					>
-						<span class="font-bold text-red-500">~</span>
-						{currFormats.short.format(item.price)}
+						<span class="font-bold text-danger">~</span>
+						<span class="text-base font-extrabold text-accent">
+							{currFormats.short.format(item.price)}
+						</span>
 					</p>
 				{/if}
 
 				{#if urlSummary}
-					<span>
-						{currFormats && item.price ? 'at' : '🔗'}
-					</span>
-					<span class="item-link-name" title={item.url}>{urlSummary}</span>
+					<p>
+						<span>
+							{currFormats && item.price ? 'at' : '🔗'}
+						</span>
+						<span class="item-link-name" title={item.url}>{urlSummary}</span>
+					</p>
 				{/if}
 			</div>
 		{/if}
@@ -131,12 +135,10 @@
 		text-shadow: 0 0 0 transparent;
 		transition: text-shadow 300ms ease;
 		flex: 0 0 auto;
-
-		font-weight: bold;
 	}
 
 	.interactive:hover .item-price {
-		text-shadow: 0 0 5px hotpink;
+		text-shadow: 0 0 15px var(--color-accent);
 	}
 
 	.item-link-name {
@@ -153,16 +155,16 @@
 		bottom: 0;
 		left: 0;
 
-		height: 1px;
+		height: 2px;
 		width: 0;
 
-		background-color: black;
+		background-color: var(--color-accent);
 		opacity: 0.5;
 
 		transition: width 150ms ease-in;
 	}
 
 	.interactive:hover .item-link-name::before {
-		width: 100%;
+		width: 101%;
 	}
 </style>

@@ -2,11 +2,15 @@
 	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { useHasJs } from '$lib/runes/has-js.svelte.js';
 
-	import { SquareUserIcon, LogInIcon, HouseIcon } from '@lucide/svelte';
+	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
 
 	let { children, data } = $props();
 
+	const hasJs = useHasJs();
+
+	let theme = $state('dark');
 	const isRoot = $derived(page.url.pathname === '/');
 	const meta = $derived({
 		'title': 'Wishii',
@@ -14,6 +18,10 @@
 		'og:type': 'website',
 		'og:url': `${page.url.origin}${page.url.pathname}`,
 		...page.data.meta,
+	});
+
+	$effect(() => {
+		document.documentElement.dataset.theme = theme;
 	});
 </script>
 
@@ -52,15 +60,33 @@
 </svelte:head>
 
 <div class="flex h-full flex-col">
-	<header class="flex min-h-16 shrink-0 items-center gap-2 border-b p-4 drop-shadow-md">
+	<header class="flex min-h-16 shrink-0 items-center gap-2 p-4 drop-shadow-md">
 		<div class="flex w-full flex-wrap items-center justify-between gap-6">
 			{#if !isRoot}
 				<a href="/"><HouseIcon /> </a>
 			{/if}
 
-			<a href="/" class="font-semibold">Wishii</a>
+			<svelte:element this={isRoot ? 'p' : 'a'} href="/" class="font-semibold">
+				Wishii
+			</svelte:element>
 
-			<nav class="flex gap-6">
+			<div class="flex gap-6">
+				{#if hasJs()}
+					<button
+						class="border-0 p-2"
+						onclick={() => {
+							if (theme === 'light') theme = 'dark';
+							else theme = 'light';
+						}}
+					>
+						{#if theme === 'light'}
+							<SunIcon />
+						{:else}
+							<MoonIcon />
+						{/if}
+					</button>
+				{/if}
+
 				{#if data.user}
 					<a class="truncate" href="/account">
 						<SquareUserIcon />
@@ -74,7 +100,7 @@
 						<LogInIcon />
 					</a>
 				{/if}
-			</nav>
+			</div>
 		</div>
 	</header>
 
@@ -91,6 +117,6 @@
 	}
 
 	a:hover {
-		@apply text-blue-700;
+		color: var(--color-accent);
 	}
 </style>

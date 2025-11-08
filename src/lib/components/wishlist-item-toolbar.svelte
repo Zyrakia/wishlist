@@ -55,10 +55,12 @@
 			<a
 				title="Edit"
 				class="button border-none p-0.5"
-				href="/lists/{wishlistSlug}/item/{itemId}/edit"><EditIcon /></a
+				href="/lists/{wishlistSlug}/item/{itemId}/edit">
+				<EditIcon />
+				</a
 			>
 
-			<form class="text-red-500" {...deleteForm}>
+			<form class="text-danger" {...deleteForm}>
 				<input {...deleteForm.fields.wishlistSlug.as('hidden', wishlistSlug)} />
 				<input {...deleteForm.fields.itemId.as('hidden', itemId)} />
 				<input {...deleteForm.fields.confirm.as('hidden', `${hasJs()}`)} />
@@ -73,8 +75,10 @@
 							deleteForm.fields.confirm.set(true);
 							await submit();
 						}
-					})}><TrashIcon /></button
+					})}
 				>
+					<TrashIcon />
+				</button>
 			</form>
 		</div>
 	{/if}

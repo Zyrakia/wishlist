@@ -1,7 +1,51 @@
 @import 'tailwindcss';
 
+@theme {
+	--color-background: #fafaf8;
+	--color-surface: #ffffff;
+	--color-muted: #f3f7f3;
+
+	--color-border: #e6eee6;
+	--color-border-strong: #b4c4b4;
+
+	--color-text: #0f172a;
+	--color-text-muted: #637266;
+
+	--color-accent: #dd8e09;
+	--color-accent-fg: #04110a;
+
+	--color-primary: #10b981;
+	--color-success: #16a34a;
+	--color-warning: #d97706;
+	--color-danger: #ef4444;
+}
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 @layer base {
+	@variant dark {
+		--color-background: #0b0f19;
+		--color-surface: #0f1b14;
+		--color-muted: #0b2416;
+
+		--color-border: #123020;
+		--color-border-strong: #395a46;
+
+		--color-text: #e6f6ea;
+		--color-text-muted: #c3e7d0;
+
+		--color-accent: #dd8e09;
+		--color-accent-fg: #04110a;
+
+		--color-primary: #34d399;
+		--color-success: #22c55e;
+		--color-warning: #f59e0b;
+		--color-danger: #f87171;
+	}
+
 	body {
+		@apply bg-background text-text;
+
 		font-family: 'Roboto', sans-serif;
 		font-weight: 400;
 		font-style: normal;
@@ -9,7 +53,7 @@
 
 	button,
 	.button {
-		@apply cursor-pointer rounded-md border bg-zinc-200 px-5 py-2 text-sm font-medium outline-none;
+		@apply cursor-pointer rounded-md border border-border-strong px-5 py-2 text-sm font-medium outline-none;
 	}
 
 	button:hover,
@@ -19,24 +63,24 @@
 
 	button:focus,
 	.button:focus {
-		@apply ring-3 ring-inherit;
+		@apply ring-3 ring-text;
 	}
 
 	button:disabled,
 	.button:disabled {
-		@apply cursor-default brightness-80;
+		@apply cursor-default brightness-70;
 	}
 
 	input,
 	textarea,
 	select {
-		@apply rounded-md border border-black p-2 outline-none;
+		@apply rounded-md border border-border-strong p-2 shadow-xs outline-none;
 	}
 
 	input:focus,
 	textarea:focus,
 	select:focus {
-		@apply border-blue-500;
+		@apply border-primary;
 	}
 
 	input:invalid,
@@ -45,12 +89,12 @@
 	input[aria-invalid='true'],
 	textarea[aria-invalid='true'],
 	select[aria-invalid='true'] {
-		@apply border-red-400;
+		@apply border-danger;
 	}
 }
 
 @layer components {
 	.float-container {
-		@apply w-full max-w-full rounded-lg bg-neutral-100 shadow-xl shadow-black/20 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
+		@apply w-full max-w-full rounded-lg bg-surface shadow-md shadow-black/15 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
 	}
 }

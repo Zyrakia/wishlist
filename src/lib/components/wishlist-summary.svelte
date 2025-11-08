@@ -8,10 +8,10 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button flex max-w-full min-w-xs flex-1 flex-col justify-center border bg-white p-3 md:max-w-xs lg:max-w-sm"
+	class="button flex max-w-full min-w-xs flex-1 flex-col justify-center border bg-surface p-3 md:max-w-xs lg:max-w-sm"
 >
 	<div class="flex flex-1 items-center gap-2">
-		<GiftIcon class="text-red-400" />
+		<GiftIcon class="text-danger" />
 		<p class="text-lg font-bold">{wishlist.name}</p>
 	</div>
 
