@@ -101,7 +101,7 @@
 			</InputGroup>
 
 			<button
-				class="bg-success px-6 py-3 font-bold transition-colors dark:text-accent-fg"
+				class="bg-success px-6 py-3 font-bold transition-colors text-accent-fg"
 				class:bg-success={!hasJs() || !issue}
 				class:bg-danger={hasJs() && issue}
 				disabled={!!remote.pending}

@@ -56,7 +56,7 @@
 				<div class="flex w-full flex-wrap gap-4">
 					<a
 						href="/new-list"
-						class="button flex flex-col items-center justify-evenly bg-success dark:text-accent-fg"
+						class="button flex flex-col items-center justify-evenly bg-success text-accent-fg"
 					>
 						<PlusIcon />
 						Add List
@@ -84,7 +84,7 @@
 
 					<a
 						href="/new-list"
-						class="button rounded bg-success px-4 py-2 dark:text-accent-fg"
+						class="button rounded bg-success px-4 py-2 text-accent-fg"
 					>
 						Create Your First List
 					</a>

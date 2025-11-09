@@ -60,7 +60,7 @@
 <div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
 	{#if isOwn}
 		<a
-			class="button bg-success dark:text-accent-fg"
+			class="button bg-success text-accent-fg"
 			href="/lists/{wishlist.slug}/item/generate"
 		>
 			<AddIcon size={16} />

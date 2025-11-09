@@ -159,7 +159,7 @@
 			{/snippet}
 		</InputGroup>
 
-		<button {...handler.buttonProps} class="bg-success dark:text-accent-fg">
+		<button {...handler.buttonProps} class="bg-success text-accent-fg">
 			{mode === 'create' ? 'Submit' : 'Save'}
 		</button>
 

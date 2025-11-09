@@ -233,7 +233,7 @@
 						{/if}
 
 						<button
-							class="flex-1 bg-success font-bold dark:text-accent-fg"
+							class="flex-1 bg-success font-bold text-accent-fg"
 							{...submitButtonProps}
 						>
 							Submit
@@ -245,7 +245,7 @@
 
 						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
 							<button
-								class="flex items-center gap-2 bg-success dark:text-accent-fg"
+								class="flex items-center gap-2 bg-success text-accent-fg"
 								{...submitButtonProps}
 							>
 								<CheckIcon />
@@ -323,7 +323,7 @@
 										loading = false;
 									}
 								})}
-								class="w-full bg-success dark:text-accent-fg"
+								class="w-full bg-success text-accent-fg"
 							>
 								{#if isInputLinkGenerated}
 									Regenerate
