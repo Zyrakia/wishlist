@@ -56,7 +56,7 @@
 				<div class="flex w-full flex-wrap gap-4">
 					<a
 						href="/new-list"
-						class="button flex flex-col items-center justify-evenly bg-success text-accent-fg"
+						class="button flex flex-col items-center justify-evenly bg-success text-accent-fg w-full sm:w-32 min-h-16"
 					>
 						<PlusIcon />
 						Add List
