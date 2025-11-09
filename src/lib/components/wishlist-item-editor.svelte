@@ -14,10 +14,12 @@
 	import {
 		ArrowLeftFromLineIcon,
 		CheckIcon,
+		GlobeIcon,
 		LinkIcon,
 		Settings2Icon,
 		XIcon,
 	} from '@lucide/svelte';
+	import { readMetadata } from '$lib/remotes/meta.remote';
 
 	let {
 		handler,
@@ -103,6 +105,31 @@
 		handler.validate();
 		if (generate) generateRemote.validate();
 	});
+
+	let loadStep = $state(0);
+	let isGenFailExpected = $state(false);
+	let loadFavicon = $state('');
+	let loadTitle = $state('');
+
+	const applyLoadMetadata = async (url: string) => {
+		try {
+			const response = await readMetadata(url);
+			loadFavicon = response.favicon;
+			loadTitle = response.title;
+		} catch (error) {
+			try {
+				const urlObject = new URL(url);
+				loadTitle = urlObject.hostname.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '');
+			} catch (err) {
+				console.warn(err);
+				loadTitle = 'Unknown Page';
+			}
+
+			console.warn(error);
+			isGenFailExpected = true;
+			loadFavicon = '';
+		}
+	};
 </script>
 
 <div
@@ -120,8 +147,54 @@
 				<h3 class="text-lg font-bold">Preview</h3>
 
 				{#if loading}
-					<div class="h-32 w-full">
+					<div class="flex h-32 w-full flex-col items-center justify-center gap-4">
 						<Loader />
+
+						<div class="flex flex-col items-center justify-center gap-2">
+							<p class="flex items-center gap-2 text-text-muted">
+								{#if loadStep === 0}
+									Retrieving page...
+								{:else if loadStep === 1}
+									Reading page...
+								{:else if isGenFailExpected}
+									Attempting Generation...
+								{:else if loadStep === 2}
+									Generating product...
+								{:else if loadStep === 3}
+									Finishing up...
+								{:else}
+									<br />
+								{/if}
+							</p>
+
+							{#if loadTitle}
+								<div class="flex justify-center gap-2">
+									{#if loadFavicon}
+										<img
+											src={loadFavicon}
+											class="aspect-square w-6"
+											alt="{loadTitle} Page Icon"
+										/>
+									{:else}
+										<GlobeIcon />
+									{/if}
+
+									<p class="max-w-xs overflow-hidden text-nowrap text-ellipsis">
+										{loadTitle}
+									</p>
+								</div>
+							{/if}
+						</div>
+
+						<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+							<div
+								class="h-full w-0 bg-accent duration-500"
+								style="transition-property: width; width: {Math.max(
+									0,
+									Math.min(100, 33.33 * loadStep - 1),
+								)}%"
+							></div>
+						</div>
 					</div>
 				{:else}
 					<div
@@ -282,7 +355,7 @@
 		{:else if mode === 'generate'}
 			<form
 				{...generateRemote}
-				oninput={() => generateRemote.validate({ preflightOnly: true })}
+				oninput={() => generateRemote.validate()}
 				class="float-container flex h-full flex-col gap-1 p-8 sm:h-max"
 			>
 				<h1 class="text-2xl font-bold">Create a new Item</h1>
@@ -312,15 +385,43 @@
 							<button
 								disabled={loading}
 								{...generateRemote.buttonProps.enhance(async ({ submit }) => {
+									if (generateRemote.fields.url.issues()) return;
+
 									loading = true;
+									loadStep = 0;
+
 									try {
-										await submit();
-										if (generateRemote.result) {
-											seed(generateRemote.result);
+										const submitPromise = submit().then(
+											() => (loading = false),
+										);
+
+										const url = generateRemote.fields.url.value();
+										if (url) {
+											const metaPromise = applyLoadMetadata(url);
+											await new Promise((res) => setTimeout(res, 2000));
+											await metaPromise;
+										}
+
+										loadStep++;
+										if (loading)
+											await new Promise((res) => setTimeout(res, 3000));
+
+										loadStep++;
+										if (loading) await submitPromise;
+
+										loadStep++;
+										if (loading)
+											await new Promise((res) => setTimeout(res, 500));
+
+										const result = generateRemote.result;
+										if (result) {
+											seed(result);
 											mode = 'generate-confirm';
 										}
 									} finally {
 										loading = false;
+										loadTitle = '';
+										loadFavicon = '';
 									}
 								})}
 								class="w-full bg-success text-accent-fg"
