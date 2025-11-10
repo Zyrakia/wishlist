@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
-import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+
 const autoTimestampColumn = integer({ mode: 'timestamp' })
 	.notNull()
 	.default(sql`(unixepoch())`);
@@ -11,10 +12,6 @@ export const UserTable = sqliteTable('user', {
 	password: text().notNull(),
 	createdAt: autoTimestampColumn,
 });
-
-export const _UserRelations = relations(UserTable, ({ many }) => ({
-	wishlists: many(WishlistTable),
-}));
 
 export const WishlistTable = sqliteTable('wishlist', {
 	id: text().primaryKey(),
@@ -55,13 +52,6 @@ export const WishlistItemTable = sqliteTable(
 	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],
 );
 
-export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => ({
-	wishlist: one(WishlistTable, {
-		fields: [WishlistItemTable.wishlistId],
-		references: [WishlistTable.id],
-	}),
-}));
-
 export const CircleTable = sqliteTable('circles', {
 	id: text().primaryKey(),
 	name: text().notNull(),
@@ -73,38 +63,18 @@ export const CircleTable = sqliteTable('circles', {
 	createdAt: autoTimestampColumn,
 });
 
-export const _CirclesRelations = relations(CircleTable, ({ one, many }) => ({
-	members: many(CircleMembershipTable),
-	owner: one(UserTable, {
-		fields: [CircleTable.ownerId],
-		references: [UserTable.id],
-	}),
-}));
-
 export const CircleInviteTable = sqliteTable(
 	'circle_invite',
 	{
+		id: text().primaryKey(),
 		circleId: text()
 			.notNull()
 			.references(() => CircleTable.id, { onDelete: 'cascade' }),
-		userId: text()
-			.notNull()
-			.references(() => UserTable.id, { onDelete: 'cascade' }),
+		targetEmail: text().notNull(),
 		createdAt: autoTimestampColumn,
 	},
-	(t) => [primaryKey({ columns: [t.circleId, t.userId] })],
+	(t) => [unique('circle_invitee_unique').on(t.circleId, t.targetEmail)],
 );
-
-export const _CircleInviteRelations = relations(CircleInviteTable, ({ one }) => ({
-	circle: one(CircleTable, {
-		fields: [CircleInviteTable.circleId],
-		references: [CircleTable.id],
-	}),
-	user: one(UserTable, {
-		fields: [CircleInviteTable.userId],
-		references: [UserTable.id],
-	}),
-}));
 
 export const CircleMembershipTable = sqliteTable(
 	'circle_membership',
@@ -119,6 +89,38 @@ export const CircleMembershipTable = sqliteTable(
 	},
 	(t) => [primaryKey({ columns: [t.circleId, t.userId] })],
 );
+
+export const _UserRelations = relations(UserTable, ({ many, one }) => ({
+	wishlists: many(WishlistTable),
+	circleMemberships: many(CircleMembershipTable),
+	createdCircle: one(CircleTable, {
+		fields: [UserTable.id],
+		references: [CircleTable.ownerId],
+	}),
+}));
+
+export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => ({
+	wishlist: one(WishlistTable, {
+		fields: [WishlistItemTable.wishlistId],
+		references: [WishlistTable.id],
+	}),
+}));
+
+export const _CirclesRelations = relations(CircleTable, ({ one, many }) => ({
+	members: many(CircleMembershipTable),
+	owner: one(UserTable, {
+		fields: [CircleTable.ownerId],
+		references: [UserTable.id],
+	}),
+	pendingInvites: many(CircleInviteTable),
+}));
+
+export const _CircleInviteRelations = relations(CircleInviteTable, ({ one }) => ({
+	circle: one(CircleTable, {
+		fields: [CircleInviteTable.circleId],
+		references: [CircleTable.id],
+	}),
+}));
 
 export const _CircleMembershipRelations = relations(CircleMembershipTable, ({ one }) => ({
 	circle: one(CircleTable, {
