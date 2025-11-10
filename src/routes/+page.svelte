@@ -56,7 +56,7 @@
 				<div class="flex w-full flex-wrap gap-4">
 					<a
 						href="/new-list"
-						class="button flex flex-col items-center justify-evenly bg-success text-accent-fg w-full sm:w-32 min-h-16"
+						class="button flex min-h-16 w-full flex-col items-center justify-evenly bg-success text-accent-fg sm:w-32"
 					>
 						<PlusIcon />
 						Add List
@@ -66,12 +66,12 @@
 						<WishlistSummary {wishlist}>
 							{#snippet footer()}
 								{#if sort === 'modified'}
-									{@const modDate = new Date(wishlist.updatedAt)}
+									{@const activityDate = new Date(wishlist.activityAt)}
 
 									<hr class="my-2" />
 									<p class="text-xs font-light text-text-muted">
-										Modified
-										{dtf.format(modDate)}
+										Last activity
+										{dtf.format(activityDate)}
 									</p>
 								{/if}
 							{/snippet}
@@ -82,10 +82,7 @@
 				<div class="flex flex-col items-center gap-2 py-6">
 					<p class="font-light italic">You have no wishlists...</p>
 
-					<a
-						href="/new-list"
-						class="button rounded bg-success px-4 py-2 text-accent-fg"
-					>
+					<a href="/new-list" class="button rounded bg-success px-4 py-2 text-accent-fg">
 						Create Your First List
 					</a>
 				</div>

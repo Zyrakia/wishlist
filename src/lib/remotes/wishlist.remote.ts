@@ -14,7 +14,7 @@ export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
 
 	await db()
 		.update(WishlistTable)
-		.set({ updatedAt: new Date() })
+		.set({ activityAt: new Date() })
 		.where(and(eq(WishlistTable.id, id), eq(WishlistTable.userId, user.id)));
 });
 
@@ -54,7 +54,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 
 	const updateObject = await db()
 		.update(WishlistTable)
-		.set({ ...data, updatedAt: new Date() })
+		.set({ ...data })
 		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)));
 
 	if (updateObject.changes) redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
@@ -120,7 +120,7 @@ export const getWishlistActivity = query(
 
 		return await db().query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, user.id),
-			orderBy: (t, { desc }) => desc(t.updatedAt),
+			orderBy: (t, { desc }) => desc(t.activityAt),
 			limit: limit,
 		});
 	},
