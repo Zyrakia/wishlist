@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { setSavedTheme } from '$lib/remotes/theme.remote.js';
 	import { useHasJs } from '$lib/runes/has-js.svelte.js';
 
 	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
@@ -10,7 +11,9 @@
 
 	const hasJs = useHasJs();
 
-	let theme = $state('dark');
+	let theme = $state(data.savedTheme);
+	let changingTheme = $state(false);
+
 	const isRoot = $derived(page.url.pathname === '/');
 	const meta = $derived({
 		'title': 'Wishii',
@@ -20,9 +23,7 @@
 		...page.data.meta,
 	});
 
-	$effect(() => {
-		document.documentElement.dataset.theme = theme;
-	});
+	$effect(() => void (document.documentElement.dataset.theme = theme));
 </script>
 
 <svelte:head>
@@ -59,7 +60,7 @@
 	{/each}
 </svelte:head>
 
-<div class="flex h-full flex-col">
+<div class="flex h-full flex-col" class:transition-colors={changingTheme} data-theme={theme}>
 	<header class="flex min-h-16 shrink-0 items-center gap-2 p-4 drop-shadow-md">
 		<div class="flex w-full flex-wrap items-center justify-between gap-6">
 			{#if !isRoot}
@@ -73,10 +74,21 @@
 			<div class="flex gap-6">
 				{#if hasJs()}
 					<button
+						disabled={changingTheme}
 						class="border-0 p-2"
-						onclick={() => {
-							if (theme === 'light') theme = 'dark';
-							else theme = 'light';
+						onclick={async () => {
+							changingTheme = true;
+
+							const oldTheme = theme;
+							const nextTheme = oldTheme === 'dark' ? 'light' : 'dark';
+							try {
+								theme = nextTheme;
+								await setSavedTheme({ theme: nextTheme });
+							} catch (err) {
+								theme = oldTheme;
+							} finally {
+								changingTheme = false;
+							}
 						}}
 					>
 						{#if theme === 'light'}

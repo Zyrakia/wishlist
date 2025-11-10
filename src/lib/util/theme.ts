@@ -3,10 +3,12 @@ const ThemeTokens = {
 	surface: 'surface',
 	muted: 'muted',
 	border: 'border',
+	borderStrong: 'border-strong',
 	text: 'text',
-	mutedText: 'text-muted',
+	textMuted: 'text-muted',
+	accentContrast: 'accent-fg',
+	brand: 'accent',
 	primary: 'primary',
-	primaryContrast: 'primary-fg',
 	success: 'success',
 	warning: 'warning',
 	danger: 'danger',
@@ -14,6 +16,5 @@ const ThemeTokens = {
 
 export type ThemeTokens = typeof ThemeTokens;
 
-const tokenToVariable = (token: keyof ThemeTokens, as: 'color' = 'color') => {
-	return `--${as}-${ThemeTokens[token]}`;
-};
+export type Theme = 'dark' | 'light';
+export const DefaultTheme = 'dark';

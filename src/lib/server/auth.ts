@@ -7,6 +7,7 @@ import z from 'zod';
 import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import ENV from './env.server';
+import { Cookie } from './cookies';
 
 const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
@@ -64,22 +65,16 @@ export const readToken = async (jwt: string) => {
 };
 
 export const setSession = (cookies: Cookies, value: string) => {
-	cookies.set(COOKIE_NAME, value, {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'lax',
-		secure: !dev,
-		maxAge: value ? ENV.JWT_LIFETIME.seconds : 0,
-	});
+	Cookie.session(cookies).set(value);
 };
 
 export const readSession = async (cookies: Cookies) => {
-	const token = cookies.get(COOKIE_NAME);
+	const token = Cookie.session(cookies).read();
 	if (!token) return;
 
 	return readToken(token);
 };
 
 export const clearSession = (cookies: Cookies) => {
-	cookies.delete(COOKIE_NAME, { path: '/' });
+	Cookie.session(cookies).clear();
 };
