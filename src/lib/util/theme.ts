@@ -16,5 +16,7 @@ const ThemeTokens = {
 
 export type ThemeTokens = typeof ThemeTokens;
 
-export type Theme = 'dark' | 'light';
-export const DefaultTheme = 'dark';
+export const ValidThemes = ['dark', 'light'] as const;
+export type Theme = (typeof ValidThemes)[number];
+
+export const DefaultTheme: Theme = 'light';

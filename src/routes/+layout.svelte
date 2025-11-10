@@ -4,6 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { setSavedTheme } from '$lib/remotes/theme.remote.js';
 	import { useHasJs } from '$lib/runes/has-js.svelte.js';
+	import { DefaultTheme } from '$lib/util/theme.js';
 
 	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
 
@@ -11,7 +12,7 @@
 
 	const hasJs = useHasJs();
 
-	let theme = $state(data.savedTheme);
+	let theme = $state(data.savedTheme || DefaultTheme);
 	let changingTheme = $state(false);
 
 	const isRoot = $derived(page.url.pathname === '/');
