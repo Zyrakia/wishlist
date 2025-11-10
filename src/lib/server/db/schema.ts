@@ -1,8 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
 import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { createSelectSchema } from 'drizzle-zod';
-
-import type z from 'zod';
 
 export const UserTable = sqliteTable('user', {
 	id: text().primaryKey(),
@@ -69,11 +66,3 @@ export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => 
 		references: [WishlistTable.id],
 	}),
 }));
-
-const userSchema = createSelectSchema(UserTable);
-const wishlistSchema = createSelectSchema(WishlistTable);
-const wishlistItemSchema = createSelectSchema(WishlistItemTable);
-
-export type User = z.infer<typeof userSchema>;
-export type Wishlist = z.infer<typeof wishlistSchema>;
-export type WishlistItem = z.infer<typeof wishlistItemSchema>;

@@ -1,5 +1,3 @@
-import type { User } from '$lib/server/db/schema';
-
 type CommonMetaKeys =
 	| 'title'
 	| 'description'
