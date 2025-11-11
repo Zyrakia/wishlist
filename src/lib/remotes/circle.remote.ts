@@ -3,11 +3,17 @@ import { CredentialsSchema } from '$lib/schemas/auth';
 import { CircleSchema } from '$lib/schemas/circle';
 import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
-import { CircleInviteTable, CircleMembershipTable, CircleTable } from '$lib/server/db/schema';
+import {
+	CircleInviteTable,
+	CircleMembershipTable,
+	CircleTable,
+	UserTable,
+	WishlistTable,
+} from '$lib/server/db/schema';
 import { strBoolean } from '$lib/util/zod';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import z from 'zod';
 import { resolveMe } from './auth.remote';
 
@@ -249,4 +255,36 @@ export const getMyPendingInvites = query(CredentialsSchema.shape.email, async ()
 	return await db().query.CircleInviteTable.findMany({
 		where: (t, { eq }) => eq(t.targetEmail, user.email),
 	});
+});
+
+export const getCircles = query(async () => {
+	const user = verifyAuth();
+	return await db()
+		.select(getTableColumns(CircleTable))
+		.from(CircleMembershipTable)
+		.innerJoin(CircleTable, eq(CircleTable.id, CircleMembershipTable.circleId))
+		.where(eq(CircleMembershipTable.userId, user.id));
+});
+
+export const getCircleActivity = query(async () => {
+	const circles = await getCircles();
+	if (!circles.length) return [];
+
+	const circleIds = circles.map((v) => v.id);
+	const activity = await db()
+		.select({
+			circleId: CircleMembershipTable.circleId,
+			userName: UserTable.name,
+			...getTableColumns(WishlistTable),
+		})
+		.from(CircleMembershipTable)
+		.leftJoin(WishlistTable, eq(WishlistTable.userId, CircleMembershipTable.userId))
+		.leftJoin(UserTable, eq(UserTable.id, WishlistTable.userId))
+		.where(inArray(CircleMembershipTable.circleId, circleIds))
+		.orderBy(desc(WishlistTable.activityAt));
+
+	return circles.map((circle) => ({
+		circle,
+		activity: activity.filter((a) => a.circleId === circle.id),
+	}));
 });
