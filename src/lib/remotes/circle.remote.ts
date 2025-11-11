@@ -274,6 +274,8 @@ export const getCircles = query(async () => {
 });
 
 export const getCircleActivity = query(async () => {
+	const user = verifyAuth();
+
 	const circles = await getCircles();
 	if (!circles.length) return [];
 
@@ -285,13 +287,15 @@ export const getCircleActivity = query(async () => {
 			...getTableColumns(WishlistTable),
 		})
 		.from(CircleMembershipTable)
-		.leftJoin(WishlistTable, eq(WishlistTable.userId, CircleMembershipTable.userId))
-		.leftJoin(UserTable, eq(UserTable.id, WishlistTable.userId))
+		.innerJoin(WishlistTable, eq(WishlistTable.userId, CircleMembershipTable.userId))
+		.innerJoin(UserTable, eq(UserTable.id, WishlistTable.userId))
 		.where(inArray(CircleMembershipTable.circleId, circleIds))
 		.orderBy(desc(WishlistTable.activityAt));
 
-	return circles.map((circle) => ({
+	const circlesWithActivity = circles.map((circle) => ({
 		circle,
 		activity: activity.filter((a) => a.circleId === circle.id),
 	}));
+
+	return circlesWithActivity.sort((a) => (a.circle.ownerId === user.id ? -1 : 1));
 });
