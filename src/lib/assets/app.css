@@ -95,6 +95,6 @@
 
 @layer components {
 	.float-container {
-		@apply w-full max-w-full rounded-lg bg-surface shadow-md shadow-black/15 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
+		@apply w-full max-w-full sm:rounded-lg bg-surface shadow-md shadow-black/15 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
 	}
 }
