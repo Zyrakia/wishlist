@@ -12,7 +12,7 @@
 >
 	<div class="flex flex-1 items-center gap-2">
 		<GiftIcon class="text-danger" />
-		<p class="text-lg font-bold">{wishlist.name}</p>
+		<p class="text-lg font-semibold">{wishlist.name}</p>
 	</div>
 
 	{#if wishlist.description}
