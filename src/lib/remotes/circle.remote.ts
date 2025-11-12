@@ -163,9 +163,9 @@ export const revokeCircleInvite = form(z.object({ inviteId: z.string() }), async
 	redirect(303, `/circles/${circle.id}`);
 });
 
-export const acceptCircleInvite = form(
-	z.object({ inviteId: z.string() }),
-	async ({ inviteId }, invalid) => {
+export const resolveCircleInvite = form(
+	z.object({ inviteId: z.string(), decision: z.enum(['accept', 'decline']) }),
+	async ({ inviteId, decision }, invalid) => {
 		const user = await resolveMe();
 		if (!user) error(401);
 
@@ -175,6 +175,11 @@ export const acceptCircleInvite = form(
 
 		if (!invite) return invalid(invalid.inviteId('Invite invalid or expired'));
 		if (invite.targetEmail !== user.email) invalid(invalid.inviteId('This is not your invite'));
+
+		if (decision === 'decline') {
+			await db().delete(CircleInviteTable).where(eq(CircleInviteTable.id, invite.id));
+			redirect(303, `/`);
+		}
 
 		const circle = await db().query.CircleTable.findFirst({
 			where: (t, { eq }) => eq(t.id, invite.circleId),
@@ -187,7 +192,7 @@ export const acceptCircleInvite = form(
 		});
 
 		if (!circle) return invalid(invalid.inviteId('Circle does not exist'));
-		if (circle.memberCount >= circle.memberCount)
+		if (circle.memberCount >= circle.memberLimit)
 			return invalid(invalid.inviteId('Circle is full'));
 
 		db().transaction((tx) => {
@@ -201,24 +206,6 @@ export const acceptCircleInvite = form(
 			tx.delete(CircleInviteTable).where(eq(CircleInviteTable.id, invite.id)).run();
 		});
 
-		redirect(303, `/circles/${invite.circleId}`);
-	},
-);
-
-export const declineCircleInvite = form(
-	z.object({ inviteId: z.string() }),
-	async ({ inviteId }, invalid) => {
-		const user = await resolveMe();
-		if (!user) error(401);
-
-		const invite = await db().query.CircleInviteTable.findFirst({
-			where: (t, { eq }) => eq(t.id, inviteId),
-		});
-
-		if (!invite) return invalid(invalid.inviteId('Invite invalid or expired'));
-		if (invite.targetEmail !== user.email) invalid(invalid.inviteId('This is not your invite'));
-
-		await db().delete(CircleInviteTable).where(eq(CircleInviteTable.id, invite.id));
 		redirect(303, `/`);
 	},
 );
@@ -255,12 +242,18 @@ export const removeCircleMember = form(z.object({ targetId: z.string() }), async
 	redirect(303, `/circles/${circle.id}`);
 });
 
-export const getMyPendingInvites = query(CredentialsSchema.shape.email, async () => {
+export const getCircleInvites = query(async () => {
 	const user = await resolveMe();
 	if (!user) return [];
 
 	return await db().query.CircleInviteTable.findMany({
 		where: (t, { eq }) => eq(t.targetEmail, user.email),
+		with: {
+			circle: {
+				columns: { name: true },
+				with: { owner: { columns: { name: true } } },
+			},
+		},
 	});
 });
 
@@ -273,7 +266,7 @@ export const getCircles = query(async () => {
 		.where(eq(CircleMembershipTable.userId, user.id));
 });
 
-export const getCircleActivity = query(async () => {
+export const getCirclesActivity = query(async () => {
 	const user = verifyAuth();
 
 	const circles = await getCircles();
