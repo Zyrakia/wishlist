@@ -33,7 +33,7 @@
 		"vite": "^7.1.12"
 	},
 	"dependencies": {
-		"@ai-sdk/google": "^2.0.24",
+		"@ai-sdk/mistral": "^2.0.24",
 		"@lucide/svelte": "^0.546.0",
 		"@t3-oss/env-core": "^0.13.8",
 		"@tailwindcss/vite": "^4.1.16",
