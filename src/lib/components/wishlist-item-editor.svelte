@@ -107,9 +107,10 @@
 	});
 
 	let loadStep = $state(0);
-	let isGenFailExpected = $state(false);
 	let loadFavicon = $state('');
 	let loadTitle = $state('');
+
+	const loadMessages = ['Retrieving page', 'Reading page', 'Generating Product', 'Finishing up'];
 
 	const applyLoadMetadata = async (url: string) => {
 		try {
@@ -126,7 +127,6 @@
 			}
 
 			console.warn(error);
-			isGenFailExpected = true;
 			loadFavicon = '';
 		}
 	};
@@ -152,16 +152,8 @@
 
 						<div class="flex flex-col items-center justify-center gap-2">
 							<p class="flex items-center gap-2 text-text-muted">
-								{#if loadStep === 0}
-									Retrieving page...
-								{:else if loadStep === 1}
-									Reading page...
-								{:else if isGenFailExpected}
-									Attempting Generation...
-								{:else if loadStep === 2}
-									Generating product...
-								{:else if loadStep === 3}
-									Finishing up...
+								{#if loadStep < loadMessages.length}
+									{loadMessages[loadStep]}...
 								{:else}
 									<br />
 								{/if}
@@ -170,11 +162,7 @@
 							{#if loadTitle}
 								<div class="flex justify-center gap-2">
 									{#if loadFavicon}
-										<img
-											src={loadFavicon}
-											class="aspect-square w-6"
-											alt="{loadTitle} Page Icon"
-										/>
+										<img src={loadFavicon} class="aspect-square w-6" alt="" />
 									{:else}
 										<GlobeIcon />
 									{/if}
@@ -391,8 +379,9 @@
 									loadStep = 0;
 
 									try {
+										let submitComplete = false;
 										const submitPromise = submit().then(
-											() => (loading = false),
+											() => (submitComplete = true),
 										);
 
 										const url = generateRemote.fields.url.value();
@@ -403,15 +392,14 @@
 										}
 
 										loadStep++;
-										if (loading)
-											await new Promise((res) => setTimeout(res, 3000));
+										if (!submitComplete)
+											await new Promise((res) => setTimeout(res, 1500));
 
 										loadStep++;
-										if (loading) await submitPromise;
+										if (!submitComplete) await submitPromise;
 
-										loadStep++;
-										if (loading)
-											await new Promise((res) => setTimeout(res, 500));
+										loadStep = loadMessages.length - 1;
+										await new Promise((res) => setTimeout(res, 500));
 
 										const result = generateRemote.result;
 										if (result) {
