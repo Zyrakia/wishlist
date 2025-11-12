@@ -1,9 +1,9 @@
 import { query } from '$app/server';
 import { devices } from 'playwright';
 import { load as cheerio } from 'cheerio';
-import z from 'zod';
+import { RequiredUrlSchema } from '$lib/schemas/item';
 
-export const readMetadata = query(z.url(), async (url) => {
+export const readMetadata = query(RequiredUrlSchema, async (url) => {
 	const target = new URL(url);
 	const res = await fetch(target, {
 		redirect: 'follow',
