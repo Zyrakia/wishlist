@@ -88,7 +88,7 @@ export const deleteCircle = form(
 		if (!circle) error(400, 'Invalid circle ID provided');
 
 		await db().delete(CircleTable).where(eq(CircleTable.id, circle.id));
-		redirect(303, '/circles');
+		redirect(303, '/');
 	},
 );
 

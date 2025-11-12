@@ -34,8 +34,8 @@
 		sort === 'modified' ? getWishlistActivity({ limit: 5 }) : getWishlists({ limit }),
 	);
 
-	const circles = $derived(getCirclesActivity());
-	const circleInvites = $derived(getCircleInvites());
+	const circles = getCirclesActivity();
+	const circleInvites = getCircleInvites();
 
 	const dtf = new Intl.DateTimeFormat(navigator.languages, {
 		dateStyle: 'medium',
@@ -171,7 +171,7 @@
 
 	<div class="w-full">
 		<div class="flex flex-wrap gap-2 font-bold">
-			<p class="flex items-center gap-2">
+			<p class="flex flex-1 items-center gap-2">
 				<CircleIcon />
 				Your circles activity
 			</p>
@@ -213,17 +213,13 @@
 								{#each notMyAcitivty as wishlist}
 									<WishlistSummary {wishlist} author={wishlist.userName}>
 										{#snippet footer()}
-											{#if sort === 'modified'}
-												{@const activityDate = new Date(
-													wishlist.activityAt,
-												)}
+											{@const activityDate = new Date(wishlist.activityAt)}
 
-												<hr class="my-2" />
-												<p class="text-xs font-light text-text-muted">
-													Last activity
-													{dtf.format(activityDate)}
-												</p>
-											{/if}
+											<hr class="my-2" />
+											<p class="text-xs font-light text-text-muted">
+												Last activity
+												{dtf.format(activityDate)}
+											</p>
 										{/snippet}
 									</WishlistSummary>
 								{/each}
