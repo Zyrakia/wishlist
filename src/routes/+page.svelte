@@ -170,11 +170,22 @@
 	</div>
 
 	<div class="w-full">
-		<div class="flex flex-wrap gap-2 font-bold">
-			<p class="flex flex-1 items-center gap-2">
+		<div class="flex flex-wrap gap-2">
+			<p class="flex flex-1 items-center gap-2 font-bold">
 				<CircleIcon />
 				Your circles activity
 			</p>
+
+			{#if (await circles) && !(await circles).find((v) => v.circle.ownerId === user.id)}
+				<a
+					href="/new-circle"
+					class="flex items-center gap-2 font-light italic hover:text-accent"
+				>
+					Create your own circle
+
+					<ArrowRightIcon size={16} />
+				</a>
+			{/if}
 		</div>
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
@@ -187,14 +198,17 @@
 
 					<div class="flex flex-col gap-2">
 						<div class="flex gap-2">
-							<p class="flex flex-1 items-center gap-2 font-bold">
+							<a
+								href="/circles/{circle.id}"
+								class="flex items-center gap-2 font-bold hover:text-accent"
+							>
 								<UsersIcon size={16} />
 								{circle.name}
-							</p>
+							</a>
 
 							<a
 								href="/circles/{circle.id}"
-								class="flex items-center gap-2 font-light italic hover:text-accent"
+								class="ms-auto flex items-center gap-2 font-light italic hover:text-accent"
 							>
 								{#if isOwn}
 									Manage
