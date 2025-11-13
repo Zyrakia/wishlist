@@ -67,7 +67,8 @@
 		role="link"
 		tabindex="0"
 		class={[
-			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong bg-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-shadow',
+			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-shadow dark:bg-radial-[at_50%_25%]',
+
 			canClick && 'interactive cursor-pointer hover:shadow-xl',
 		]}
 		href={item.url}
@@ -75,7 +76,7 @@
 	>
 		{#if item.imageUrl}
 			<div
-				class="flex aspect-video justify-center overflow-hidden rounded-xl rounded-br-none rounded-bl-none bg-linear-to-b from-muted from-20% to-surface p-4"
+				class="flex aspect-video justify-center overflow-hidden rounded-xl rounded-br-none rounded-bl-none p-4"
 			>
 				<img
 					class="w-full object-contain"
