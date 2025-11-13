@@ -52,13 +52,16 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 		if (!isOpen) invalid(invalid.slug('Already taken'));
 	}
 
-	const updateObject = await db()
+	const [updated] = await db()
 		.update(WishlistTable)
 		.set({ ...data })
-		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)));
+		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)))
+		.returning();
 
-	if (updateObject.changes) redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
-	else error(400, 'No wishlist can be updated');
+	if (updated) {
+		touchList({ id: updated.id });
+		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
+	} else error(400, 'No wishlist can be updated');
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
