@@ -229,6 +229,7 @@ export const removeCircleMember = form(z.object({ targetId: z.string() }), async
 	});
 
 	if (!circle) error(400, 'Invalid circle ID provided');
+	if (circle.ownerId === targetId) error(400, 'Cannot kick circle owner');
 
 	const membership = await db().query.CircleMembershipTable.findFirst({
 		where: (t, { and, eq }) => and(eq(t.circleId, circle.id), eq(t.userId, targetId)),

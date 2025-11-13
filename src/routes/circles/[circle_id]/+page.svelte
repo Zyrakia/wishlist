@@ -1,7 +1,11 @@
 <script lang="ts">
 	import InputGroup from '$lib/components/input-group.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
-	import { issueCircleInvite, revokeCircleInvite } from '$lib/remotes/circle.remote.js';
+	import {
+		issueCircleInvite,
+		removeCircleMember,
+		revokeCircleInvite,
+	} from '$lib/remotes/circle.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
 	import { asIssue } from '$lib/util/pick-issue.js';
 	import {
@@ -10,6 +14,7 @@
 		Settings2Icon,
 		ShieldUserIcon,
 		Trash2Icon,
+		UserRoundXIcon,
 		UsersIcon,
 		XIcon,
 	} from '@lucide/svelte';
@@ -56,12 +61,10 @@
 			{#each members as { user: member, joinedAt }}
 				{@const isOwner = member.id === circle.ownerId}
 				{@const isMe = member.id === data.user?.id}
+				{@const kickHandler = removeCircleMember.for(member.id)}
 
 				<div class="flex flex-col gap-2">
-					<p
-						class="flex gap-2 font-bold"
-						title="Circle {isOwner ? 'Owner' : 'Member'}{isMe ? ' (You)' : ''}"
-					>
+					<div class="flex items-center gap-2">
 						<span
 							class={isMe ? 'text-success' : isOwner ? 'text-danger' : 'text-accent'}
 						>
@@ -72,8 +75,26 @@
 							{/if}
 						</span>
 
-						{member.name}
-					</p>
+						<p
+							class="font-bold"
+							title="Circle {isOwner ? 'Owner' : 'Member'}{isMe ? ' (You)' : ''}"
+						>
+							{member.name}
+						</p>
+
+						{#if isOwn && !isOwner}
+							<form {...kickHandler} class="ms-auto">
+								<input {...kickHandler.fields.targetId.as('hidden', member.id)} />
+								<button
+									{...kickHandler.buttonProps}
+									title="Kick {member.name}"
+									class="border-0 p-0 text-danger"
+								>
+									<UserRoundXIcon size={20} />
+								</button>
+							</form>
+						{/if}
+					</div>
 
 					<p class="text-sm font-light text-text-muted">
 						Member since: {dtf.format(joinedAt)}
@@ -97,6 +118,14 @@
 {/snippet}
 
 <div class="p-4">
+	{#if members.length === 1 && isOwn}
+		<p class="mt-4 mb-6 text-center font-light text-text-muted italic">
+			Welcome to your new circle
+			<br />
+			Get started by inviting someone
+		</p>
+	{/if}
+
 	{#if isOwn}
 		{@const inviteHandler = issueCircleInvite.preflight(
 			z.object({ targetEmail: CredentialsSchema.shape.email }),

@@ -4,6 +4,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, parent }) => {
 	const members = await db().query.CircleMembershipTable.findMany({
 		where: (t, { eq }) => eq(t.circleId, params.circle_id),
+		orderBy: (t, { asc }) => asc(t.joinedAt),
 		with: {
 			user: {
 				columns: { id: true, name: true },
