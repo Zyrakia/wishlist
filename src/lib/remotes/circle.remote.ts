@@ -104,16 +104,22 @@ export const issueCircleInvite = form(
 
 		const circle = await db().query.CircleTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, circle_id), eq(t.ownerId, user.id)),
-			extras: {
+			extras: (t) => ({
+				inviteCount:
+					sql<number>`(select count(*) from ${CircleInviteTable} where ${CircleInviteTable.circleId} = ${circle_id})`.as(
+						'inviteCount',
+					),
 				memberCount:
-					sql<number>`(select count(*) from ${CircleMembershipTable} where ${CircleMembershipTable.circleId} = ${CircleTable.id})`.as(
+					sql<number>`(select count(*) from ${CircleMembershipTable} where ${CircleMembershipTable.circleId} = ${circle_id})`.as(
 						'memberCount',
 					),
-			},
+			}),
 		});
 
 		if (!circle) error(400, 'Invalid circle ID provided');
 		if (circle.memberCount >= circle.memberLimit) invalid('The circle is alrady full');
+		else if (circle.memberCount + circle.inviteCount >= circle.memberLimit)
+			invalid('Too many pending invites');
 
 		const existingUser = await db().query.UserTable.findFirst({
 			where: (t, { eq }) => eq(t.email, targetEmail),
@@ -242,7 +248,7 @@ export const removeCircleMember = form(z.object({ targetId: z.string() }), async
 	redirect(303, `/circles/${circle.id}`);
 });
 
-export const getCircleInvites = query(async () => {
+export const getMyInvites = query(async () => {
 	const user = await resolveMe();
 	if (!user) return [];
 

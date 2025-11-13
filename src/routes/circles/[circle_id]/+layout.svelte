@@ -29,7 +29,7 @@
 		{#if !isAtRoot}
 			<div class="mt-4 flex flex-wrap items-center gap-4">
 				{#if !isAtRoot}
-					<a title="Go Back" href="/">
+					<a title="Go Back" href="/circles/{circle.id}">
 						<CircleArrowLeftIcon />
 					</a>
 				{/if}

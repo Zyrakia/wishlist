@@ -4,7 +4,7 @@
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import {
 		getCirclesActivity,
-		getCircleInvites,
+		getMyInvites,
 		resolveCircleInvite,
 	} from '$lib/remotes/circle.remote.js';
 	import { getWishlistActivity, getWishlists } from '$lib/remotes/wishlist.remote.js';
@@ -35,7 +35,7 @@
 	);
 
 	const circles = getCirclesActivity();
-	const circleInvites = getCircleInvites();
+	const circleInvites = getMyInvites();
 
 	const dtf = new Intl.DateTimeFormat(navigator.languages, {
 		dateStyle: 'medium',

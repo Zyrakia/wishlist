@@ -36,7 +36,7 @@
 	@reference "tailwindcss";
 
 	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
-		/* @apply font-bold text-danger; */
 		content: ' *';
+		color: var(--color-danger);
 	}
 </style>

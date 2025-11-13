@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, parent }) => {
 	const members = await db().query.CircleMembershipTable.findMany({
 		where: (t, { eq }) => eq(t.circleId, params.circle_id),
 		with: {
@@ -10,12 +10,20 @@ export const load: PageServerLoad = async ({ params }) => {
 				with: {
 					wishlists: {
 						orderBy: (t, { desc }) => desc(t.activityAt),
-						limit: 5,
+						limit: 4,
 					},
 				},
 			},
 		},
 	});
 
-	return { members };
+	const pendingInvites = await parent().then(({ circle, isOwn }) => {
+		if (!isOwn) return [];
+		return db().query.CircleInviteTable.findMany({
+			where: (t, { eq }) => eq(t.circleId, circle.id),
+			orderBy: (t, { desc }) => desc(t.createdAt),
+		});
+	});
+
+	return { members, pendingInvites };
 };
