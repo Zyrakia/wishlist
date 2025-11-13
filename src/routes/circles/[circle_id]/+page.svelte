@@ -158,7 +158,7 @@
 									{@const revokeHandler = revokeCircleInvite.for(invite.id)}
 
 									<li
-										class="flex items-center gap-2 border border-border p-2"
+										class="flex items-center gap-2 border border-border p-2 rounded-sm"
 										title="Invite Pending since {dtf.format(invite.createdAt)}"
 									>
 										<MailQuestionMarkIcon size={16} />
