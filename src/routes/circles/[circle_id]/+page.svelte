@@ -29,9 +29,20 @@
 
 {#snippet membersList()}
 	<div class="flex flex-col">
-		<h3 class="mb-2 flex items-center gap-2 text-xl font-semibold">
+		<h3 class="mb-2 flex items-center gap-2">
 			<UsersIcon size={20} />
-			Members
+
+			<span class="text-xl font-semibold">Members</span>
+
+			<span class="font-normal">
+				({members.length}/{circle.memberLimit})
+			</span>
+
+			{#if pendingInvites.length}
+				<span class="text-base font-light text-text-muted italic">
+					+{pendingInvites.length} invited
+				</span>
+			{/if}
 		</h3>
 
 		<ul
