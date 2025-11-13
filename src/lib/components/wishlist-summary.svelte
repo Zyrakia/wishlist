@@ -12,11 +12,14 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button flex max-w-full min-w-64 flex-1 flex-col justify-center border bg-surface p-3 md:max-w-xs lg:max-w-sm"
+	class="button flex w-full max-w-full flex-1 flex-col justify-center border bg-surface p-3 sm:max-w-2xs md:max-w-sm lg:max-w-md"
 >
-	<div class="flex flex-1 flex-wrap gap-2" class:items-center={!wishlist.description && !footer}>
-		<GiftIcon class="text-danger" />
-		<p class="text-lg font-semibold">{wishlist.name}</p>
+	<div class="flex flex-1 gap-4" class:items-center={!wishlist.description && !footer}>
+		<div class="flex items-center gap-2">
+			<GiftIcon class="text-danger" />
+
+			<p class="text-lg font-semibold">{wishlist.name}</p>
+		</div>
 
 		{#if author}
 			<div class="ms-auto flex items-center gap-2 text-text-muted">
