@@ -31,7 +31,7 @@
 	const limit = $state(10);
 	// const page = $state(0);
 	const wishlists = $derived(
-		sort === 'modified' ? getWishlistActivity({ limit: 5 }) : getWishlists({ limit }),
+		sort === 'modified' ? getWishlistActivity({ limit: 2 }) : getWishlists({ limit }),
 	);
 
 	const circles = getCirclesActivity();
@@ -130,10 +130,10 @@
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
 		{#if (await wishlists).length}
-			<div class="flex w-full flex-wrap gap-4">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
 				<a
 					href="/new-list"
-					class="button flex min-h-16 w-full flex-col items-center justify-evenly bg-success text-accent-fg sm:w-32"
+					class="button flex w-full flex-wrap items-center justify-center gap-x-2 bg-success text-accent-fg py-4"
 				>
 					<PlusIcon />
 					Add List
@@ -207,7 +207,7 @@
 						</div>
 
 						<div
-							class="flex w-full flex-wrap gap-4 border-s border-dashed border-border-strong/75 ps-3"
+							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
 						>
 							{#if notMyAcitivty.length}
 								{#each notMyAcitivty as wishlist}
