@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Wishlist } from '$lib/schemas/wishlist';
-	import { CircleUserRound, GiftIcon, UserIcon } from '@lucide/svelte';
+	import { CircleUserRound, GiftIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
 	let {

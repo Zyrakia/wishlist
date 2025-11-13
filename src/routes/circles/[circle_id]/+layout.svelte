@@ -9,7 +9,6 @@
 	const circle = $derived(data.circle);
 	const isOwn = $derived(data.isOwn);
 
-	const ownerMember = $derived(circle.members.find((v) => v.userId === circle.ownerId));
 	const isAtRoot = $derived(page.url.pathname.endsWith(data.circle.id));
 </script>
 
@@ -21,7 +20,7 @@
 		</h1>
 
 		<p class="text-lg font-light italic">
-			by {ownerMember?.user.name}
+			by {circle.owner.name}
 			{#if isOwn}
 				<span class="font-bold text-danger not-italic">(You)</span>
 			{/if}

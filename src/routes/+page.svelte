@@ -130,10 +130,10 @@
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
 		{#if (await wishlists).length}
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
+			<div class="flex w-full flex-wrap gap-4">
 				<a
 					href="/new-list"
-					class="button flex w-full flex-wrap items-center justify-center gap-x-2 bg-success text-accent-fg py-4"
+					class="button flex min-h-16 w-full flex-wrap items-center justify-center gap-x-2 bg-success text-accent-fg sm:w-36"
 				>
 					<PlusIcon />
 					Add List
@@ -207,21 +207,11 @@
 						</div>
 
 						<div
-							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
+							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,max-content))]"
 						>
 							{#if notMyAcitivty.length}
 								{#each notMyAcitivty as wishlist}
-									<WishlistSummary {wishlist} author={wishlist.userName}>
-										{#snippet footer()}
-											{@const activityDate = new Date(wishlist.activityAt)}
-
-											<hr class="my-2" />
-											<p class="text-xs font-light text-text-muted">
-												Last activity
-												{dtf.format(activityDate)}
-											</p>
-										{/snippet}
-									</WishlistSummary>
+									<WishlistSummary {wishlist} author={wishlist.userName} />
 								{/each}
 							{:else}
 								<p>No recent activity</p>

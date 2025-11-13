@@ -257,38 +257,49 @@ export const getCircleInvites = query(async () => {
 	});
 });
 
-export const getCircles = query(async () => {
-	const user = verifyAuth();
-	return await db()
-		.select(getTableColumns(CircleTable))
-		.from(CircleMembershipTable)
-		.innerJoin(CircleTable, eq(CircleTable.id, CircleMembershipTable.circleId))
-		.where(eq(CircleMembershipTable.userId, user.id));
-});
-
 export const getCirclesActivity = query(async () => {
 	const user = verifyAuth();
 
-	const circles = await getCircles();
-	if (!circles.length) return [];
+	const memberships = await db().query.CircleMembershipTable.findMany({
+		where: (t, { eq }) => eq(t.userId, user.id),
+		with: {
+			circle: {
+				with: {
+					members: {
+						with: {
+							user: {
+								columns: { name: true, id: true },
+								with: {
+									wishlists: {
+										where: (t, { ne }) => ne(t.userId, user.id),
+										orderBy: (t, { desc }) => desc(t.activityAt),
+										limit: 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	});
 
-	const circleIds = circles.map((v) => v.id);
-	const activity = await db()
-		.select({
-			circleId: CircleMembershipTable.circleId,
-			userName: UserTable.name,
-			...getTableColumns(WishlistTable),
-		})
-		.from(CircleMembershipTable)
-		.innerJoin(WishlistTable, eq(WishlistTable.userId, CircleMembershipTable.userId))
-		.innerJoin(UserTable, eq(UserTable.id, WishlistTable.userId))
-		.where(inArray(CircleMembershipTable.circleId, circleIds))
-		.orderBy(desc(WishlistTable.activityAt));
+	return memberships.map(({ circle }) => {
+		const wishlists = circle.members.flatMap((member) => {
+			return member.user.wishlists.map((wishlist) => ({
+				...wishlist,
+				userId: member.user.id,
+				userName: member.user.name,
+			}));
+		});
 
-	const circlesWithActivity = circles.map((circle) => ({
-		circle,
-		activity: activity.filter((a) => a.circleId === circle.id),
-	}));
+		wishlists.sort((a, b) => {
+			return b.activityAt.getTime() - a.activityAt.getTime();
+		});
 
-	return circlesWithActivity.sort((a) => (a.circle.ownerId === user.id ? -1 : 1));
+		return {
+			circle: { ...circle, members: undefined },
+			activity: wishlists.slice(0, 5),
+		};
+	});
 });
