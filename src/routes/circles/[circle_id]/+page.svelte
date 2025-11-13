@@ -14,8 +14,9 @@
 		XIcon,
 	} from '@lucide/svelte';
 	import z from 'zod';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const circle = $derived(data.circle);
 	const isOwn = $derived(data.isOwn);
@@ -25,6 +26,8 @@
 	const dtf = new Intl.DateTimeFormat(navigator.languages, {
 		dateStyle: 'medium',
 	});
+
+	const isFull = $derived(members.length + pendingInvites.length >= circle.memberLimit);
 </script>
 
 {#snippet membersList()}
@@ -32,14 +35,16 @@
 		<h3 class="mb-2 flex items-center gap-2">
 			<UsersIcon size={20} />
 
-			<span class="text-xl font-semibold">Members</span>
+			<span class="text-xl font-semibold">Members </span>
 
-			<span class="font-normal">
-				({members.length}/{circle.memberLimit})
+			<span class:text-warning={isFull}>
+				<span class="font-bold">[</span>
+				{members.length}/{circle.memberLimit}
+				<span class="font-bold">]</span>
 			</span>
 
 			{#if pendingInvites.length}
-				<span class="text-base font-light text-text-muted italic">
+				<span class="font-light text-text-muted italic">
 					+{pendingInvites.length} invited
 				</span>
 			{/if}
@@ -158,7 +163,7 @@
 									{@const revokeHandler = revokeCircleInvite.for(invite.id)}
 
 									<li
-										class="flex items-center gap-2 border border-border p-2 rounded-sm"
+										class="flex items-center gap-2 rounded-sm border border-border p-2"
 										title="Invite Pending since {dtf.format(invite.createdAt)}"
 									>
 										<MailQuestionMarkIcon size={16} />
