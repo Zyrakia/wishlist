@@ -13,7 +13,7 @@ const ENV = createEnv({
 	clientPrefix: 'VITE_',
 	client: {},
 	server: {
-		GOOGLE_AI_KEY: z.string(),
+		MISTRAL_AI_KEY: z.string(),
 		DATABASE_PATH: z.string(),
 		JWT_SECRET: z.string(),
 		JWT_LIFETIME: z

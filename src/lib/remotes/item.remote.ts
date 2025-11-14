@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
 
-import { error, isHttpError, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 
 import { db } from '../server/db';
 import { WishlistItemTable } from '../server/db/schema';
@@ -105,16 +105,10 @@ export const deleteItem = form(
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	try {
-		const res = await generateItemCandidates(data.url);
-		if (res.success) {
-			if (!res.candidate?.name || !res.candidate?.valid) {
-				invalid('No product found');
-			} else return { ...res.candidate, url: data.url };
-		} else throw res.error;
-	} catch (err) {
-		if (isHttpError(err)) throw err;
-		console.warn(err);
-		invalid('Cannot process URL');
-	}
+	const res = await generateItemCandidates(data.url);
+	if (res.success) {
+		if (!res.candidate?.name || !res.candidate?.valid) {
+			invalid('No product found');
+		} else return { ...res.candidate, url: data.url };
+	} else invalid(res.error);
 });

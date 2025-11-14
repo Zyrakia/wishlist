@@ -3,9 +3,10 @@ import { load as cheerio } from 'cheerio';
 import { chromium, devices } from 'playwright';
 import z from 'zod';
 
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createMistral } from '@ai-sdk/mistral';
 
 import ENV from '../env.server';
+import { isHttpError } from '@sveltejs/kit';
 
 const SYSTEM_PROMPT = `
 You are to extract the single best product candidate from the given input.
@@ -30,24 +31,24 @@ The page title often indicates the name of the core product on the page.
 If you find an item on the page that satisfies every criteria and is a very
 likely candidate, summarize it in the requested shape and set "valid" to "true".
 
-If you do not find anything, please do not return any of the fields, only "valid"
-set to "false".,
+If you do not find anything, please do not return any of the fields, only "valid" set to "false".,
 
 **Output Requirements**
-- Omit any candidates missing both price and image.
+- A name is always required for a candidate to exist
+- All other properties are optional, and should only be included if they are associated with the candidate.
+- If a candidate was found, summarize it in the requested shape and ensure you set "valid" to \`true\`.
+- If there was no candidate found at all, do not return any of the fields besides "valid" set to \`false\`.
 `;
 
-const google = createGoogleGenerativeAI({ apiKey: ENV.GOOGLE_AI_KEY });
+const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
-const CandidateSchema = z
-	.object({
-		valid: z.boolean(),
-		name: z.string().optional(),
-		imageUrl: z.string().optional(),
-		price: z.number().optional(),
-		priceCurrency: z.string().length(3).toUpperCase().optional(),
-	})
-	.optional();
+const CandidateSchema = z.object({
+	valid: z.boolean(),
+	name: z.string().optional(),
+	imageUrl: z.string().optional(),
+	price: z.number().optional(),
+	priceCurrency: z.string().length(3).toUpperCase().optional(),
+});
 
 async function renderUrl(url: string) {
 	const UA = devices['Desktop Chrome'].userAgent;
@@ -130,28 +131,35 @@ export async function generateItemCandidates(
 	| { success: true; candidate?: z.infer<typeof CandidateSchema> }
 	| { success: false; error: string }
 > {
-	const parsedUrl = new URL(url);
-
-	const html = await renderUrl(url);
-	if (!html) return { success: false, error: 'Cannot load page' };
-
-	const distilledPage = distillPage(html, parsedUrl.origin);
-
 	try {
-		const { object: candidate } = await generateObject({
-			model: google('gemini-2.5-flash'),
-			schema: CandidateSchema.optional(),
-			messages: [
-				{ role: 'system', content: SYSTEM_PROMPT },
-				{ role: 'user', content: `URL: ${url}` },
-				{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
-			],
-		});
+		const parsedUrl = new URL(url);
 
-		if (!candidate?.valid) return { success: false, error: 'No product found' };
+		const html = await renderUrl(url);
+		if (!html) return { success: false, error: 'Cannot load page' };
 
-		return { success: true, candidate };
+		const distilledPage = distillPage(html, parsedUrl.origin);
+
+		try {
+			const { object: candidate } = await generateObject({
+				model: modelHost('mistral-small-latest'),
+				schema: CandidateSchema.optional(),
+				messages: [
+					{ role: 'system', content: SYSTEM_PROMPT },
+					{ role: 'user', content: `URL: ${url}` },
+					{ role: 'user', content: `Distilled Page Data:\n${distilledPage}` },
+				],
+			});
+
+			if (!candidate?.valid) return { success: false, error: 'No product found' };
+
+			return { success: true, candidate };
+		} catch (err) {
+			console.warn(err);
+			return { success: false, error: 'Generation failed' };
+		}
 	} catch (err) {
-		return { success: false, error: 'Generation failed' };
+		if (isHttpError(err)) throw err;
+		console.warn(err);
+		return { success: false, error: 'Cannot load page' };
 	}
 }
