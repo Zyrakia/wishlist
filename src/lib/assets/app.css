@@ -53,7 +53,7 @@
 
 	button,
 	.button {
-		@apply cursor-pointer rounded-md border border-border-strong px-5 py-2 text-sm font-medium outline-none;
+		@apply cursor-pointer rounded-md border border-border px-5 py-2 text-sm font-medium outline-none;
 	}
 
 	button:hover,
@@ -95,6 +95,6 @@
 
 @layer components {
 	.float-container {
-		@apply w-full max-w-full rounded-lg bg-surface shadow-md shadow-black/15 sm:mx-12 sm:my-6 md:max-w-2xl lg:max-w-4xl;
+		@apply w-full max-w-full bg-surface shadow-md shadow-black/15 sm:mx-12 sm:my-6 sm:rounded-lg md:max-w-2xl lg:max-w-4xl;
 	}
 }

@@ -14,7 +14,7 @@ export const touchList = query(z.object({ id: z.string() }), async ({ id }) => {
 
 	await db()
 		.update(WishlistTable)
-		.set({ updatedAt: new Date() })
+		.set({ activityAt: new Date() })
 		.where(and(eq(WishlistTable.id, id), eq(WishlistTable.userId, user.id)));
 });
 
@@ -52,13 +52,16 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 		if (!isOpen) invalid(invalid.slug('Already taken'));
 	}
 
-	const updateObject = await db()
+	const [updated] = await db()
 		.update(WishlistTable)
-		.set({ ...data, updatedAt: new Date() })
-		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)));
+		.set({ ...data })
+		.where(and(eq(WishlistTable.slug, wishlist_slug), eq(WishlistTable.userId, user.id)))
+		.returning();
 
-	if (updateObject.changes) redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
-	else error(400, 'No wishlist can be updated');
+	if (updated) {
+		touchList({ id: updated.id });
+		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
+	} else error(400, 'No wishlist can be updated');
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
@@ -120,7 +123,7 @@ export const getWishlistActivity = query(
 
 		return await db().query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, user.id),
-			orderBy: (t, { desc }) => desc(t.updatedAt),
+			orderBy: (t, { desc }) => desc(t.activityAt),
 			limit: limit,
 		});
 	},

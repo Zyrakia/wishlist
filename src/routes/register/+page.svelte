@@ -8,6 +8,8 @@
 
 	import backgroundImage from '$lib/assets/authentication-background.webp';
 	import { asIssue } from '$lib/util/pick-issue';
+	import { safePrune } from '$lib/util/safe-prune';
+	import { page } from '$app/state';
 
 	const hasJs = useHasJs();
 	const getIssue = () => asIssue(remote.fields);
@@ -27,6 +29,13 @@
 			}, 5000);
 		}
 	});
+
+	const seed = (props: Record<string, string>) => {
+		const validProps = safePrune(CreateCredentialsSchema.partial(), props);
+		remote.fields.set(validProps as any);
+	};
+
+	seed(Object.fromEntries(page.url.searchParams.entries()));
 </script>
 
 <div
@@ -101,7 +110,7 @@
 			</InputGroup>
 
 			<button
-				class="bg-success px-6 py-3 font-bold transition-colors text-accent-fg"
+				class="bg-success px-6 py-3 font-bold text-accent-fg transition-colors"
 				class:bg-success={!hasJs() || !issue}
 				class:bg-danger={hasJs() && issue}
 				disabled={!!remote.pending}
