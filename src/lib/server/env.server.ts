@@ -35,6 +35,8 @@ const ENV = createEnv({
 				return { seconds: milliseconds / 1000, formatted: ms(milliseconds) };
 			}),
 		SALT_ROUNDS: z.coerce.number().min(1).default(12),
+		RESEND_KEY: z.string(),
+		EMAIL_FROM: z.string(),
 	},
 });
 

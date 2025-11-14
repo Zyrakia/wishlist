@@ -16,6 +16,7 @@ import { randomUUID } from 'crypto';
 import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import z from 'zod';
 import { resolveMe } from './auth.remote';
+import { sendEmail } from '$lib/server/email';
 
 export const createCircle = form(CircleSchema, async (data, invalid) => {
 	const user = verifyAuth();
@@ -97,6 +98,7 @@ export const issueCircleInvite = form(
 	async ({ targetEmail }, invalid) => {
 		const {
 			params: { circle_id },
+			url,
 		} = getRequestEvent();
 
 		const user = verifyAuth();
@@ -104,6 +106,7 @@ export const issueCircleInvite = form(
 
 		const circle = await db().query.CircleTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, circle_id), eq(t.ownerId, user.id)),
+			with: { owner: { columns: { name: true } } },
 			extras: (t) => ({
 				inviteCount:
 					sql<number>`(select count(*) from ${CircleInviteTable} where ${CircleInviteTable.circleId} = ${circle_id})`.as(
@@ -142,11 +145,22 @@ export const issueCircleInvite = form(
 		if (existingInvite) invalid('User is already invited');
 
 		const secret = randomUUID();
-		await db()
+		const [createdInvite] = await db()
 			.insert(CircleInviteTable)
-			.values({ circleId: circle.id, targetEmail, id: secret });
+			.values({ circleId: circle.id, targetEmail, id: secret })
+			.returning();
 
-		// TODO publish invite by email
+		await sendEmail(targetEmail, {
+			template: {
+				id: '0cad8285-fea4-43c2-8837-641554ed5841',
+				variables: {
+					SENDER: circle.owner.name,
+					CIRCLE: circle.name,
+					INVITE_LINK: `${url.protocol}//${url.host}/circles/invite/${createdInvite.id}`,
+				},
+			},
+		});
+
 		redirect(303, `/circles/${circle.id}`);
 	},
 );
