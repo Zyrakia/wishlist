@@ -16,7 +16,7 @@
 	const errorMessage = $derived(asIssue(error));
 </script>
 
-<label class="wrapper relative flex w-full flex-col gap-1">
+<label class="wrapper relative flex w-full min-w-16 flex-col gap-1">
 	<p class="label">{label}</p>
 
 	{@render control()}
@@ -36,7 +36,7 @@
 	@reference "tailwindcss";
 
 	.wrapper:has(:global(:is(input, textarea, select)[required])) .label::after {
-		/* @apply font-bold text-danger; */
 		content: ' *';
+		color: var(--color-danger);
 	}
 </style>

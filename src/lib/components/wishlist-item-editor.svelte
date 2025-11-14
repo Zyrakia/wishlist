@@ -17,6 +17,7 @@
 		GlobeIcon,
 		LinkIcon,
 		Settings2Icon,
+		SparklesIcon,
 		XIcon,
 	} from '@lucide/svelte';
 	import { readMetadata } from '$lib/remotes/meta.remote';
@@ -34,7 +35,6 @@
 	const hasJs = useHasJs();
 
 	let pageHasScroll = $state(false);
-	let loading = $state(false);
 
 	const generalIssue = $derived(asIssue(handler.fields.issues()));
 	// SEE: https://github.com/sveltejs/kit/issues/14802
@@ -61,7 +61,7 @@
 		if (mode === 'generate-confirm') return true;
 		if (!hasJs()) return false;
 
-		if (loading) return true;
+		if (generating) return true;
 		if (mode === 'form') return hasMirror;
 		return isInputLinkGenerated && hasMirror;
 	});
@@ -106,28 +106,34 @@
 		if (generate) generateRemote.validate();
 	});
 
-	let loadStep = $state(0);
-	let loadFavicon = $state('');
-	let loadTitle = $state('');
+	let generating = $state(false);
+	let generateStep = $state(0);
+	let genFavicon = $state('');
+	let genTitle = $state('');
 
-	const loadMessages = ['Retrieving page', 'Reading page', 'Generating Product', 'Finishing up'];
+	const generateStepMessages = [
+		'Retrieving page',
+		'Reading page',
+		'Generating Product',
+		'Finishing up',
+	];
 
 	const applyLoadMetadata = async (url: string) => {
 		try {
 			const response = await readMetadata(url);
-			loadFavicon = response.favicon;
-			loadTitle = response.title;
+			genFavicon = response.favicon;
+			genTitle = response.title;
 		} catch (error) {
 			try {
 				const urlObject = new URL(url);
-				loadTitle = urlObject.hostname.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '');
+				genTitle = urlObject.hostname.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '');
 			} catch (err) {
 				console.warn(err);
-				loadTitle = 'Unknown Page';
+				genTitle = 'Unknown Page';
 			}
 
 			console.warn(error);
-			loadFavicon = '';
+			genFavicon = '';
 		}
 	};
 </script>
@@ -146,29 +152,33 @@
 			<div class="snap relative w-full max-w-2xl rounded-xl bg-surface p-4 shadow-md">
 				<h3 class="text-lg font-bold">Preview</h3>
 
-				{#if loading}
-					<div class="flex h-32 w-full flex-col items-center justify-center gap-4">
-						<Loader />
+				{#if generating}
+					<div class="flex w-full flex-col items-center justify-center gap-4">
+						<div class="size-20">
+							<Loader />
+						</div>
 
-						<div class="flex flex-col items-center justify-center gap-2">
+						<div class="flex w-full flex-col items-center justify-center gap-2">
 							<p class="flex items-center gap-2 text-text-muted">
-								{#if loadStep < loadMessages.length}
-									{loadMessages[loadStep]}...
+								{#if generateStep < generateStepMessages.length}
+									{generateStepMessages[generateStep]}...
 								{:else}
 									<br />
 								{/if}
 							</p>
 
-							{#if loadTitle}
-								<div class="flex justify-center gap-2">
-									{#if loadFavicon}
-										<img src={loadFavicon} class="aspect-square w-6" alt="" />
+							{#if genTitle}
+								<div class="flex w-full justify-center gap-2">
+									{#if genFavicon}
+										<img src={genFavicon} class="aspect-square w-6" alt="" />
 									{:else}
 										<GlobeIcon />
 									{/if}
 
-									<p class="max-w-xs overflow-hidden text-nowrap text-ellipsis">
-										{loadTitle}
+									<p
+										class="max-w-10/12 overflow-hidden text-nowrap text-ellipsis"
+									>
+										{genTitle}
 									</p>
 								</div>
 							{/if}
@@ -179,7 +189,7 @@
 								class="h-full w-0 bg-accent duration-500"
 								style="transition-property: width; width: {Math.max(
 									0,
-									Math.min(100, 33.33 * loadStep - 1),
+									Math.min(100, 33.33 * generateStep - 1),
 								)}%"
 							></div>
 						</div>
@@ -371,12 +381,12 @@
 
 						<div class="mt-2 flex w-full justify-stretch gap-4">
 							<button
-								disabled={loading}
+								disabled={generating}
 								{...generateRemote.buttonProps.enhance(async ({ submit }) => {
 									if (generateRemote.fields.url.issues()) return;
 
-									loading = true;
-									loadStep = 0;
+									generating = true;
+									generateStep = 0;
 
 									try {
 										let submitComplete = false;
@@ -391,14 +401,14 @@
 											await metaPromise;
 										}
 
-										loadStep++;
+										generateStep++;
 										if (!submitComplete)
 											await new Promise((res) => setTimeout(res, 1500));
 
-										loadStep++;
+										generateStep++;
 										if (!submitComplete) await submitPromise;
 
-										loadStep = loadMessages.length - 1;
+										generateStep = generateStepMessages.length - 1;
 										await new Promise((res) => setTimeout(res, 500));
 
 										const result = generateRemote.result;
@@ -407,24 +417,28 @@
 											mode = 'generate-confirm';
 										}
 									} finally {
-										loading = false;
-										loadTitle = '';
-										loadFavicon = '';
+										generating = false;
+										genTitle = '';
+										genFavicon = '';
 									}
 								})}
-								class="w-full bg-success text-accent-fg"
+								class="flex w-full items-center justify-center gap-3 bg-success text-accent-fg"
 							>
+								<SparklesIcon size={16} />
+
 								{#if isInputLinkGenerated}
 									Regenerate
 								{:else}
 									Generate
 								{/if}
+
+								<SparklesIcon size={16} />
 							</button>
 
 							{#if isInputLinkGenerated}
 								<button
 									onclick={() => (mode = 'generate-confirm')}
-									disabled={loading}
+									disabled={generating}
 									class="w-full"
 								>
 									Review
