@@ -17,6 +17,7 @@
 		GlobeIcon,
 		LinkIcon,
 		Settings2Icon,
+		SparklesIcon,
 		XIcon,
 	} from '@lucide/svelte';
 	import { readMetadata } from '$lib/remotes/meta.remote';
@@ -412,13 +413,17 @@
 										loadFavicon = '';
 									}
 								})}
-								class="w-full bg-success text-accent-fg"
+								class="flex w-full items-center justify-center gap-3 bg-success text-accent-fg"
 							>
+								<SparklesIcon size={16} />
+
 								{#if isInputLinkGenerated}
 									Regenerate
 								{:else}
 									Generate
 								{/if}
+
+								<SparklesIcon size={16} />
 							</button>
 
 							{#if isInputLinkGenerated}
