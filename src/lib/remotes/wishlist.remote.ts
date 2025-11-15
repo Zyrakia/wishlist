@@ -103,28 +103,11 @@ export const deleteWishlist = form(
 	},
 );
 
-export const getWishlists = query(
-	z.object({ limit: z.number().min(1).max(10) }),
-	async ({ limit }) => {
-		const user = verifyAuth({ failStrategy: 'login' });
+export const getWishlists = query(async () => {
+	const user = verifyAuth({ failStrategy: 'login' });
 
-		return await db().query.WishlistTable.findMany({
-			where: (t, { eq }) => eq(t.userId, user.id),
-			orderBy: (t, { desc }) => desc(t.createdAt),
-			limit: limit,
-		});
-	},
-);
-
-export const getWishlistActivity = query(
-	z.object({ limit: z.number().min(1).max(10) }),
-	async ({ limit }) => {
-		const user = verifyAuth({ failStrategy: 'login' });
-
-		return await db().query.WishlistTable.findMany({
-			where: (t, { eq }) => eq(t.userId, user.id),
-			orderBy: (t, { desc }) => desc(t.activityAt),
-			limit: limit,
-		});
-	},
-);
+	return await db().query.WishlistTable.findMany({
+		where: (t, { eq }) => eq(t.userId, user.id),
+		orderBy: (t, { desc }) => desc(t.activityAt),
+	});
+});

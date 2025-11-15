@@ -7,13 +7,12 @@
 		getMyInvites,
 		resolveCircleInvite,
 	} from '$lib/remotes/circle.remote.js';
-	import { getWishlistActivity, getWishlists } from '$lib/remotes/wishlist.remote.js';
+	import { getWishlists } from '$lib/remotes/wishlist.remote.js';
 	import { asIssue } from '$lib/util/pick-issue';
 	import {
 		ArrowRightIcon,
 		BellDotIcon,
 		CircleIcon,
-		FlameIcon,
 		LayoutGridIcon,
 		PlusIcon,
 		UsersIcon,
@@ -28,12 +27,7 @@
 		sortSchema.parse(page.url.searchParams.get('sort') ?? 'modified'),
 	);
 
-	const limit = $state(10);
-	// const page = $state(0);
-	const wishlists = $derived(
-		sort === 'modified' ? getWishlistActivity({ limit: 2 }) : getWishlists({ limit }),
-	);
-
+	const wishlists = getWishlists();
 	const circles = getCirclesActivity();
 	const circleInvites = getMyInvites();
 
@@ -104,27 +98,11 @@
 	{/if}
 
 	<div class="w-full">
-		<p class="flex flex-wrap gap-2 font-bold">
+		<p class="flex font-bold">
 			<span class="flex flex-1 gap-2">
-				{#if sort === 'modified'}
-					<FlameIcon />
-					Your recent list activity
-				{:else}
-					<LayoutGridIcon />
-					Your lists
-				{/if}
+				<LayoutGridIcon />
+				Your lists
 			</span>
-
-			<a
-				href="?sort={sort === 'modified' ? 'created' : 'modified'}"
-				class="font-light italic hover:text-accent"
-			>
-				{#if sort === 'modified'}
-					View all lists
-				{:else}
-					View recent activity
-				{/if}
-			</a>
 		</p>
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
@@ -173,7 +151,7 @@
 		<div class="flex flex-wrap gap-2">
 			<p class="flex flex-1 items-center gap-2 font-bold">
 				<CircleIcon />
-				Your circles activity
+				Your Groups
 			</p>
 
 			{#if (await circles) && !(await circles).find((v) => v.circle.ownerId === user.id)}
@@ -181,7 +159,7 @@
 					href="/new-circle"
 					class="flex items-center gap-2 font-light italic hover:text-accent"
 				>
-					Create your own circle
+					Create your own
 
 					<ArrowRightIcon size={16} />
 				</a>

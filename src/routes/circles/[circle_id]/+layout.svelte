@@ -8,8 +8,6 @@
 
 	const circle = $derived(data.circle);
 	const isOwn = $derived(data.isOwn);
-
-	const isAtRoot = $derived(page.url.pathname.endsWith(data.circle.id));
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -26,13 +24,11 @@
 			{/if}
 		</p>
 
-		{#if !isAtRoot}
+		{#if !page.url.pathname.endsWith(data.circle.id)}
 			<div class="mt-4 flex flex-wrap items-center gap-4">
-				{#if !isAtRoot}
-					<a title="Go Back" href="/circles/{circle.id}">
-						<CircleArrowLeftIcon />
-					</a>
-				{/if}
+				<a title="Go Back" href="/circles/{circle.id}">
+					<CircleArrowLeftIcon />
+				</a>
 			</div>
 		{/if}
 	</div>

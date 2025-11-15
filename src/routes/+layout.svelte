@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { beforeNavigate, afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -15,7 +16,6 @@
 	let theme = $state(data.savedTheme || DefaultTheme);
 	let changingTheme = $state(false);
 
-	const isRoot = $derived(page.url.pathname === '/');
 	const meta = $derived({
 		'title': 'Wishii',
 		'description': 'Create a wishlist fast and share it to your friends with one short link!',
@@ -25,6 +25,21 @@
 	});
 
 	$effect(() => void (document.documentElement.dataset.theme = theme));
+
+	beforeNavigate((nav) => {
+		console.log('beforeNavigate →', {
+			from: nav.from?.url.pathname,
+			to: nav.to?.url.pathname,
+			type: nav.type,
+		});
+	});
+
+	afterNavigate((nav) => {
+		console.log('afterNavigate →', {
+			from: nav.from?.url.pathname,
+			to: nav.to?.url.pathname,
+		});
+	});
 </script>
 
 <svelte:head>
@@ -62,15 +77,18 @@
 </svelte:head>
 
 <div class="flex h-full flex-col" class:transition-colors={changingTheme} data-theme={theme}>
-	<header class="flex min-h-16 shrink-0 items-center gap-2 p-4 drop-shadow-md">
+	<header
+		class="sticky bottom-0 flex min-h-16 shrink-0 items-center gap-2 bg-background p-4 drop-shadow-md md:top-0"
+	>
 		<div class="flex w-full flex-wrap items-center justify-between gap-6">
-			{#if !isRoot}
-				<a href="/"><HouseIcon /> </a>
+			{#if !(page.url.pathname === '/')}
+				<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
+					<HouseIcon />
+					Go Home
+				</a>
+			{:else}
+				<p class="font-semibold">Wishii</p>
 			{/if}
-
-			<svelte:element this={isRoot ? 'p' : 'a'} href="/" class="font-semibold">
-				Wishii
-			</svelte:element>
 
 			<div class="flex gap-6">
 				{#if hasJs()}
@@ -101,13 +119,19 @@
 				{/if}
 
 				{#if data.user}
-					<a class="truncate" href="/account">
+					<a
+						href="/account"
+						class="flex items-center gap-2 truncate transition-colors hover:text-accent"
+					>
 						<SquareUserIcon />
 
 						{data.user.name}
 					</a>
 				{:else}
-					<a href="/login">
+					<a
+						href="/login"
+						class="flex items-center gap-2 transition-colors hover:text-accent"
+					>
 						Login
 
 						<LogInIcon />
@@ -121,15 +145,3 @@
 		{@render children()}
 	</main>
 </div>
-
-<style>
-	@reference "tailwindcss";
-
-	a {
-		@apply flex items-center gap-2 transition-colors;
-	}
-
-	a:hover {
-		color: var(--color-accent);
-	}
-</style>

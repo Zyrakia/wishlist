@@ -2,14 +2,12 @@
 	import { page } from '$app/state';
 	import { resolveCircleInvite } from '$lib/remotes/circle.remote';
 	import { asIssue } from '$lib/util/pick-issue';
-	import { CircleIcon, TriangleAlertIcon } from '@lucide/svelte';
+	import { TriangleAlertIcon } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	const invite = $derived(data.invite);
 	const me = $derived(data.me);
-
-	const returnPath = page.url.pathname;
 </script>
 
 <div class="flex h-full w-full items-center justify-center">
@@ -54,7 +52,7 @@
 					<p class="text-warning">This is not your invite.</p>
 
 					<a
-						href="/login?email={invite.targetEmail}&redirect={returnPath}"
+						href="/login?email={invite.targetEmail}&redirect={page.url.pathname}"
 						class="button bg-accent text-accent-fg"
 					>
 						Change Account
@@ -65,14 +63,14 @@
 
 				<div class="flex gap-3">
 					<a
-						href="/register?email={invite.targetEmail}&redirect={returnPath}"
+						href="/register?email={invite.targetEmail}&redirect={page.url.pathname}"
 						class="button bg-success text-accent-fg"
 					>
 						Create Account
 					</a>
 
 					<a
-						href="/login?email={invite.targetEmail}&redirect={returnPath}"
+						href="/login?email={invite.targetEmail}&redirect={page.url.pathname}"
 						class="button bg-accent text-accent-fg"
 					>
 						Log In

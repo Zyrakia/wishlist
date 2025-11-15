@@ -11,7 +11,6 @@
 	const badges = $derived(page.data.headerBadges || []);
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
-	const isAtRoot = $derived(page.url.pathname.endsWith(data.wishlist.slug));
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -24,9 +23,9 @@
 			{/if}
 		</p>
 
-		{#if badges.length || !isAtRoot}
+		{#if badges.length || !page.url.pathname.endsWith(data.wishlist.slug)}
 			<div class="mt-4 flex flex-wrap items-center gap-4">
-				{#if !isAtRoot}
+				{#if !page.url.pathname.endsWith(data.wishlist.slug)}
 					<a title="Go Back" href="/lists/{data.wishlist.slug}">
 						<CircleArrowLeftIcon />
 					</a>
@@ -42,7 +41,7 @@
 	</div>
 
 	<div class="h-full w-full">
-		{#if description && isAtRoot}
+		{#if description && page.url.pathname.endsWith(data.wishlist.slug)}
 			<div class="m-4 mb-0 rounded-sm border border-accent/50 bg-accent/10 p-4 shadow-sm">
 				<p class="text-base wrap-break-word whitespace-pre-wrap">
 					{description}

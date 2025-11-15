@@ -43,8 +43,23 @@
 		>
 			<p class="w-full">Are you sure?</p>
 
-			<button type="button" title="Yes" onclick={confirmYes}>Yes</button>
-			<button type="button" title="No" onclick={confirmNo}>No</button>
+			<button
+				class="bg-transparent focus:ring-2"
+				type="button"
+				title="Yes"
+				onclick={confirmYes}
+			>
+				Yes
+			</button>
+
+			<button
+				class="bg-transparent focus:ring-2"
+				type="button"
+				title="No"
+				onclick={confirmNo}
+			>
+				No
+			</button>
 		</div>
 	{:else}
 		<div
@@ -54,11 +69,11 @@
 		>
 			<a
 				title="Edit"
-				class="button border-none p-0.5"
-				href="/lists/{wishlistSlug}/item/{itemId}/edit">
-				<EditIcon />
-				</a
+				class="button border-none bg-transparent p-0.5 focus:ring-2"
+				href="/lists/{wishlistSlug}/item/{itemId}/edit"
 			>
+				<EditIcon />
+			</a>
 
 			<form class="text-danger" {...deleteForm}>
 				<input {...deleteForm.fields.wishlistSlug.as('hidden', wishlistSlug)} />
@@ -67,7 +82,7 @@
 
 				<button
 					title="Delete"
-					class="border-none p-0.5"
+					class="border-none bg-transparent p-0.5 focus:ring-2"
 					disabled={confirming}
 					{...deleteForm.buttonProps.enhance(async ({ submit }) => {
 						const res = await startConfirm();
@@ -83,19 +98,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	@reference "tailwindcss";
-
-	@layer components {
-		button,
-		.button {
-			@apply bg-transparent;
-		}
-
-		button:focus,
-		.button:focus {
-			@apply ring-2;
-		}
-	}
-</style>
