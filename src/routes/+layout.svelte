@@ -25,21 +25,6 @@
 	});
 
 	$effect(() => void (document.documentElement.dataset.theme = theme));
-
-	beforeNavigate((nav) => {
-		console.log('beforeNavigate →', {
-			from: nav.from?.url.pathname,
-			to: nav.to?.url.pathname,
-			type: nav.type,
-		});
-	});
-
-	afterNavigate((nav) => {
-		console.log('afterNavigate →', {
-			from: nav.from?.url.pathname,
-			to: nav.to?.url.pathname,
-		});
-	});
 </script>
 
 <svelte:head>
@@ -77,76 +62,78 @@
 </svelte:head>
 
 <div
-	class="grid min-h-dvh grid-rows-[auto_1fr]"
+	class="grid min-h-dvh grid-rows-[1fr_auto] md:grid-rows-[auto_1fr]"
 	class:*:transition-colors={changingTheme}
 	class:*:duration-300={changingTheme}
 	data-theme={theme}
 >
-	<header
-		class="sticky top-0 z-50 flex h-auto min-h-16 items-center gap-2 border-b border-border bg-surface p-4 drop-shadow-md"
-	>
-		<div class="flex w-full flex-wrap items-center justify-between gap-6">
-			{#if !(page.url.pathname === '/')}
-				<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
-					<HouseIcon />
-					Go Home
-				</a>
-			{:else}
-				<p class="font-semibold">Wishii</p>
-			{/if}
-
-			<div class="flex gap-6">
-				{#if hasJs()}
-					<button
-						disabled={changingTheme}
-						class="border-0 p-2"
-						onclick={async () => {
-							changingTheme = true;
-
-							const oldTheme = theme;
-							const nextTheme = oldTheme === 'dark' ? 'light' : 'dark';
-							try {
-								theme = nextTheme;
-								await setSavedTheme({ theme: nextTheme });
-							} catch (err) {
-								theme = oldTheme;
-							} finally {
-								changingTheme = false;
-							}
-						}}
-					>
-						{#if theme === 'light'}
-							<SunIcon />
-						{:else}
-							<MoonIcon />
-						{/if}
-					</button>
-				{/if}
-
-				{#if data.user}
-					<a
-						href="/account"
-						class="flex items-center gap-2 truncate transition-colors hover:text-accent"
-					>
-						<SquareUserIcon />
-
-						{data.user.name}
-					</a>
-				{:else}
-					<a
-						href="/login"
-						class="flex items-center gap-2 transition-colors hover:text-accent"
-					>
-						Login
-
-						<LogInIcon />
-					</a>
-				{/if}
-			</div>
-		</div>
-	</header>
-
-	<main>
+	<main class="row-start-1 md:row-start-2">
 		{@render children()}
 	</main>
+
+	{#if page.data.showHeader !== false}
+		<header
+			class="sticky bottom-0 z-50 row-start-2 flex h-auto min-h-16 w-full items-center gap-2 border-t border-border bg-surface p-4 drop-shadow-md md:top-0 md:row-start-1 md:border-t-0 md:border-b"
+		>
+			<div class="flex w-full flex-wrap items-center justify-between gap-6">
+				{#if !(page.url.pathname === '/')}
+					<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
+						<HouseIcon />
+						Go Home
+					</a>
+				{:else}
+					<p class="font-semibold">Wishii</p>
+				{/if}
+
+				<div class="flex gap-6">
+					{#if hasJs()}
+						<button
+							disabled={changingTheme}
+							class="border-0 p-2"
+							onclick={async () => {
+								changingTheme = true;
+
+								const oldTheme = theme;
+								const nextTheme = oldTheme === 'dark' ? 'light' : 'dark';
+								try {
+									theme = nextTheme;
+									await setSavedTheme({ theme: nextTheme });
+								} catch (err) {
+									theme = oldTheme;
+								} finally {
+									changingTheme = false;
+								}
+							}}
+						>
+							{#if theme === 'light'}
+								<SunIcon />
+							{:else}
+								<MoonIcon />
+							{/if}
+						</button>
+					{/if}
+
+					{#if data.user}
+						<a
+							href="/account"
+							class="flex items-center gap-2 truncate transition-colors hover:text-accent"
+						>
+							<SquareUserIcon />
+
+							{data.user.name}
+						</a>
+					{:else}
+						<a
+							href="/login"
+							class="flex items-center gap-2 transition-colors hover:text-accent"
+						>
+							Login
+
+							<LogInIcon />
+						</a>
+					{/if}
+				</div>
+			</div>
+		</header>
+	{/if}
 </div>

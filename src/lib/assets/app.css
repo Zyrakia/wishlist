@@ -74,7 +74,7 @@
 	input,
 	textarea,
 	select {
-		@apply rounded-md border border-border-strong p-2 shadow-xs outline-none;
+		@apply rounded-md border border-border-strong bg-surface p-2 shadow-xs outline-none;
 	}
 
 	input:focus,

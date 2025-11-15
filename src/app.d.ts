@@ -21,6 +21,7 @@ declare global {
 
 		interface PageData {
 			meta?: { [K in CommonMetaKeys | (string & {})]?: string };
+			showHeader?: boolean;
 			listHeaderBadge?: string[];
 		}
 
