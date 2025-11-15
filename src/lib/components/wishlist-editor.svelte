@@ -95,7 +95,7 @@
 	onMount(() => handler.validate());
 </script>
 
-<div class="flex h-full min-h-full w-full flex-col items-center justify-center bg-background">
+<div class="flex h-full flex-col items-center justify-center bg-background">
 	<form
 		{...handler}
 		oninput={() => handler.validate({ preflightOnly: true })}
@@ -113,23 +113,10 @@
 
 		<InputGroup label="Share Link" error={slugIssue}>
 			{#snippet control()}
-				<div class="flex w-full">
-					<span
-						class="flex items-center rounded rounded-tr-none rounded-br-none border border-border-strong px-3 font-mono"
-						>/lists/</span
-					>
-
-					<input
-						{...handler.fields.slug.as('text')}
-						onblur={patchSlug}
-						aria-invalid={slugIssue ? 'true' : 'false'}
-						value={handler.fields.slug.value()}
-						class="min-w-0 flex-1 rounded-tl-none rounded-bl-none border-l-0"
-					/>
-
+				<div class="flex w-full flex-row-reverse">
 					{#if hasJs()}
 						<div
-							class="ms-2 flex aspect-square w-8 max-w-12 items-center justify-center"
+							class="ms-1.5 flex h-full w-8 items-center justify-center"
 							title={slugIssue ? 'Link is invalid' : 'Link is valid'}
 						>
 							{#if checkSlugTimeout}
@@ -149,6 +136,19 @@
 							{/if}
 						</div>
 					{/if}
+
+					<input
+						{...handler.fields.slug.as('text')}
+						onblur={patchSlug}
+						aria-invalid={slugIssue ? 'true' : 'false'}
+						value={handler.fields.slug.value()}
+						class="peer w-full flex-1 rounded-tl-none rounded-bl-none border-l-0"
+					/>
+
+					<span
+						class=":border-danger flex items-center rounded rounded-tr-none rounded-br-none border border-border-strong px-3 font-mono peer-aria-invalid:border-danger"
+						>/lists/</span
+					>
 				</div>
 			{/snippet}
 		</InputGroup>
