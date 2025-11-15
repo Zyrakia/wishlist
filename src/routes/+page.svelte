@@ -98,33 +98,31 @@
 	{/if}
 
 	<div class="w-full">
-		<p class="flex font-bold">
-			<span class="flex flex-1 gap-2">
+		<p class="flex items-center gap-2">
+			<span class="flex flex-1 gap-2 font-bold">
 				<LayoutGridIcon />
 				Your lists
 			</span>
+
+			<a
+				href="/new-list"
+				class="button flex items-center justify-center gap-2 bg-success text-xs text-accent-fg"
+			>
+				<PlusIcon size={16} />
+				Add List
+			</a>
 		</p>
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
 		{#if wishlists.length}
-			<div class="flex w-full flex-wrap gap-4">
-				<a
-					href="/new-list"
-					class="button flex min-h-16 w-full flex-wrap items-center justify-center gap-x-2 bg-success text-accent-fg sm:w-36"
-				>
-					<PlusIcon />
-					Add List
-				</a>
-
+			<div class="grid w-full gap-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
 				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
 							{#if sort === 'modified'}
 								{@const activityDate = new Date(wishlist.activityAt)}
-
 								<hr class="my-2" />
-
 								<p class="text-xs font-light text-text-muted">
 									Last activity
 									{dtf.format(activityDate)}
