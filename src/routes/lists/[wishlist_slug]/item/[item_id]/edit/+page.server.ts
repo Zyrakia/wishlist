@@ -6,5 +6,5 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const owner = (await parent()).wishlist.userId;
 	verifyAuth({ check: (user) => user.id === owner, failStrategy: 'error' });
 
-	return { headerBadges: ['Edit Mode'] };
+	return { listHeaderBadge: ['Edit Mode'] };
 };

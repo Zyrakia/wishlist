@@ -8,7 +8,7 @@
 
 	const wishlist = $derived(data.wishlist);
 	const description = $derived(wishlist.description.trim());
-	const badges = $derived(page.data.headerBadges || []);
+	const badges = $derived(page.data.listHeaderBadge ?? []);
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 </script>

@@ -9,5 +9,5 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 	verifyAuth({ check: (user) => user.id === owner, failStrategy: 'error' });
 
 	const initItem = safePrune(ItemSchema, Object.fromEntries(url.searchParams.entries()));
-	return { headerBadges: ['Create Mode'], initItem };
+	return { listHeaderBadge: ['Create Mode'], initItem };
 };

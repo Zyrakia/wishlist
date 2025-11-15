@@ -20,8 +20,8 @@ declare global {
 		}
 
 		interface PageData {
-			headerBadges?: string[];
 			meta?: { [K in CommonMetaKeys | (string & {})]?: string };
+			listHeaderBadge?: string[];
 		}
 
 		// interface Error {}
