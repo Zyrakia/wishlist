@@ -27,9 +27,9 @@
 		sortSchema.parse(page.url.searchParams.get('sort') ?? 'modified'),
 	);
 
-	const wishlists = getWishlists();
-	const circles = getCirclesActivity();
-	const circleInvites = getMyInvites();
+	const wishlists = $derived(data.wishlists);
+	const circles = $derived(data.circles);
+	const circleInvites = $derived(data.invites);
 
 	const dtf = new Intl.DateTimeFormat(navigator.languages, {
 		dateStyle: 'medium',
@@ -37,10 +37,10 @@
 	});
 </script>
 
-<div class="flex w-full flex-col gap-12 px-6 py-12">
+<div class="flex h-full flex-col gap-12 px-6 py-12">
 	<UserIntro name={user.name} />
 
-	{#if (await circleInvites).length}
+	{#if circleInvites.length}
 		<div class="flex flex-col gap-3">
 			<div class="flex items-center gap-2">
 				<div class="relative">
@@ -59,7 +59,7 @@
 			<div
 				class="flex flex-nowrap gap-4 overflow-x-auto overflow-y-hidden scroll-smooth pb-1.5"
 			>
-				{#each await circleInvites as invite}
+				{#each circleInvites as invite}
 					{@const inviteHandler = resolveCircleInvite.for(invite.id)}
 					{@const issue = asIssue(inviteHandler.fields.allIssues())}
 
@@ -107,7 +107,7 @@
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
-		{#if (await wishlists).length}
+		{#if wishlists.length}
 			<div class="flex w-full flex-wrap gap-4">
 				<a
 					href="/new-list"
@@ -117,7 +117,7 @@
 					Add List
 				</a>
 
-				{#each await wishlists as wishlist}
+				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
 							{#if sort === 'modified'}
@@ -154,7 +154,7 @@
 				Your Groups
 			</p>
 
-			{#if (await circles) && !(await circles).find((v) => v.circle.ownerId === user.id)}
+			{#if circles && !circles.find((v) => v.circle.ownerId === user.id)}
 				<a
 					href="/new-circle"
 					class="flex items-center gap-2 font-light italic hover:text-accent"
@@ -168,9 +168,9 @@
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
-		{#if (await circles).length}
+		{#if circles.length}
 			<div class="flex flex-col gap-4">
-				{#each await circles as { circle, activity }}
+				{#each circles as { circle, activity }}
 					{@const isOwn = circle.ownerId === user.id}
 					{@const notMyAcitivty = activity.filter((v) => v.userId !== user.id)}
 
