@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formEdit, type FormEditHandler } from '$lib/actions/form-edit';
 	import { pageScroll } from '$lib/actions/page-scroll';
-	import { generateItem, updateItem, type createItem } from '$lib/remotes/item.remote';
+	import { generateItem, updateItem, createItem } from '$lib/remotes/item.remote';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
 	import { asIssue } from '$lib/util/pick-issue';
@@ -21,6 +21,7 @@
 		XIcon,
 	} from '@lucide/svelte';
 	import { readMetadata } from '$lib/remotes/meta.remote';
+	import { page } from '$app/state';
 
 	let {
 		handler,
@@ -39,16 +40,28 @@
 	const generalIssue = $derived(asIssue(handler.fields.issues()));
 	// SEE: https://github.com/sveltejs/kit/issues/14802
 	// Prevent generation value from persisting
-	const generateRemote = generateItem
+	let generateRemote = generateItem
 		.preflight(z.object({ url: RequiredUrlSchema }))
 		.for(hasJs() ? crypto.randomUUID() : 1);
 
 	let formMirror: Partial<Item> = $state({});
 	const hasMirror = $derived(!!Object.keys(formMirror).length);
 
-	let mode: 'generate' | 'generate-confirm' | 'form' = $state(
-		generateRemote.result ? 'generate-confirm' : generate ? 'generate' : 'form',
+	const mode = $derived(handler === createItem ? 'create' : 'edit');
+	let pageState: 'generate' | 'generate-confirm' | 'form' = $state(
+		page.url.searchParams.get('continue')
+			? 'generate'
+			: generateRemote.result
+				? 'generate-confirm'
+				: generate
+					? 'generate'
+					: 'form',
 	);
+
+	const continueSet = $derived(!!page.url.searchParams.get('continue'));
+	$effect(() => {
+		if (continueSet) pageState = 'generate';
+	});
 
 	const isInputLinkGenerated = $derived.by(() => {
 		const inputUrl = generateRemote.fields.url.value();
@@ -58,11 +71,11 @@
 	});
 
 	const showPreview = $derived.by(() => {
-		if (mode === 'generate-confirm') return true;
+		if (pageState === 'generate-confirm') return true;
 		if (!hasJs()) return false;
 
 		if (generating) return true;
-		if (mode === 'form') return hasMirror;
+		if (pageState === 'form') return hasMirror;
 		return isInputLinkGenerated && hasMirror;
 	});
 
@@ -145,7 +158,7 @@
 >
 	{#if showPreview}
 		<aside
-			class="pane {mode === 'generate-confirm'
+			class="pane {pageState === 'generate-confirm'
 				? 'flex-8/12'
 				: 'flex-4/12'} grid place-items-center bg-background p-4 px-6"
 		>
@@ -211,7 +224,7 @@
 			? 'flex-8/12 drop-shadow-none'
 			: 'h-full w-full'}"
 	>
-		{#if mode === 'generate-confirm' || mode === 'form'}
+		{#if pageState === 'generate-confirm' || pageState === 'form'}
 			<form
 				{...handler}
 				use:formEdit={onInput}
@@ -219,7 +232,7 @@
 					? 'xl:m-0 xl:h-full xl:max-w-full'
 					: ''}"
 			>
-				<div class:hidden={mode !== 'form'} class="flex flex-col gap-4">
+				<div class:hidden={pageState !== 'form'} class="flex flex-col gap-4">
 					<InputGroup label="Name" error={handler.fields.name.issues()}>
 						{#snippet control()}
 							<input required {...handler.fields.name.as('text')} />
@@ -282,18 +295,18 @@
 					</InputGroup>
 				</div>
 
-				{#if mode === 'form'}
+				{#if pageState === 'form'}
 					{#if generalIssue}
 						<p class="text-danger">{generalIssue}</p>
 					{/if}
 
 					<div class="flex gap-2">
-						{#if generate !== false}
+						{#if generate === true}
 							<svelte:element
 								this={hasJs() ? 'button' : 'a'}
 								href="./generate"
 								class="button w-max bg-danger text-center dark:text-accent-fg"
-								onclick={() => (mode = 'generate')}
+								onclick={() => (pageState = 'generate')}
 								type="button"
 								role="button"
 								tabindex="0"
@@ -311,24 +324,52 @@
 						</button>
 					</div>
 				{:else}
-					<div class="flex h-full w-full flex-col items-center justify-center gap-6">
+					<div class="flex h-full w-full flex-col items-center justify-center gap-6 pb-4">
 						<h1 class="text-2xl">Is this right?</h1>
 
 						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
-							<button
-								class="flex items-center gap-2 bg-success text-accent-fg"
-								{...submitButtonProps}
-							>
-								<CheckIcon />
-								Add to List
-							</button>
+							<div class="relative">
+								<button
+									class="flex items-center gap-2 bg-success text-accent-fg"
+									{...submitButtonProps}
+								>
+									<CheckIcon />
+
+									{#if mode === 'create'}
+										Add to List
+									{:else}
+										Save
+									{/if}
+								</button>
+
+								<label
+									class="absolute top-full mt-2 flex cursor-pointer items-center gap-2 select-none"
+								>
+									<input
+										class="peer hidden"
+										{...(handler as typeof createItem).fields.continue.as(
+											'checkbox',
+										)}
+										checked={continueSet}
+									/>
+
+									<span
+										class="flex size-4 items-center justify-center rounded border border-border bg-muted *:opacity-0
+           peer-checked:border-accent peer-checked:*:opacity-100 peer-focus:ring-2 peer-focus:ring-accent-fg"
+									>
+										<CheckIcon class="text-accent transition-opacity" />
+									</span>
+
+									<span class="text-light text-sm">Keep Adding</span>
+								</label>
+							</div>
 
 							<button
 								type="submit"
 								formaction="./create"
 								formmethod="get"
 								class="button flex items-center gap-2 bg-accent dark:text-accent-fg"
-								onclick={() => (mode = 'form')}
+								onclick={() => (pageState = 'form')}
 							>
 								<Settings2Icon />
 								Edit
@@ -338,25 +379,30 @@
 								this={hasJs() ? 'button' : 'a'}
 								href="./generate"
 								class="button flex items-center gap-2 bg-danger dark:text-accent-fg"
-								onclick={() => (mode = 'generate')}
+								onclick={() => (pageState = 'generate')}
 								type="button"
 								role="button"
 								tabindex="0"
 							>
 								<XIcon />
-								Go Back
 							</svelte:element>
 						</div>
 					</div>
 				{/if}
 			</form>
-		{:else if mode === 'generate'}
+		{:else if pageState === 'generate'}
 			<form
 				{...generateRemote}
 				oninput={() => generateRemote.validate()}
 				class="float-container flex h-full flex-col gap-1 p-8 sm:h-max"
 			>
-				<h1 class="text-2xl font-bold">Create a new Item</h1>
+				<h1 class="text-2xl font-bold">
+					{#if mode === 'create'}
+						Create a new Item
+					{:else}
+						Edit Item
+					{/if}
+				</h1>
 
 				<hr class="mb-4" />
 
@@ -414,7 +460,7 @@
 										const result = generateRemote.result;
 										if (result) {
 											seed(result);
-											mode = 'generate-confirm';
+											pageState = 'generate-confirm';
 										}
 									} finally {
 										generating = false;
@@ -437,7 +483,7 @@
 
 							{#if isInputLinkGenerated}
 								<button
-									onclick={() => (mode = 'generate-confirm')}
+									onclick={() => (pageState = 'generate-confirm')}
 									disabled={generating}
 									class="w-full"
 								>
@@ -454,14 +500,18 @@
 						href="./create"
 						class="button w-full text-center"
 						onclick={() => {
-							mode = 'form';
+							pageState = 'form';
 							seed({});
 						}}
 						type="button"
 						role="button"
 						tabindex="0"
 					>
-						Create Manually
+						{#if mode === 'create'}
+							Create Manually
+						{:else}
+							Edit Manually
+						{/if}
 					</svelte:element>
 				</div>
 			</form>

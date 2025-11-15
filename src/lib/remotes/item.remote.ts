@@ -12,31 +12,42 @@ import { db } from '../server/db';
 import { WishlistItemTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
 
-export const createItem = form(ItemSchema, async (data) => {
-	const {
-		params: { wishlist_slug },
-	} = getRequestEvent();
+export const createItem = form(
+	ItemSchema.extend({
+		continue: z.boolean().optional(),
+	}),
+	async (data) => {
+		const {
+			params: { wishlist_slug },
+			url,
+		} = getRequestEvent();
 
-	const user = verifyAuth();
-	if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
+		const user = verifyAuth();
+		if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
-	const wl = await db().query.WishlistTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
-	});
-
-	if (!wl) error(400, 'Invalid wishlist slug provided');
-
-	await db()
-		.insert(WishlistItemTable)
-		.values({
-			id: randomUUID(),
-			wishlistId: wl.id,
-			...data,
+		const wl = await db().query.WishlistTable.findFirst({
+			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
 		});
 
-	touchList({ id: wl.id });
-	redirect(303, `/lists/${wishlist_slug}`);
-});
+		if (!wl) error(400, 'Invalid wishlist slug provided');
+
+		data.continue ??= false;
+		const redirectUrl = data.continue
+			? `${url.pathname}?continue=true`
+			: `/lists/${wishlist_slug}`;
+
+		await db()
+			.insert(WishlistItemTable)
+			.values({
+				id: randomUUID(),
+				wishlistId: wl.id,
+				...data,
+			});
+
+		touchList({ id: wl.id });
+		redirect(303, redirectUrl);
+	},
+);
 
 export const updateItem = form(ItemSchema.partial(), async (data) => {
 	const {
