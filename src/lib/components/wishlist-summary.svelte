@@ -12,7 +12,7 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button flex w-full max-w-full flex-1 flex-col justify-center border bg-surface p-3 sm:max-w-2xs md:max-w-sm lg:max-w-md"
+	class="button flex w-full max-w-full flex-1 flex-col justify-center border bg-surface p-3"
 >
 	<div class="flex flex-1 gap-8" class:items-center={!wishlist.description && !footer}>
 		<div class="flex items-center gap-2">

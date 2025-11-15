@@ -199,7 +199,7 @@
 						</div>
 
 						<div
-							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,max-content))]"
+							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
 						>
 							{#if notMyAcitivty.length}
 								{#each notMyAcitivty as wishlist}
