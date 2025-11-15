@@ -76,9 +76,13 @@
 	{/each}
 </svelte:head>
 
-<div class="flex h-full flex-col" class:transition-colors={changingTheme} data-theme={theme}>
+<div
+	class="flex h-full min-h-screen flex-col"
+	class:transition-colors={changingTheme}
+	data-theme={theme}
+>
 	<header
-		class="sticky bottom-0 flex min-h-16 shrink-0 items-center gap-2 bg-background p-4 drop-shadow-md md:top-0"
+		class="sticky top-0 z-10 flex min-h-16 shrink-0 items-center gap-2 border-b border-border bg-surface p-4 drop-shadow-md"
 	>
 		<div class="flex w-full flex-wrap items-center justify-between gap-6">
 			{#if !(page.url.pathname === '/')}
