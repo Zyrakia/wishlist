@@ -116,7 +116,7 @@
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
 		{#if wishlists.length}
-			<div class="grid w-full gap-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
+			<div class="grid w-full gap-4 grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
 				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
@@ -145,7 +145,7 @@
 		{/if}
 	</div>
 
-	<div class="w-full">
+	<div>
 		<div class="flex flex-wrap gap-2">
 			<p class="flex flex-1 items-center gap-2 font-bold">
 				<CircleIcon />
