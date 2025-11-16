@@ -10,14 +10,14 @@
 	const me = $derived(data.me);
 </script>
 
-<div class="flex h-full w-full items-center justify-center">
+<div class="flex h-full w-full items-center justify-center px-4 py-6 text-center">
 	{#if !invite}
 		<div class="flex flex-col items-center gap-4">
 			<TriangleAlertIcon class="text-danger" size={32} />
 
 			<h1 class="flex gap-3 text-3xl text-danger capitalize">Invalid invite</h1>
 
-			<p class="text-text-muted">It looks like this invite link is invalid or has expired!</p>
+			<p class="text-text-muted">It looks like this invite is invalid or has expired!</p>
 
 			<a href="/" class="button bg-success text-accent-fg">Return Home</a>
 		</div>
