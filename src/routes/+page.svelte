@@ -153,9 +153,17 @@
 
 		{#if circles.length}
 			<div class="flex flex-col gap-4">
-				{#each circles as { circle, activity }}
+				{#each circles as { circle, activity }, i}
 					{@const isOwn = circle.ownerId === user.id}
-					{@const notMyAcitivty = activity.filter((v) => v.userId !== user.id)}
+
+					{@const seenLists = circles
+						.slice(0, i)
+						.flatMap((v) => v.activity.map((v) => v.id))}
+
+					{@const filteredActivity = activity.filter((v) => {
+						if (seenLists.includes(v.id)) return false;
+						return v.userId !== user.id;
+					})}
 
 					<div class="flex flex-col gap-2">
 						<div class="flex gap-2">
@@ -184,8 +192,8 @@
 						<div
 							class="grid grid-cols-1 gap-4 border-s border-dashed border-border-strong/75 ps-3 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
 						>
-							{#if notMyAcitivty.length}
-								{#each notMyAcitivty as wishlist}
+							{#if filteredActivity.length}
+								{#each filteredActivity as wishlist}
 									<WishlistSummary {wishlist} author={wishlist.userName} />
 								{/each}
 							{:else}
