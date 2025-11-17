@@ -1,6 +1,6 @@
 import { dev } from '$app/environment';
 import { getRequestEvent } from '$app/server';
-import { createSecretKey } from 'crypto';
+import { createSecretKey, randomUUID } from 'crypto';
 import { jwtVerify, SignJWT } from 'jose';
 import z from 'zod';
 
@@ -8,6 +8,9 @@ import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import ENV from './env.server';
 import { Cookie } from './cookies';
+import { db } from './db';
+import { PendingAccountActionTable } from './db/schema';
+import { eq } from 'drizzle-orm';
 
 const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
@@ -77,4 +80,34 @@ export const readSession = async (cookies: Cookies) => {
 
 export const clearSession = (cookies: Cookies) => {
 	Cookie.session(cookies).clear();
+};
+
+export const createAccountAction = async (userId: string, lifetimeMs: number) => {
+	const token = randomUUID();
+
+	const expiresAt = new Date();
+	expiresAt.setTime(expiresAt.getTime() + lifetimeMs);
+
+	await db().insert(PendingAccountActionTable).values({
+		userId,
+		token,
+		expiresAt,
+	});
+
+	return { token, expiresAt };
+};
+
+export const resolveAccountAction = async (token: string) => {
+	const action = await db().query.PendingAccountActionTable.findFirst({
+		where: (t, { eq }) => eq(t.token, token),
+	});
+
+	if (!action) return undefined;
+
+	await db().delete(PendingAccountActionTable).where(eq(PendingAccountActionTable.token, token));
+
+	const now = new Date();
+	if (action.expiresAt.getTime() < now.getTime()) return;
+
+	return { userId: action.userId };
 };

@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import z from 'zod';
 
 const autoTimestampColumn = integer({ mode: 'timestamp' })
 	.notNull()
@@ -90,6 +91,14 @@ export const CircleMembershipTable = sqliteTable(
 	(t) => [primaryKey({ columns: [t.circleId, t.userId] })],
 );
 
+export const PendingAccountActionTable = sqliteTable('account_action', {
+	token: text().primaryKey(),
+	userId: text()
+		.notNull()
+		.references(() => UserTable.id),
+	expiresAt: integer({ mode: 'timestamp' }).notNull(),
+});
+
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	wishlists: many(WishlistTable),
 	circleMemberships: many(CircleMembershipTable),
@@ -129,6 +138,13 @@ export const _CircleMembershipRelations = relations(CircleMembershipTable, ({ on
 	}),
 	user: one(UserTable, {
 		fields: [CircleMembershipTable.userId],
+		references: [UserTable.id],
+	}),
+}));
+
+export const _PendingAccountActionRelations = relations(PendingAccountActionTable, ({ one }) => ({
+	user: one(UserTable, {
+		fields: [PendingAccountActionTable.userId],
 		references: [UserTable.id],
 	}),
 }));

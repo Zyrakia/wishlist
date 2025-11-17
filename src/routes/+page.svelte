@@ -2,12 +2,8 @@
 	import { page } from '$app/state';
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
-	import {
-		getCirclesActivity,
-		getMyInvites,
-		resolveCircleInvite,
-	} from '$lib/remotes/circle.remote.js';
-	import { getWishlists } from '$lib/remotes/wishlist.remote.js';
+	import { resolveCircleInvite } from '$lib/remotes/circle.remote.js';
+	import { formatRelative } from '$lib/util/date.js';
 	import { asIssue } from '$lib/util/pick-issue';
 	import {
 		ArrowRightIcon,
@@ -30,11 +26,6 @@
 	const wishlists = $derived(data.wishlists);
 	const circles = $derived(data.circles);
 	const circleInvites = $derived(data.invites);
-
-	const dtf = new Intl.DateTimeFormat(navigator.languages, {
-		dateStyle: 'medium',
-		timeStyle: 'short',
-	});
 </script>
 
 <div class="flex h-full flex-col gap-12 px-6 py-12">
@@ -116,16 +107,17 @@
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
 		{#if wishlists.length}
-			<div class="grid w-full gap-4 grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
+			<div
+				class="grid w-full grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
+			>
 				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
 							{#if sort === 'modified'}
-								{@const activityDate = new Date(wishlist.activityAt)}
 								<hr class="my-2" />
 								<p class="text-xs font-light text-text-muted">
 									Last activity
-									{dtf.format(activityDate)}
+									{formatRelative(wishlist.activityAt)}
 								</p>
 							{/if}
 						{/snippet}

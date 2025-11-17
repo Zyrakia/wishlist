@@ -1,6 +1,13 @@
 import { command, form, getRequestEvent, query } from '$app/server';
-import { CreateCredentialsSchema, CredentialsSchema } from '$lib/schemas/auth';
-import { clearSession, issueToken, readSession, setSession } from '$lib/server/auth';
+import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from '$lib/schemas/auth';
+import {
+	clearSession,
+	createAccountAction,
+	issueToken,
+	readSession,
+	resolveAccountAction,
+	setSession,
+} from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
 import ENV from '$lib/server/env.server';
@@ -8,7 +15,11 @@ import { compare, hash } from 'bcryptjs';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import ms from 'ms';
+import { sendEmail } from '$lib/server/email';
+import { formatRelative } from '$lib/util/date';
+import { eq } from 'drizzle-orm';
 
 export const getMe = query(async () => {
 	const { cookies } = getRequestEvent();
@@ -73,7 +84,44 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	redirect(303, returnUrl || '/');
 });
 
-export const logout = command(async () => {
-	const { cookies } = getRequestEvent();
-	clearSession(cookies);
-});
+export const resetPasswordStart = form(
+	z.object({ email: CredentialsSchema.shape.email }),
+	async ({ email }) => {
+		const user = await db().query.UserTable.findFirst({
+			where: (t, { eq }) => eq(t.email, email),
+		});
+
+		if (user) {
+			const { token, expiresAt } = await createAccountAction(user.id, ms('10m'));
+			const { url } = getRequestEvent();
+
+			await sendEmail(email, {
+				template: {
+					id: '6c41869c-105c-4ec1-9054-c0a65c97beaf',
+					variables: {
+						RESET_LINK: `${url.protocol}//${url.host}/reset-password/${token}`,
+						EXPIRES_AT: formatRelative(expiresAt),
+					},
+				},
+			});
+		}
+
+		return { success: true };
+	},
+);
+
+export const resetPassword = form(
+	ResetPasswordSchema,
+	async ({ actionToken, password }, invalid) => {
+		const user = await resolveAccountAction(actionToken);
+		if (!user) return invalid('Password reset link have expired');
+
+		const passwordHash = await hash(password, ENV.SALT_ROUNDS);
+		await db()
+			.update(UserTable)
+			.set({ password: passwordHash })
+			.where(eq(UserTable.id, user.userId));
+
+		redirect(303, `/login?updated=password`);
+	},
+);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatRelative } from '$lib/util/date.js';
 	import { ClockIcon, type IconProps, MailIcon, UserIcon } from '@lucide/svelte';
 	import type { Component } from 'svelte';
 
@@ -12,28 +13,8 @@
 		timeStyle: 'short',
 	});
 
-	const rdtf = new Intl.RelativeTimeFormat(navigator.language, { style: 'long' });
-
 	const createdDate = $derived(dtf.format(me.createdAt));
-
-	const accountAgeSeconds = $derived((new Date().getTime() - me.createdAt.getTime()) / 1000);
-	const accountAge = $derived.by(() => {
-		const ageS = accountAgeSeconds;
-		const ageM = ageS / 60;
-		const ageH = ageM / 60;
-		const ageD = ageH / 24;
-
-		const [value, unit]: [number, Intl.RelativeTimeFormatUnit] =
-			ageD > 1
-				? [ageD, 'days']
-				: ageH > 1
-					? [ageH, 'hours']
-					: ageM > 1
-						? [ageM, 'minutes']
-						: [ageS, 'seconds'];
-
-		return rdtf.format(-Math.floor(value), unit);
-	});
+	const accountAge = $derived.by(() => formatRelative(me.createdAt));
 
 	const info = $derived.by(
 		(): { title: string; key: keyof typeof me; content: string; icon: IconComponent }[] => {

@@ -14,6 +14,7 @@
 	const hasJs = useHasJs();
 	const getIssue = () => asIssue(remote.fields);
 
+	let { data } = $props();
 	const remote = login.preflight(CredentialsSchema.omit({ username: true }));
 
 	let showPassword = $state(false);
@@ -44,7 +45,17 @@
 >
 	<div class="absolute top-0 left-0 h-full w-full dark:bg-black/35"></div>
 
-	<div class="z-10 container flex h-max max-w-2xl flex-col rounded-xl p-8 dark:bg-surface/90">
+	<div
+		class="z-10 container flex h-max max-w-2xl flex-col rounded-xl border border-border bg-surface/90 p-8 shadow-lg"
+	>
+		{#if data.updated === 'password'}
+			<p
+				class="mb-4 w-full rounded border border-border bg-accent/10 p-3 text-accent-fg shadow-sm dark:text-success"
+			>
+				Your password has been updated.
+			</p>
+		{/if}
+
 		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Sign in to get started</p>
 		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Welcome Back</h1>
 		<p>
@@ -88,6 +99,15 @@
 							</button>
 						{/if}
 					</div>
+
+					<a
+						href="/reset-password{remote.fields.email.value()
+							? `?email=${encodeURIComponent(remote.fields.email.value())}`
+							: ''}"
+						class="text-sm text-accent/75 italic"
+					>
+						Forgot password?
+					</a>
 				{/snippet}
 			</InputGroup>
 

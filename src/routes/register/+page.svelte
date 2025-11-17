@@ -44,7 +44,9 @@
 >
 	<div class="absolute top-0 left-0 h-full w-full dark:bg-black/35"></div>
 
-	<div class="z-10 container flex h-max max-w-2xl flex-col rounded-xl p-8 dark:bg-surface/90">
+	<div
+		class="z-10 container flex h-max max-w-2xl flex-col rounded-xl border border-border bg-surface/90 p-8 shadow-lg"
+	>
 		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Register to get started</p>
 		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Create an Account</h1>
 		<p>Already have an account? <a href="/login" class="text-accent">Login</a></p>

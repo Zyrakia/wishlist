@@ -28,3 +28,18 @@ export const CreateCredentialsSchema = CredentialsSchema.extend({
 		});
 	}
 });
+
+export const ResetPasswordSchema = CreateCredentialsSchema.omit({
+	email: true,
+	username: true,
+})
+	.extend({ actionToken: z.string() })
+	.superRefine(({ password, passwordConfirm }, ctx) => {
+		if (password !== passwordConfirm) {
+			ctx.addIssue({
+				code: 'custom',
+				message: 'Passwords must match',
+				path: ['passwordConfirm'],
+			});
+		}
+	});
