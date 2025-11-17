@@ -21,16 +21,17 @@
 		XIcon,
 	} from '@lucide/svelte';
 	import { readMetadata } from '$lib/remotes/meta.remote';
-	import { page } from '$app/state';
 
 	let {
 		handler,
 		init,
 		generate = true,
+		currentState,
 	}: {
 		handler: typeof createItem | typeof updateItem;
 		init?: Partial<Item>;
 		generate: boolean;
+		currentState?: 'generate' | 'form';
 	} = $props();
 
 	const hasJs = useHasJs();
@@ -49,8 +50,8 @@
 
 	const mode = $derived(handler === createItem ? 'create' : 'edit');
 	let pageState: 'generate' | 'generate-confirm' | 'form' = $state(
-		page.url.searchParams.get('continue')
-			? 'generate'
+		currentState
+			? currentState
 			: generateRemote.result
 				? 'generate-confirm'
 				: generate
@@ -58,9 +59,8 @@
 					: 'form',
 	);
 
-	const continueSet = $derived(!!page.url.searchParams.get('continue'));
 	$effect(() => {
-		if (continueSet) pageState = 'generate';
+		if (currentState) pageState = currentState;
 	});
 
 	const isInputLinkGenerated = $derived.by(() => {
@@ -350,7 +350,7 @@
 										{...(handler as typeof createItem).fields.continue.as(
 											'checkbox',
 										)}
-										checked={continueSet}
+										checked={!!currentState}
 									/>
 
 									<span

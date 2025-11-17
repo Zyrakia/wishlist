@@ -18,11 +18,6 @@
 	let { data } = $props();
 	const user = $derived(data.user);
 
-	const sortSchema = z.enum(['modified', 'created']);
-	const sort = $derived.by(() =>
-		sortSchema.parse(page.url.searchParams.get('sort') ?? 'modified'),
-	);
-
 	const wishlists = $derived(data.wishlists);
 	const circles = $derived(data.circles);
 	const circleInvites = $derived(data.invites);
@@ -113,13 +108,11 @@
 				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
-							{#if sort === 'modified'}
-								<hr class="my-2" />
-								<p class="text-xs font-light text-text-muted">
-									Last activity
-									{formatRelative(wishlist.activityAt)}
-								</p>
-							{/if}
+							<hr class="my-2" />
+							<p class="text-xs font-light text-text-muted">
+								Last activity
+								{formatRelative(wishlist.activityAt)}
+							</p>
 						{/snippet}
 					</WishlistSummary>
 				{/each}

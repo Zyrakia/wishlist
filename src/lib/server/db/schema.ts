@@ -1,6 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
 import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
-import z from 'zod';
 
 const autoTimestampColumn = integer({ mode: 'timestamp' })
 	.notNull()

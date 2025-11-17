@@ -1,7 +1,8 @@
-import { cookieHandle } from './util/cookie-handle';
 import { dev } from '$app/environment';
-import ENV from './env.server';
 import ms from 'ms';
+
+import ENV from './env.server';
+import { cookieHandle } from './util/cookie-handle';
 
 export const Cookie = {
 	theme: cookieHandle('theme', { path: '/', maxAge: ms('1yr') / 1000 }),

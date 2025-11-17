@@ -18,8 +18,6 @@
 	const mode: 'edit' | 'create' = $derived(handler === createCircle ? 'create' : 'edit');
 	const generalIssue = $derived(asIssue(handler.fields.issues()));
 
-	$inspect(handler.fields.name.issues());
-
 	const seed = (props?: Partial<Circle>) => {
 		const cleanProps = safePrune(CircleSchema, props);
 		handler.fields.set(cleanProps as any);

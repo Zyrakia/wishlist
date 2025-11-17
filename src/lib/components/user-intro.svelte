@@ -1,17 +1,19 @@
 <script lang="ts">
+	import { clock } from '$lib/runes/clock.svelte';
 	import { MoonIcon, SunMoonIcon, SunIcon } from '@lucide/svelte';
 
 	let { name }: { name: string } = $props();
 
-	const hourOfDay = new Date().getHours();
-	const periodOfDay =
+	const hourOfDay = $derived(clock.now.getHours());
+	const periodOfDay = $derived.by(() =>
 		hourOfDay < 6
 			? 'early morning'
 			: hourOfDay < 12
 				? 'morning'
 				: hourOfDay < 18
 					? 'afternoon'
-					: 'evening';
+					: 'evening',
+	);
 </script>
 
 <div class="flex w-full items-center gap-3">

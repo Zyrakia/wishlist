@@ -4,19 +4,17 @@ import { CircleSchema } from '$lib/schemas/circle';
 import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import {
-	CircleInviteTable,
-	CircleMembershipTable,
-	CircleTable,
-	UserTable,
-	WishlistTable,
+    CircleInviteTable, CircleMembershipTable, CircleTable, UserTable
 } from '$lib/server/db/schema';
-import { strBoolean } from '$lib/util/zod';
-import { error, redirect } from '@sveltejs/kit';
-import { randomUUID } from 'crypto';
-import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
-import z from 'zod';
-import { resolveMe } from './auth.remote';
 import { sendEmail } from '$lib/server/email';
+import { strBoolean } from '$lib/util/zod';
+import { randomUUID } from 'crypto';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import z from 'zod';
+
+import { error, redirect } from '@sveltejs/kit';
+
+import { resolveMe } from './auth.remote';
 
 export const createCircle = form(CircleSchema, async (data, invalid) => {
 	const user = verifyAuth();

@@ -1,7 +1,7 @@
 import { query } from '$app/server';
-import { devices } from 'playwright';
-import { load as cheerio } from 'cheerio';
 import { RequiredUrlSchema } from '$lib/schemas/item';
+import { load as cheerio } from 'cheerio';
+import { devices } from 'playwright';
 
 export const readMetadata = query(RequiredUrlSchema, async (url) => {
 	const target = new URL(url);

@@ -40,7 +40,7 @@
 		<h3 class="mb-2 flex items-center gap-2">
 			<UsersIcon size={20} />
 
-			<span class="text-xl font-semibold">Members </span>
+			<span class="text-xl font-semibold">Members</span>
 
 			<span class:text-warning={isFull}>
 				<span class="font-bold">[</span>

@@ -1,16 +1,15 @@
-import { dev } from '$app/environment';
 import { getRequestEvent } from '$app/server';
 import { createSecretKey, randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { jwtVerify, SignJWT } from 'jose';
 import z from 'zod';
 
-import { type Cookies, error, redirect } from '@sveltejs/kit';
+import { Cookies, error, redirect } from '@sveltejs/kit';
 
-import ENV from './env.server';
 import { Cookie } from './cookies';
 import { db } from './db';
 import { PendingAccountActionTable } from './db/schema';
-import { eq } from 'drizzle-orm';
+import ENV from './env.server';
 
 const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');

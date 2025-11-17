@@ -7,7 +7,7 @@
 	let { wishlistSlug, itemId }: { wishlistSlug: string; itemId: string } = $props();
 
 	const hasJs = useHasJs();
-	const deleteForm = deleteItem.for(itemId);
+	const deleteForm = $derived(deleteItem.for(itemId));
 
 	let confirmResolver = $state<((res: boolean) => void) | undefined>();
 	const confirming = $derived(confirmResolver !== undefined);

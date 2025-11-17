@@ -4,9 +4,9 @@ import { chromium, devices } from 'playwright';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
+import { isHttpError } from '@sveltejs/kit';
 
 import ENV from '../env.server';
-import { isHttpError } from '@sveltejs/kit';
 
 const SYSTEM_PROMPT = `
 You are to extract the single best product candidate from the given input.

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { beforeNavigate, afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -24,6 +23,7 @@
 		...page.data.meta,
 	});
 
+	$effect(() => void (theme = data.savedTheme || DefaultTheme));
 	$effect(() => void (document.documentElement.dataset.theme = theme));
 </script>
 

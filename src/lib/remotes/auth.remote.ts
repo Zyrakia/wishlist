@@ -1,25 +1,20 @@
-import { command, form, getRequestEvent, query } from '$app/server';
+import { form, getRequestEvent, query } from '$app/server';
 import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from '$lib/schemas/auth';
 import {
-	clearSession,
-	createAccountAction,
-	issueToken,
-	readSession,
-	resolveAccountAction,
-	setSession,
+    createAccountAction, issueToken, readSession, resolveAccountAction, setSession
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
+import { sendEmail } from '$lib/server/email';
 import ENV from '$lib/server/env.server';
+import { formatRelative } from '$lib/util/date';
 import { compare, hash } from 'bcryptjs';
+import { eq } from 'drizzle-orm';
+import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
-import { error, redirect } from '@sveltejs/kit';
-import ms from 'ms';
-import { sendEmail } from '$lib/server/email';
-import { formatRelative } from '$lib/util/date';
-import { eq } from 'drizzle-orm';
+import { redirect } from '@sveltejs/kit';
 
 export const getMe = query(async () => {
 	const { cookies } = getRequestEvent();

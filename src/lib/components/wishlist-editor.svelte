@@ -9,7 +9,7 @@
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount, untrack } from 'svelte';
 	import InputGroup from './input-group.svelte';
-	import { CheckIcon, LinkIcon, XIcon } from '@lucide/svelte';
+	import { CheckIcon, XIcon } from '@lucide/svelte';
 	import { page } from '$app/state';
 	import Loader from './loader.svelte';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
