@@ -1,4 +1,4 @@
-import { CreateEmailOptions, Resend } from 'resend';
+import { type CreateEmailOptions, Resend } from 'resend';
 import z from 'zod';
 
 import ENV from './env.server';

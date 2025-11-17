@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { jwtVerify, SignJWT } from 'jose';
 import z from 'zod';
 
-import { Cookies, error, redirect } from '@sveltejs/kit';
+import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import { Cookie } from './cookies';
 import { db } from './db';
