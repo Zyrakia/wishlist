@@ -140,7 +140,7 @@
 	<div>
 		<div class="flex flex-wrap gap-2">
 			<p class="flex flex-1 items-center gap-2 font-bold">
-				<CircleIcon />
+				<UsersIcon />
 				Your Groups
 			</p>
 
