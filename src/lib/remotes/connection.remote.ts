@@ -16,32 +16,38 @@ import { strBoolean } from '$lib/util/zod';
 
 const MIN_SYNC_GAP = ms('1h');
 
-export const createWishlistConnection = form(WishlistConnectionSchema, async (data, invalid) => {
-	const {
-		params: { wishlist_slug },
-	} = getRequestEvent();
-	if (!wishlist_slug) error(400, 'Cannot create connection without wishlist');
+export const createWishlistConnection = form(
+	WishlistConnectionSchema.extend({
+		provider: WishlistConnectionSchema.shape.provider.optional(),
+	}),
+	async (data, invalid) => {
+		const {
+			params: { wishlist_slug },
+		} = getRequestEvent();
+		if (!wishlist_slug) error(400, 'Cannot create connection without wishlist');
 
-	const user = verifyAuth();
-	const wishlist = await getWishlist({ slug: wishlist_slug });
-	if (!wishlist || wishlist.userId !== user.id)
-		return error(400, 'Cannot create connection without wishlist');
+		const user = verifyAuth();
+		const wishlist = await getWishlist({ slug: wishlist_slug });
+		if (!wishlist || wishlist.userId !== user.id)
+			return error(400, 'Cannot create connection without wishlist');
 
-	const [{ count: activeConnections }] = await db()
-		.select({ count: count() })
-		.from(WishlistConnectionTable)
-		.where(eq(WishlistConnectionTable.wishlistId, wishlist?.id));
+		const [{ count: activeConnections }] = await db()
+			.select({ count: count() })
+			.from(WishlistConnectionTable)
+			.where(eq(WishlistConnectionTable.wishlistId, wishlist?.id));
 
-	if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
+		if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
 
-	await db()
-		.insert(WishlistConnectionTable)
-		.values({
-			id: randomUUID(),
-			wishlistId: wishlist.id,
-			...data,
-		});
-});
+		await db()
+			.insert(WishlistConnectionTable)
+			.values({
+				id: randomUUID(),
+				wishlistId: wishlist.id,
+				provider: '' /* TODO infer provider */,
+				...data,
+			});
+	},
+);
 
 export const deleteWishlistConnection = form(
 	z.object({ connectionId: z.string(), deleteItems: strBoolean() }),
