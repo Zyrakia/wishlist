@@ -1,7 +1,10 @@
 import { form, getRequestEvent } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
-import { generateItemCandidates } from '$lib/server/item-generator/item-generator';
+import {
+	generateItemCandidate,
+	generateItemCandidates,
+} from '$lib/server/generation/item-generator';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
@@ -116,10 +119,19 @@ export const deleteItem = form(
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	const res = await generateItemCandidates(data.url);
-	if (res.success) {
-		if (!res.candidate?.name || !res.candidate?.valid) {
+	const { data: candidate, error } = await generateItemCandidate(data.url);
+	if (candidate) {
+		if (!candidate.name || !candidate.valid) {
 			invalid('No product found');
-		} else return { ...res.candidate, url: data.url };
-	} else invalid(res.error);
+		} else return { ...candidate, url: data.url };
+	} else invalid(error);
+});
+
+export const generateItems = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
+	verifyAuth();
+
+	const { data: candidates, error } = await generateItemCandidates(data.url);
+	if (candidates) {
+		return { candidates, url: data.url };
+	} else invalid(error);
 });

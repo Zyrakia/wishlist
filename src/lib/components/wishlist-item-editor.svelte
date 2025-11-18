@@ -134,7 +134,9 @@
 	const applyLoadMetadata = async (url: string) => {
 		try {
 			const response = await readMetadata(url);
-			genFavicon = response.favicon;
+			if (!response) throw 'Cannot generate metadata';
+
+			genFavicon = response.favicon || '';
 			genTitle = response.title;
 		} catch (error) {
 			try {

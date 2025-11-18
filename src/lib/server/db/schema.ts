@@ -25,14 +25,17 @@ export const WishlistTable = sqliteTable('wishlist', {
 	activityAt: autoTimestampColumn,
 });
 
-export const _WishlistRelations = relations(WishlistTable, ({ one, many }) => ({
-	user: one(UserTable, {
-		fields: [WishlistTable.userId],
-		references: [UserTable.id],
-	}),
-
-	items: many(WishlistItemTable),
-}));
+export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
+	wishlistId: text()
+		.notNull()
+		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+	id: text().primaryKey(),
+	name: text().notNull(),
+	url: text().notNull(),
+	provider: text().notNull(),
+	lastSyncedAt: integer({ mode: 'timestamp' }),
+	createdAt: autoTimestampColumn,
+});
 
 export const WishlistItemTable = sqliteTable(
 	'wishlist_item',
@@ -41,6 +44,7 @@ export const WishlistItemTable = sqliteTable(
 			.notNull()
 			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
 		id: text().notNull(),
+		connectionId: text().references(() => WishlistConnectionTable.id, { onDelete: 'set null' }),
 		name: text().notNull(),
 		notes: text().notNull(),
 		priceCurrency: text(),
@@ -108,10 +112,32 @@ export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	}),
 }));
 
+export const _WishlistRelations = relations(WishlistTable, ({ one, many }) => ({
+	user: one(UserTable, {
+		fields: [WishlistTable.userId],
+		references: [UserTable.id],
+	}),
+
+	items: many(WishlistItemTable),
+	connections: many(WishlistConnectionTable),
+}));
+
+export const _WishlistConnectionRelations = relations(WishlistConnectionTable, ({ one, many }) => ({
+	wishlist: one(WishlistTable, {
+		fields: [WishlistConnectionTable.wishlistId],
+		references: [WishlistTable.id],
+	}),
+	items: many(WishlistItemTable),
+}));
+
 export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => ({
 	wishlist: one(WishlistTable, {
 		fields: [WishlistItemTable.wishlistId],
 		references: [WishlistTable.id],
+	}),
+	source: one(WishlistConnectionTable, {
+		fields: [WishlistItemTable.connectionId],
+		references: [WishlistConnectionTable.id],
 	}),
 }));
 
