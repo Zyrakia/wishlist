@@ -3,7 +3,7 @@
 	import { resetPasswordStart } from '$lib/remotes/auth.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
 	import { asIssue } from '$lib/util/pick-issue.js';
-	import { CheckIcon } from '@lucide/svelte';
+	import { CheckIcon, XIcon } from '@lucide/svelte';
 	import z from 'zod';
 
 	let { data } = $props();
@@ -37,15 +37,23 @@
 			</button>
 		</form>
 
-		{#if handler.result?.success}
+		{#if handler.result}
 			<hr class="mt-4 mb-3" />
 
-			<p class="flex gap-2 text-text-muted">
-				<CheckIcon class="text-success" size={20} />
+			{#if handler.result.success}
+				<p class="flex gap-2 text-text-muted">
+					<CheckIcon class="text-success" size={20} />
 
-				If an associated account was found, the specified email will received a password
-				reset email.
-			</p>
+					If an associated account was found, the specified email will received a password
+					reset email.
+				</p>
+			{:else}
+				<p class="flex gap-2 text-text-muted">
+					<XIcon class="text-danger" size={20} />
+
+					There are issues communicating with the server, please try again later.
+				</p>
+			{/if}
 		{/if}
 	</div>
 </div>

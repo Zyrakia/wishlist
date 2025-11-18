@@ -8,7 +8,7 @@ import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import { Cookie } from './cookies';
 import { db } from './db';
-import { PendingAccountActionTable } from './db/schema';
+import { AccountActionTable } from './db/schema';
 import ENV from './env.server';
 
 const COOKIE_NAME = 'session';
@@ -87,7 +87,7 @@ export const createAccountAction = async (userId: string, lifetimeMs: number) =>
 	const expiresAt = new Date();
 	expiresAt.setTime(expiresAt.getTime() + lifetimeMs);
 
-	await db().insert(PendingAccountActionTable).values({
+	await db().insert(AccountActionTable).values({
 		userId,
 		token,
 		expiresAt,
@@ -97,16 +97,30 @@ export const createAccountAction = async (userId: string, lifetimeMs: number) =>
 };
 
 export const resolveAccountAction = async (token: string) => {
-	const action = await db().query.PendingAccountActionTable.findFirst({
+	const action = await db().query.AccountActionTable.findFirst({
 		where: (t, { eq }) => eq(t.token, token),
 	});
 
-	if (!action) return undefined;
+	if (!action) return;
 
-	await db().delete(PendingAccountActionTable).where(eq(PendingAccountActionTable.token, token));
+	await db().delete(AccountActionTable).where(eq(AccountActionTable.token, token));
 
 	const now = new Date();
 	if (action.expiresAt.getTime() < now.getTime()) return;
 
 	return { userId: action.userId };
+};
+
+export const peekAccountAction = async (token: string) => {
+	const action = await db().query.AccountActionTable.findFirst({
+		where: (t, { eq }) => eq(t.token, token),
+		with: { user: true },
+	});
+
+	if (!action) return;
+
+	const now = new Date();
+	if (action.expiresAt.getTime() < now.getTime()) return;
+
+	return { expiresAt: action.expiresAt, user: action.user };
 };

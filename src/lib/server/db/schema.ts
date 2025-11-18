@@ -90,7 +90,7 @@ export const CircleMembershipTable = sqliteTable(
 	(t) => [primaryKey({ columns: [t.circleId, t.userId] })],
 );
 
-export const PendingAccountActionTable = sqliteTable('account_action', {
+export const AccountActionTable = sqliteTable('account_action', {
 	token: text().primaryKey(),
 	userId: text()
 		.notNull()
@@ -101,6 +101,7 @@ export const PendingAccountActionTable = sqliteTable('account_action', {
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	wishlists: many(WishlistTable),
 	circleMemberships: many(CircleMembershipTable),
+	pendingActions: many(AccountActionTable),
 	createdCircle: one(CircleTable, {
 		fields: [UserTable.id],
 		references: [CircleTable.ownerId],
@@ -141,9 +142,9 @@ export const _CircleMembershipRelations = relations(CircleMembershipTable, ({ on
 	}),
 }));
 
-export const _PendingAccountActionRelations = relations(PendingAccountActionTable, ({ one }) => ({
+export const _AccountActionRelations = relations(AccountActionTable, ({ one }) => ({
 	user: one(UserTable, {
-		fields: [PendingAccountActionTable.userId],
+		fields: [AccountActionTable.userId],
 		references: [UserTable.id],
 	}),
 }));

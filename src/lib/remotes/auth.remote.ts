@@ -1,7 +1,11 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from '$lib/schemas/auth';
 import {
-    createAccountAction, issueToken, readSession, resolveAccountAction, setSession
+	createAccountAction,
+	issueToken,
+	readSession,
+	resolveAccountAction,
+	setSession,
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
@@ -90,7 +94,7 @@ export const resetPasswordStart = form(
 			const { token, expiresAt } = await createAccountAction(user.id, ms('10m'));
 			const { url } = getRequestEvent();
 
-			await sendEmail(email, {
+			const emailResult = await sendEmail(email, {
 				template: {
 					id: '6c41869c-105c-4ec1-9054-c0a65c97beaf',
 					variables: {
@@ -99,6 +103,8 @@ export const resetPasswordStart = form(
 					},
 				},
 			});
+
+			if (!emailResult.success) return { success: false };
 		}
 
 		return { success: true };
