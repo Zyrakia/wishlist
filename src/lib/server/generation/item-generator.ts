@@ -189,11 +189,11 @@ export async function generateItemCandidate(
 
 		return { data: candidate, error: null };
 	} catch (err) {
+		console.warn(err);
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
 			return { data: null, error: 'Generation temporarily unavailable' };
 		}
 
-		console.warn(err);
 		return { data: null, error: 'Generation failed' };
 	}
 }
@@ -226,11 +226,11 @@ export async function generateItemCandidates(
 
 		return { data: candidates.filter((v) => v.valid), error: null };
 	} catch (err) {
+		console.warn(err);
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
 			return { data: null, error: 'Generation temporarily unavailable' };
 		}
 
-		console.warn(err);
 		return { data: null, error: 'Generation failed' };
 	}
 }

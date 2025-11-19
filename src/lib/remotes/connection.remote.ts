@@ -1,4 +1,4 @@
-import { command, form, getRequestEvent } from '$app/server';
+import { form, getRequestEvent } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { ItemSchema } from '$lib/schemas/item';
 import { db } from '$lib/server/db';
@@ -13,6 +13,7 @@ import z from 'zod';
 import { getWishlist, touchList } from './wishlist.remote';
 import { verifyAuth } from '$lib/server/auth';
 import { strBoolean } from '$lib/util/zod';
+import { cleanBaseName } from '$lib/util/url';
 
 const MIN_SYNC_GAP = ms('1h');
 
@@ -43,7 +44,7 @@ export const createWishlistConnection = form(
 			.values({
 				id: randomUUID(),
 				wishlistId: wishlist.id,
-				provider: '' /* TODO infer provider */,
+				provider: cleanBaseName(new URL(data.url)),
 				...data,
 			});
 	},
@@ -76,9 +77,12 @@ export const deleteWishlistConnection = form(
 	},
 );
 
-export const syncWishlistConnection = command(
+export const syncWishlistConnection = form(
 	z.object({ connectionId: z.string() }),
-	async ({ connectionId }): Promise<{ success: true } | { success: false; error: string }> => {
+	async (
+		{ connectionId },
+		invalid,
+	): Promise<{ success: true } | { success: false; error: string }> => {
 		const user = verifyAuth();
 
 		const connection = await db().query.WishlistConnectionTable.findFirst({
@@ -94,14 +98,14 @@ export const syncWishlistConnection = command(
 			now.getTime() - connection.lastSyncedAt.getTime() < MIN_SYNC_GAP
 		) {
 			const nextSync = new Date(connection.lastSyncedAt.getTime() + MIN_SYNC_GAP);
-			return { success: false, error: `Next sync ${formatRelative(nextSync)}` };
+			return invalid(`Next sync ${formatRelative(nextSync)}`);
 		}
 
 		const { data: candidates, error: generationError } = await generateItemCandidates(
 			connection.url,
 		);
 
-		if (generationError) return { success: false, error: generationError };
+		if (generationError) return invalid(generationError);
 
 		const items = (candidates || []).flatMap((candidate) => {
 			const { success, data } = ItemSchema.safeParse(candidate);

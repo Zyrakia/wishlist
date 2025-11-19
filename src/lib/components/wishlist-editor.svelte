@@ -95,82 +95,80 @@
 	onMount(() => handler.validate());
 </script>
 
-<div class="flex h-full flex-col items-center justify-center bg-background">
-	<form
-		{...handler}
-		oninput={() => handler.validate({ preflightOnly: true })}
-		class="float-container flex flex-col gap-4 p-8"
-	>
-		<h1 class="text-2xl font-bold">{mode === 'edit' ? 'Edit' : 'Create'} Wishlist</h1>
+<form
+	{...handler}
+	oninput={() => handler.validate({ preflightOnly: true })}
+	class="float-container m-0 flex h-full w-full flex-col gap-4 p-8"
+>
+	<h1 class="text-2xl font-bold">{mode === 'edit' ? 'Edit' : 'Create'} Wishlist</h1>
 
-		<hr class="-mt-3" />
+	<hr class="-mt-3" />
 
-		<InputGroup label="Name" error={handler.fields.name.issues()}>
-			{#snippet control()}
-				<input required {...handler.fields.name.as('text')} />
-			{/snippet}
-		</InputGroup>
+	<InputGroup label="Name" error={handler.fields.name.issues()}>
+		{#snippet control()}
+			<input required {...handler.fields.name.as('text')} />
+		{/snippet}
+	</InputGroup>
 
-		<InputGroup label="Share Link" error={slugIssue}>
-			{#snippet control()}
-				<div class="flex w-full flex-row-reverse">
-					{#if hasJs()}
-						<div
-							class="ms-1.5 flex h-full w-8 items-center justify-center"
-							title={slugIssue ? 'Link is invalid' : 'Link is valid'}
-						>
-							{#if checkSlugTimeout}
-								<div class="h-full w-full p-1">
-									<Loader
-										pulseDur="1s"
-										pulseCount={2}
-										pulseStaggerDur="250ms"
-										thickness="2px"
-										color="var(--color-accent)"
-									/>
-								</div>
-							{:else if slugIssue}
-								<XIcon class="text-danger" />
-							{:else}
-								<CheckIcon class="text-success" />
-							{/if}
-						</div>
-					{/if}
-
-					<input
-						{...handler.fields.slug.as('text')}
-						onblur={patchSlug}
-						aria-invalid={slugIssue ? 'true' : 'false'}
-						value={handler.fields.slug.value()}
-						class="peer w-full flex-1 rounded-tl-none rounded-bl-none border-l-0"
-					/>
-
-					<span
-						class=":border-danger flex items-center rounded rounded-tr-none rounded-br-none border border-border-strong px-3 font-mono peer-aria-invalid:border-danger"
-						>/lists/</span
+	<InputGroup label="Share Link" error={slugIssue}>
+		{#snippet control()}
+			<div class="flex w-full flex-row-reverse">
+				{#if hasJs()}
+					<div
+						class="ms-1.5 flex h-full w-8 items-center justify-center"
+						title={slugIssue ? 'Link is invalid' : 'Link is valid'}
 					>
-				</div>
-			{/snippet}
-		</InputGroup>
+						{#if checkSlugTimeout}
+							<div class="h-full w-full p-1">
+								<Loader
+									pulseDur="1s"
+									pulseCount={2}
+									pulseStaggerDur="250ms"
+									thickness="2px"
+									color="var(--color-accent)"
+								/>
+							</div>
+						{:else if slugIssue}
+							<XIcon class="text-danger" />
+						{:else}
+							<CheckIcon class="text-success" />
+						{/if}
+					</div>
+				{/if}
 
-		<InputGroup label="Description" error={handler.fields.description.issues()}>
-			{#snippet control()}
-				<textarea rows="6" {...handler.fields.description.as('text')}></textarea>
-			{/snippet}
-		</InputGroup>
+				<input
+					{...handler.fields.slug.as('text')}
+					onblur={patchSlug}
+					aria-invalid={slugIssue ? 'true' : 'false'}
+					value={handler.fields.slug.value()}
+					class="peer w-full flex-1 rounded-tl-none rounded-bl-none border-l-0"
+				/>
 
-		<button {...handler.buttonProps} class="bg-success text-accent-fg">
-			{mode === 'create' ? 'Submit' : 'Save'}
-		</button>
+				<span
+					class=":border-danger flex items-center rounded rounded-tr-none rounded-br-none border border-border-strong px-3 font-mono peer-aria-invalid:border-danger"
+					>/lists/</span
+				>
+			</div>
+		{/snippet}
+	</InputGroup>
 
-		{#if generalIssue}
-			<p
-				class="w-max rounded bg-danger p-2 text-center text-sm font-bold"
-				in:fade={{ duration: 150 }}
-				out:fade={{ duration: 150 }}
-			>
-				{generalIssue}
-			</p>
-		{/if}
-	</form>
-</div>
+	<InputGroup label="Description" error={handler.fields.description.issues()}>
+		{#snippet control()}
+			<textarea rows="6" {...handler.fields.description.as('text')}></textarea>
+		{/snippet}
+	</InputGroup>
+
+	<button {...handler.buttonProps} class="bg-success text-accent-fg">
+		{mode === 'create' ? 'Submit' : 'Save'}
+	</button>
+
+	{#if generalIssue}
+		<p
+			class="w-max rounded bg-danger p-2 text-center text-sm font-bold"
+			in:fade={{ duration: 150 }}
+			out:fade={{ duration: 150 }}
+		>
+			{generalIssue}
+		</p>
+	{/if}
+</form>

@@ -2,11 +2,12 @@
 	import { type Snippet } from 'svelte';
 	import { type PageData } from './$types';
 	import { page } from '$app/state';
-	import { CircleArrowLeftIcon } from '@lucide/svelte';
+	import { CircleArrowLeftIcon, ExternalLinkIcon, LinkIcon } from '@lucide/svelte';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
+	const connections = $derived(wishlist.connections);
 	const description = $derived(wishlist.description.trim());
 	const badges = $derived(page.data.listHeaderBadge ?? []);
 
@@ -23,10 +24,21 @@
 			{/if}
 		</p>
 
-		{#if badges.length || !page.url.pathname.endsWith(data.wishlist.slug)}
+		{#if connections.length}{:else if isOwn && page.url.pathname.endsWith(wishlist.slug)}
+			<a
+				href="/lists/{wishlist.slug}/edit"
+				class="mt-3 flex items-center gap-2 text-base text-accent"
+			>
+				<LinkIcon size={18} />
+
+				Connect another list
+			</a>
+		{/if}
+
+		{#if badges.length || !page.url.pathname.endsWith(wishlist.slug)}
 			<div class="mt-4 flex flex-wrap items-center gap-4">
-				{#if !page.url.pathname.endsWith(data.wishlist.slug)}
-					<a title="Go Back" href="/lists/{data.wishlist.slug}">
+				{#if !page.url.pathname.endsWith(wishlist.slug)}
+					<a title="Go Back" href="/lists/{wishlist.slug}">
 						<CircleArrowLeftIcon />
 					</a>
 				{/if}
@@ -41,7 +53,7 @@
 	</div>
 
 	<div class="h-full w-full">
-		{#if description && page.url.pathname.endsWith(data.wishlist.slug)}
+		{#if description && page.url.pathname.endsWith(wishlist.slug)}
 			<div class="m-4 mb-0 rounded-sm border border-accent/50 bg-accent/10 p-4 shadow-sm">
 				<p class="text-base wrap-break-word whitespace-pre-wrap">
 					{description}
