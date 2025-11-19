@@ -1,21 +1,16 @@
 import { form, getRequestEvent } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
-import { ItemSchema } from '$lib/schemas/item';
 import { db } from '$lib/server/db';
 import { WishlistConnectionTable, WishlistItemTable } from '$lib/server/db/schema';
-import { generateItemCandidates } from '$lib/server/generation/item-generator';
-import { formatRelative } from '$lib/util/date';
-import { error, redirect } from '@sveltejs/kit';
+import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
-import { count, eq } from 'drizzle-orm';
-import ms from 'ms';
+import { count, eq, sql } from 'drizzle-orm';
 import z from 'zod';
-import { getWishlist, touchList } from './wishlist.remote';
+import { getWishlist } from './wishlist.remote';
 import { verifyAuth } from '$lib/server/auth';
 import { strBoolean } from '$lib/util/zod';
 import { cleanBaseName } from '$lib/util/url';
-
-const MIN_SYNC_GAP = ms('1h');
+import { syncListConnection } from '$lib/server/generation/connection-sync';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({
@@ -32,21 +27,34 @@ export const createWishlistConnection = form(
 		if (!wishlist || wishlist.userId !== user.id)
 			return error(400, 'Cannot create connection without wishlist');
 
-		const [{ count: activeConnections }] = await db()
+		const existingQuery = await db().query.WishlistConnectionTable.findFirst({
+			where: (t, { eq }) => eq(sql<string>`LOWER(${t.url})`, data.url.toLowerCase()),
+		});
+
+		const countQuery = await db()
 			.select({ count: count() })
 			.from(WishlistConnectionTable)
 			.where(eq(WishlistConnectionTable.wishlistId, wishlist?.id));
 
+		const [existing, [{ count: activeConnections }]] = await Promise.all([
+			existingQuery,
+			countQuery,
+		]);
+
+		if (existing) invalid('Connection with specified URL already exists');
 		if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
 
+		const id = randomUUID();
 		await db()
 			.insert(WishlistConnectionTable)
 			.values({
-				id: randomUUID(),
+				id: id,
 				wishlistId: wishlist.id,
 				provider: cleanBaseName(new URL(data.url)),
 				...data,
 			});
+
+		syncListConnection(id);
 	},
 );
 
@@ -72,17 +80,12 @@ export const deleteWishlistConnection = form(
 				.where(eq(WishlistConnectionTable.id, connectionId))
 				.run();
 		});
-
-		redirect(303, `/lists/${connection.wishlist.slug}`);
 	},
 );
 
 export const syncWishlistConnection = form(
 	z.object({ connectionId: z.string() }),
-	async (
-		{ connectionId },
-		invalid,
-	): Promise<{ success: true } | { success: false; error: string }> => {
+	async ({ connectionId }, invalid) => {
 		const user = verifyAuth();
 
 		const connection = await db().query.WishlistConnectionTable.findFirst({
@@ -92,42 +95,11 @@ export const syncWishlistConnection = form(
 
 		if (connection?.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
-		const now = new Date();
-		if (
-			connection.lastSyncedAt &&
-			now.getTime() - connection.lastSyncedAt.getTime() < MIN_SYNC_GAP
-		) {
-			const nextSync = new Date(connection.lastSyncedAt.getTime() + MIN_SYNC_GAP);
-			return invalid(`Next sync ${formatRelative(nextSync)}`);
+		const { success, error: syncError } = await syncListConnection(connection.id);
+		if (!success) {
+			if (isHttpError(syncError)) throw syncError;
+			else if (typeof syncError === 'string') invalid(syncError);
+			else throw syncError;
 		}
-
-		const { data: candidates, error: generationError } = await generateItemCandidates(
-			connection.url,
-		);
-
-		if (generationError) return invalid(generationError);
-
-		const items = (candidates || []).flatMap((candidate) => {
-			const { success, data } = ItemSchema.safeParse(candidate);
-			return success
-				? [{ id: randomUUID(), wishlistId: connection.wishlistId, ...data }]
-				: [];
-		});
-
-		db().transaction((tx) => {
-			tx.delete(WishlistItemTable)
-				.where(eq(WishlistItemTable.connectionId, connectionId))
-				.run();
-
-			tx.insert(WishlistItemTable).values(items).run();
-
-			tx.update(WishlistConnectionTable)
-				.set({ lastSyncedAt: now })
-				.where(eq(WishlistConnectionTable.id, connectionId))
-				.run();
-		});
-
-		touchList({ id: connection.wishlistId });
-		return { success: true };
 	},
 );

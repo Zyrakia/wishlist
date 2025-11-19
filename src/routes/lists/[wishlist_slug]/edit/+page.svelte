@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import InputGroup from '$lib/components/input-group.svelte';
 	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
 	import WishlistEditor from '$lib/components/wishlist-editor.svelte';
@@ -8,7 +9,12 @@
 	import { WishlistSchema } from '$lib/schemas/wishlist';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { cleanBaseName } from '$lib/util/url.js';
-	import { SparklesIcon } from '@lucide/svelte';
+	import {
+		BadgeQuestionMarkIcon,
+		ExternalLinkIcon,
+		ShoppingBagIcon,
+		SparklesIcon,
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -64,12 +70,21 @@
 						Connections can be used to sync a list of items on any website to your Wishii
 						list.
 					</p>
+
+					<a
+						href="/how/connect-amazon?return={encodeURIComponent(page.url.pathname)}"
+						class="button flex items-center gap-2 p-2 text-accent"
+					>
+						<BadgeQuestionMarkIcon class="text-success" />
+						Learn how to connect your <span class="font-bold text-warning">Amazon</span>
+						list!
+					</a>
 				{/if}
 			</div>
 
 			<form
 				{...connectionHandler}
-				class="flex flex-col gap-2 border-t pt-4"
+				class="flex flex-col gap-2 border-t border-border pt-4"
 				oninput={() => connectionHandler.validate()}
 			>
 				<InputGroup label="Name" error={connectionHandler.fields.name.issues()}>

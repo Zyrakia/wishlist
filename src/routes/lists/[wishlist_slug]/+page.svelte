@@ -6,6 +6,7 @@
 		Plus as AddIcon,
 		ClipboardCheck as CopiedIcon,
 		Settings2Icon as EditIcon,
+		LinkIcon,
 		Share2 as ShareIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
@@ -59,10 +60,7 @@
 
 <div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
 	{#if isOwn}
-		<a
-			class="button bg-success text-accent-fg"
-			href="/lists/{wishlist.slug}/item/generate"
-		>
+		<a class="button bg-success text-accent-fg" href="/lists/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>
@@ -107,7 +105,23 @@
 			<WishlistItem {item}>
 				{#snippet footer()}
 					{#if isOwn}
-						<WishlistItemToolbar itemId={item.id} wishlistSlug={wishlist.slug} />
+						{@const connection = wishlist.connections.find(
+							(v) => v.id === item.connectionId,
+						)}
+
+						{#if connection}
+							<p class="mt-2 flex items-center gap-2 text-text-muted">
+								<LinkIcon size={18} />
+
+								From
+
+								<a class="text-accent hover:underline" href={connection.url}>
+									{connection.name}
+								</a>
+							</p>
+						{:else}
+							<WishlistItemToolbar itemId={item.id} wishlistSlug={wishlist.slug} />
+						{/if}
 					{/if}
 				{/snippet}
 			</WishlistItem>

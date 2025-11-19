@@ -16,7 +16,7 @@ const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
 			return z.NEVER;
 		}
 
-		return candidate;
+		return url.href;
 	} catch (err) {
 		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: candidate });
 		return z.NEVER;

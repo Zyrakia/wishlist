@@ -31,7 +31,7 @@
 			>
 				<LinkIcon size={18} />
 
-				Connect another list
+				Connect your <span class="text-warning">Amazon</span> or other list
 			</a>
 		{/if}
 
