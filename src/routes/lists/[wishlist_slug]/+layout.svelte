@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import { CircleArrowLeftIcon, LinkIcon } from '@lucide/svelte';
 	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import { formatRelative } from '$lib/util/date';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -13,6 +15,7 @@
 	const badges = $derived(page.data.listHeaderBadge ?? []);
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
+	const hasJs = useHasJs();
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -35,9 +38,16 @@
 
 					<div class="flex flex-wrap gap-x-4 gap-y-1">
 						{#each connections as connection, i}
-							{@const isSyncing = data.syncingConnectionIds.includes(connection.id)}
+							{@const isSyncing =
+								hasJs() && data.syncingConnectionIds.includes(connection.id)}
 
-							<WishlistConnection {connection} syncing={isSyncing} />
+							<div
+								title="Last synced {connection.lastSyncedAt
+									? formatRelative(connection.lastSyncedAt)
+									: 'never'}"
+							>
+								<WishlistConnection {connection} syncing={isSyncing} />
+							</div>
 
 							{#if i !== connections.length - 1}
 								<div class="w-px bg-border"></div>

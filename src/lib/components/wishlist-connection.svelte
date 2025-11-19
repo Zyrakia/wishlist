@@ -20,14 +20,14 @@
 		manage?: { id: string; lastSync?: Date | null };
 	} = $props();
 
-	const syncTimeout = ms('1h');
+	const manualSyncTimeout = ms('1h');
 	const nextSync = $derived.by(() => {
 		if (!manage) return;
 
 		const lastSync = manage.lastSync;
 		if (!lastSync) return;
 
-		const msUntilSync = syncTimeout - (clock.now.getTime() - lastSync.getTime());
+		const msUntilSync = manualSyncTimeout - (clock.now.getTime() - lastSync.getTime());
 		if (msUntilSync) return new Date(clock.now.getTime() + msUntilSync);
 	});
 
