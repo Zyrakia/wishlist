@@ -1,6 +1,6 @@
 <script lang="ts">
 	let {
-		color = 'lightblue',
+		color = 'var(--color-accent)',
 		thickness = '5px',
 		pulseCount = 3,
 		pulseStaggerDur = '500ms',

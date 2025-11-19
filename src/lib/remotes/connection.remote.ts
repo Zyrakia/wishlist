@@ -1,4 +1,4 @@
-import { form, getRequestEvent } from '$app/server';
+import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { db } from '$lib/server/db';
 import { WishlistConnectionTable, WishlistItemTable } from '$lib/server/db/schema';
@@ -11,6 +11,7 @@ import { verifyAuth } from '$lib/server/auth';
 import { strBoolean } from '$lib/util/zod';
 import { cleanBaseName } from '$lib/util/url';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
+import ms from 'ms';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({
@@ -101,5 +102,23 @@ export const syncWishlistConnection = form(
 			else if (typeof syncError === 'string') invalid(syncError);
 			else throw syncError;
 		}
+	},
+);
+
+export const wasRecentlySynced = query(
+	z.object({
+		connectionIds: z.array(z.string()),
+		recentThresholdMs: z.number().default(ms('1m')),
+	}),
+	async ({ connectionIds, recentThresholdMs }) => {
+		if (!connectionIds.length) return true;
+		const recentCutoff = new Date(Date.now() - recentThresholdMs);
+
+		const recentSynced = await db().query.WishlistConnectionTable.findMany({
+			where: (t, { and, inArray, gte }) =>
+				and(inArray(t.id, connectionIds), gte(t.lastSyncedAt, recentCutoff)),
+		});
+
+		return recentSynced.length === connectionIds.length;
 	},
 );

@@ -9,12 +9,16 @@
 	import { asIssue } from '$lib/util/pick-issue';
 	import { ExternalLinkIcon, RefreshCwIcon, Trash2Icon } from '@lucide/svelte';
 	import ms from 'ms';
-
+	import Loader from './loader.svelte';
 	let {
 		connection,
+		syncing = false,
 		manage,
-	}: { connection: WishlistConnection; manage?: { id: string; lastSync?: Date | null } } =
-		$props();
+	}: {
+		connection: WishlistConnection;
+		syncing?: boolean;
+		manage?: { id: string; lastSync?: Date | null };
+	} = $props();
 
 	const syncTimeout = ms('1h');
 	const nextSync = $derived.by(() => {
@@ -30,8 +34,14 @@
 	const nextSyncLabel = $derived.by(() => (nextSync ? formatRelative(nextSync) : 'now'));
 </script>
 
-<div class="flex w-full flex-wrap items-center gap-2">
-	<ExternalLinkIcon size={18} />
+<div class="flex flex-wrap items-center gap-2">
+	{#if syncing}
+		<div title="Syncing this connection" class="size-4">
+			<Loader thickness="1px" pulseCount={2} pulseDur="1s" pulseStaggerDur="300ms" />
+		</div>
+	{:else}
+		<ExternalLinkIcon size={16} />
+	{/if}
 
 	<div>
 		<a href={connection.url} target="_blank" class="text-accent">{connection.name}</a>
@@ -50,6 +60,8 @@
 			deleteHandler.fields.issues() || asIssue(syncHandler.fields.issues()),
 		)}
 
+		{@const isSyncing = syncing || !!syncHandler.pending}
+
 		<div class="ms-auto flex gap-2">
 			<form {...deleteHandler}>
 				<input {...deleteHandler.fields.connectionId.as('hidden', manage.id)} />
@@ -66,10 +78,10 @@
 				<button
 					class="border-border/50 p-2"
 					title="Next sync available {nextSyncLabel}"
-					disabled={!!syncHandler.pending || !!nextSync}
+					disabled={isSyncing || !!nextSync}
 					{...syncHandler.buttonProps}
 				>
-					<RefreshCwIcon size={18} class={syncHandler.pending ? 'animate-spin' : ''} />
+					<RefreshCwIcon size={18} class={isSyncing ? 'animate-spin' : ''} />
 				</button>
 			</form>
 		</div>

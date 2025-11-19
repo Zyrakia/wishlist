@@ -2,7 +2,8 @@
 	import { type Snippet } from 'svelte';
 	import { type PageData } from './$types';
 	import { page } from '$app/state';
-	import { CircleArrowLeftIcon, ExternalLinkIcon, LinkIcon } from '@lucide/svelte';
+	import { CircleArrowLeftIcon, LinkIcon } from '@lucide/svelte';
+	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -24,15 +25,36 @@
 			{/if}
 		</p>
 
-		{#if connections.length}{:else if isOwn && page.url.pathname.endsWith(wishlist.slug)}
-			<a
-				href="/lists/{wishlist.slug}/edit"
-				class="mt-3 flex items-center gap-2 text-base text-accent"
-			>
-				<LinkIcon size={18} />
+		{#if page.url.pathname.endsWith(wishlist.slug)}
+			{#if connections.length}
+				<div class="pt-4">
+					<p class="flex items-center gap-2 font-bold">
+						<LinkIcon size={16} />
+						Connected to
+					</p>
 
-				Connect your <span class="text-warning">Amazon</span> or other list
-			</a>
+					<div class="flex flex-wrap gap-x-4 gap-y-1">
+						{#each connections as connection, i}
+							{@const isSyncing = data.syncingConnectionIds.includes(connection.id)}
+
+							<WishlistConnection {connection} syncing={isSyncing} />
+
+							{#if i !== connections.length - 1}
+								<div class="w-px bg-border"></div>
+							{/if}
+						{/each}
+					</div>
+				</div>
+			{:else if isOwn}
+				<a
+					href="/lists/{wishlist.slug}/edit"
+					class="mt-3 flex items-center gap-2 text-base text-accent"
+				>
+					<LinkIcon size={18} />
+
+					Connect your <span class="text-warning">Amazon</span> or other list
+				</a>
+			{/if}
 		{/if}
 
 		{#if badges.length || !page.url.pathname.endsWith(wishlist.slug)}
