@@ -6,10 +6,12 @@ import z from 'zod';
 import { createMistral } from '@ai-sdk/mistral';
 
 import ENV from '../env.server';
-import { safeCall } from '$lib/util/safe-call';
+import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
 
 const SYSTEM_PROMPT = `
 You are to extract the best product candidate from the given input.
+
+The input will be a stringified JSON object, containing extraction data from a webpage.
 
 If it is a single product page, the page title often indicates the name of the core product on the page.
 Please try your hardest to discern every single candidate on the page, it is your only goal.
@@ -51,8 +53,7 @@ const CandidateSchema = z.object({
 	url: z.url().optional(),
 });
 
-async function scrollToBottom(page: Page) {
-	const maxScrolls = 5;
+async function scrollToBottom(page: Page, maxScrolls: number) {
 	const waitMs = 1000;
 
 	let lastHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -68,10 +69,18 @@ async function scrollToBottom(page: Page) {
 	}
 }
 
-async function renderUrl(url: string) {
+interface RenderOptions {
+	maxScrolls?: number;
+}
+
+interface DistillOptions {
+	stripRelativeLinks?: boolean;
+}
+
+async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
 	const UA = devices['Desktop Chrome'].userAgent;
 
-	const browser = await chromium.launch({ headless: false });
+	const browser = await chromium.launch({ headless: true });
 	const page = await browser.newPage({
 		userAgent: UA,
 		locale: 'en-US',
@@ -84,19 +93,13 @@ async function renderUrl(url: string) {
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
 		if (!res || res.status() !== 200) return;
 
-		await scrollToBottom(page);
-
+		if (maxScrolls) await scrollToBottom(page, maxScrolls);
 		return await page.content();
 	} catch (err) {
 		console.warn(err);
-		return;
 	} finally {
 		await page.close().then(() => browser.close());
 	}
-}
-
-interface DistillOptions {
-	stripRelativeLinks?: boolean;
 }
 
 function distillPage(
@@ -174,23 +177,21 @@ function distillPage(
 	return JSON.stringify({ pageTitle, pageDescription, meta, images, textContent });
 }
 
-type Result<R, E> = { data: R; error: null } | { data: null; error: E };
+const distillUrl = wrapSafeAsync(
+	async (url: string, renderOptions?: RenderOptions, distillOptions?: DistillOptions) => {
+		const { data: parsedUrl, success: isValidUrl } = safeCall(() => new URL(url));
+		if (!isValidUrl) throw 'Invalid URL';
 
-async function distillUrl(url: string, opts?: DistillOptions): Promise<Result<string, string>> {
-	const { data: parsedUrl } = safeCall(() => new URL(url));
-	if (!parsedUrl) return { data: null, error: 'Invalid URL' };
+		const html = await renderUrl(parsedUrl.href, renderOptions);
+		if (!html) throw 'Cannot load page';
 
-	const html = await renderUrl(url);
-	if (!html) return { data: null, error: 'Cannot load page' };
+		return distillPage(html, parsedUrl.origin, distillOptions);
+	},
+);
 
-	return { data: distillPage(html, parsedUrl.origin, opts), error: null };
-}
-
-export async function generateItemCandidate(
-	url: string,
-): Promise<Result<z.infer<typeof CandidateSchema>, string>> {
+export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
 	const { data: page, error } = await distillUrl(url);
-	if (error) return { data: null, error };
+	if (error) throw error;
 
 	try {
 		const { object: candidate } = await generateObject({
@@ -205,29 +206,31 @@ export async function generateItemCandidate(
 			],
 		});
 
-		if (!candidate?.valid) return { data: null, error: 'No product found' };
-
-		return { data: candidate, error: null };
+		if (!candidate?.valid) throw 'No product found';
+		return candidate;
 	} catch (err) {
 		console.warn(err);
+
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			return { data: null, error: 'Generation temporarily unavailable' };
+			throw 'Generation temporarily unavailable';
 		}
 
-		return { data: null, error: 'Generation failed' };
+		throw 'Generation failed';
 	}
-}
+});
 
-export async function generateItemCandidates(
-	url: string,
-): Promise<Result<z.infer<typeof CandidateSchema>[], string>> {
-	const { data: page, error } = await distillUrl(url, { stripRelativeLinks: false });
-	if (error) return { data: null, error };
+export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
+	const { data: page, error } = await distillUrl(
+		url,
+		{ maxScrolls: 3 },
+		{ stripRelativeLinks: false },
+	);
+
+	if (error) throw error;
 
 	try {
 		const {
 			object: { result: candidates },
-			usage,
 		} = await generateObject({
 			model: modelHost('mistral-small-latest'),
 			schema: z.object({ result: z.array(CandidateSchema) }),
@@ -244,13 +247,13 @@ export async function generateItemCandidates(
 			],
 		});
 
-		return { data: candidates.filter((v) => v.valid), error: null };
+		return candidates.filter((v) => v.valid);
 	} catch (err) {
 		console.warn(err);
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			return { data: null, error: 'Generation temporarily unavailable' };
+			throw 'Generation temporarily unavailable';
 		}
 
-		return { data: null, error: 'Generation failed' };
+		throw 'Generation failed';
 	}
-}
+});

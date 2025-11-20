@@ -124,7 +124,7 @@ export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (da
 		if (!candidate.name || !candidate.valid) {
 			invalid('No product found');
 		} else return { ...candidate, url: data.url };
-	} else invalid(error);
+	} else if (typeof error === 'string') invalid(error);
 });
 
 export const generateItems = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
@@ -133,5 +133,5 @@ export const generateItems = form(z.object({ url: RequiredUrlSchema }), async (d
 	const { data: candidates, error } = await generateItemCandidates(data.url);
 	if (candidates) {
 		return { candidates, url: data.url };
-	} else invalid(error);
+	} else if (typeof error === 'string') invalid(error);
 });
