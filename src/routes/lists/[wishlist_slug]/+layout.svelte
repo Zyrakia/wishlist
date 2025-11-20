@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { type Snippet } from 'svelte';
+	import { onMount, untrack, type Snippet } from 'svelte';
 	import { type PageData } from './$types';
 	import { page } from '$app/state';
 	import { CircleArrowLeftIcon, LinkIcon } from '@lucide/svelte';
 	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { formatRelative } from '$lib/util/date';
+	import { invalidateAll } from '$app/navigation';
+	import { wasRecentlySynced } from '$lib/remotes/connection.remote';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -16,6 +18,28 @@
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 	const hasJs = useHasJs();
+
+	const checkSyncStatus = async () => {
+		const ids = data.syncingConnectionIds;
+
+		const complete = await wasRecentlySynced({ connectionIds: ids });
+		if (complete) {
+			await invalidateAll();
+			clearInterval(pollInterval);
+		}
+	};
+
+	let pollInterval: NodeJS.Timeout | undefined;
+	$effect(() => {
+		const ids = data.syncingConnectionIds;
+		if (!ids.length) return;
+
+		pollInterval = setInterval(() => untrack(checkSyncStatus), 5000);
+		return () => {
+			clearInterval(pollInterval);
+			pollInterval = undefined;
+		};
+	});
 </script>
 
 <div class="flex h-full w-full flex-col">

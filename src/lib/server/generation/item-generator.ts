@@ -1,6 +1,6 @@
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
-import { chromium, devices } from 'playwright';
+import { chromium, devices, type Page } from 'playwright';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
@@ -12,29 +12,30 @@ const SYSTEM_PROMPT = `
 You are to extract the best product candidate from the given input.
 
 If it is a single product page, the page title often indicates the name of the core product on the page.
+Please try your hardest to discern every single candidate on the page, it is your only goal.
 
 **Name Formatting Guidelines**
 - MUST be below 30 characters (including whitespace and punctuation), so please summarize the name diligently
-- Keep the core product identity—what a person would call it.
-- Remove redundant details: sizes, color codes, SKUs, store names, promo text, “New,” duplicates.
+- Keep the core product identity - what a person would call it when referencing it conversation.
+- Remove redundant details: sizes, color codes, SKUs, store names, promo text, "New," duplicates.
 - Keep essential identifiers like brand + model, but not descriptors of function or appearance of the product.
 - Avoid truncation that removes necessary context; prefer the shortest clear form when multiple appear.
 
 **General Extraction Rules**
 - Prefer clearly grouped name-price-image clusters over isolated mentions.
 - For product grids, treat each item as a separate candidate.
-- If the page centers on a single product, return one candidate.
 - Ignore unrelated text like menus, reviews, ads, shipping details.
-- Select prices most likely to be the actual selling price; avoid list/per-unit/off-sale unless clearly the main price.
+- Select prices most likely to be the actual current selling price; avoid list/per-unit/off-sale unless clearly the main price.
 - Infer currency via explicit symbols/codes, metadata, or URL/locale hints; otherwise default to USD.
 - Prefer a clear standalone product image near the name or price.
+- When multiple candidates are available, take extra care to ensure you do not mix up images and names between the items.
 
 If you find an item that satisfies all criteria, most likely being a candidate,
 summarize it and make sure to set "valid" to \`true\` on the candidate.
 
 **Output Requirements**
 - A name is always required for a candidate to exist
-- All other properties are optional, and should only be included if they are associated with the candidate.
+- All other properties are optional, and should only be included if they are confidently associated with the candidate.
 - If a candidate was found, summarize it in the requested shape and ensure you set "valid" to \`true\`.
 - If there was no candidate found at all, do not return any of the fields besides "valid" set to \`false\`.
 `;
@@ -50,10 +51,27 @@ const CandidateSchema = z.object({
 	url: z.url().optional(),
 });
 
+async function scrollToBottom(page: Page) {
+	const maxScrolls = 5;
+	const waitMs = 1000;
+
+	let lastHeight = await page.evaluate(() => document.body.scrollHeight);
+
+	for (let i = 0; i < maxScrolls; i++) {
+		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+		await page.waitForTimeout(waitMs);
+
+		const newHeight = await page.evaluate(() => document.body.scrollHeight);
+		if (newHeight === lastHeight) break;
+
+		lastHeight = newHeight;
+	}
+}
+
 async function renderUrl(url: string) {
 	const UA = devices['Desktop Chrome'].userAgent;
 
-	const browser = await chromium.launch({ headless: true });
+	const browser = await chromium.launch({ headless: false });
 	const page = await browser.newPage({
 		userAgent: UA,
 		locale: 'en-US',
@@ -65,6 +83,8 @@ async function renderUrl(url: string) {
 	try {
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
 		if (!res || res.status() !== 200) return;
+
+		await scrollToBottom(page);
 
 		return await page.content();
 	} catch (err) {

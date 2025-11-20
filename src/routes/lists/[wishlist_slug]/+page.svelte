@@ -12,8 +12,6 @@
 	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
-	import { wasRecentlySynced } from '$lib/remotes/connection.remote';
-	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -58,22 +56,6 @@
 	};
 
 	onMount(() => (shareEnabled = !!navigator.share || !!navigator.clipboard));
-
-	onMount(() => {
-		const ids = data.syncingConnectionIds;
-		if (!ids.length) return;
-
-		const checkSyncStatus = async () => {
-			const complete = await wasRecentlySynced({ connectionIds: ids });
-			if (complete) {
-				await invalidateAll();
-				clearInterval(pollInterval);
-			}
-		};
-
-		const pollInterval = setInterval(checkSyncStatus, 5000);
-		return () => clearInterval(pollInterval);
-	});
 </script>
 
 <div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
