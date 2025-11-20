@@ -47,12 +47,14 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
+		await db().update(WishlistConnectionTable).set({ connectError: true });
+
 		throw 'Cannot find any items, is the list private?';
 	}
 
 	db().transaction((tx) => {
 		tx.update(WishlistConnectionTable)
-			.set({ lastSyncedAt: now })
+			.set({ lastSyncedAt: now, connectError: null })
 			.where(eq(WishlistConnectionTable.id, connectionId))
 			.run();
 

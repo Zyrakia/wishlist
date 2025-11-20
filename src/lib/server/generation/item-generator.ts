@@ -1,17 +1,17 @@
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
-import z from 'zod';
+import z, { $output } from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
 import ENV from '../env.server';
 import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
+import TurndownService from 'turndown';
+import { reportGenerationUsage } from './usage-stats';
 
 const SYSTEM_PROMPT = `
 You are to extract the best product candidate from the given input.
-
-The input will be a stringified JSON object, containing extraction data from a webpage.
 
 If it is a single product page, the page title often indicates the name of the core product on the page.
 Please try your hardest to discern every single candidate on the page, it is your only goal.
@@ -102,6 +102,13 @@ async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
 	}
 }
 
+const turndownService = new TurndownService({
+	headingStyle: 'atx',
+	codeBlockStyle: 'fenced',
+	hr: '---',
+	bulletListMarker: '-',
+});
+
 function distillPage(
 	html: string,
 	baseUrl: string,
@@ -109,10 +116,9 @@ function distillPage(
 ) {
 	const $ = cheerio(html);
 
-	const pageTitle = $('title').text();
-	const pageDescription = $('meta[name="description"]').attr('content');
+	const pageTitle = $('title').text().trim();
+	const meta: Record<string, string> = { title: pageTitle };
 
-	const meta: Record<string, string> = {};
 	$('meta').each((_, el) => {
 		const $el = $(el);
 		const property = $el.attr('name') || $el.attr('property');
@@ -127,54 +133,66 @@ function distillPage(
 		}
 	});
 
-	$('script, style, noscript, link, meta, head').remove();
+	$('script, style, noscript, iframe, svg, canvas, form, link, meta, button').remove();
 	$('nav, footer, header, aside').remove();
 	$('[role="navigation"], [role="banner"], [role="contentinfo"]').remove();
+	$('.nav, #navFooter, .menu, .footer, .header').remove();
+	$('.cookie-banner, .ads, .ad').remove();
+	$('.reviews, #reviews, .customerReviews, #customerReviews').remove();
 
-	const contentHolder = $('main').length ? $('main') : $('body');
+	$('img').each((_, el) => {
+		const img = $(el);
 
-	const images = contentHolder
-		.find('img')
-		.map((_, el) => {
-			const $el = $(el);
+		const src = img.attr('src');
+		const alt = img.attr('alt');
 
-			const src = $el.attr('src');
-			const alt = $el.attr('alt') || '';
-
-			if (!src || !alt) return;
-
-			try {
-				const absoluteSrc = new URL(src, baseUrl).href;
-				return { src: absoluteSrc, alt };
-			} catch (err) {}
-		})
-		.get();
-
-	contentHolder.find('a').replaceWith(function () {
-		const link = $(this);
-		const text = link.text();
-		let href = link.attr('href');
-
-		if (!text || !href) return '';
-		if (!href.startsWith('https')) {
-			if (stripRelativeLinks) return '';
-			try {
-				href = new URL(href, baseUrl).href;
-			} catch (err) {
-				return '';
+		if (src && alt) {
+			const { data: absoluteSrc } = safeCall(() => new URL(src, baseUrl).href);
+			if (absoluteSrc) {
+				img.attr('src', absoluteSrc);
+				return;
 			}
 		}
 
-		return `[${text}](${href})`;
+		img.remove();
 	});
 
-	const textContent = contentHolder
-		.text()
-		.replace(/\n\s+/g, '\n')
-		.replace(/\s\s{3,}/g, '\n')
-		.trim();
+	$('a').each((_, el) => {
+		const link = $(el);
+		const text = link.text();
+		const href = link.attr('href');
 
-	return JSON.stringify({ pageTitle, pageDescription, meta, images, textContent });
+		if (text && href) {
+			if (href.startsWith('https')) return;
+			if (stripRelativeLinks) return void link.remove();
+
+			const { data: absoluteHref } = safeCall(() => new URL(href, baseUrl).href);
+			if (absoluteHref) {
+				link.attr('href', absoluteHref);
+				return;
+			}
+		}
+
+		link.remove();
+	});
+
+	let contentHolder = $('main');
+	if (contentHolder.length === 0) contentHolder = $('article');
+	if (contentHolder.length === 0) contentHolder = $('body');
+
+	const contentHtml = contentHolder.html();
+	if (!contentHtml) return;
+
+	const markdownContent = turndownService.turndown(contentHtml);
+
+	return `
+--- METADATA ---
+${Object.entries(meta)
+	.map(([k, v]) => `- ${k}: ${v}`)
+	.join('\n')}
+
+--- PAGE ---
+${markdownContent.replace(/\n{2,}/g, '\n').trim()}`;
 }
 
 const distillUrl = wrapSafeAsync(
@@ -185,16 +203,19 @@ const distillUrl = wrapSafeAsync(
 		const html = await renderUrl(parsedUrl.href, renderOptions);
 		if (!html) throw 'Cannot load page';
 
-		return distillPage(html, parsedUrl.origin, distillOptions);
+		const distilled = distillPage(html, parsedUrl.origin, distillOptions);
+		if (!distilled) throw 'Cannot read page';
+
+		return distilled;
 	},
 );
 
 export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
-	const { data: page, error } = await distillUrl(url);
-	if (error) throw error;
+	const { data: page, success, error } = await distillUrl(url);
+	if (!success) throw error;
 
 	try {
-		const { object: candidate } = await generateObject({
+		const { object: candidate, usage } = await generateObject({
 			model: modelHost('mistral-small-latest'),
 			schema: CandidateSchema,
 			maxRetries: 0,
@@ -202,9 +223,11 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
 				{ role: 'system', content: SYSTEM_PROMPT },
 				{ role: 'system', content: 'You are to extract only the single best candidate.' },
 				{ role: 'user', content: `URL: ${url}` },
-				{ role: 'user', content: `Distilled Page Data:\n${page}` },
+				{ role: 'user', content: page },
 			],
 		});
+
+		reportGenerationUsage(url, usage);
 
 		if (!candidate?.valid) throw 'No product found';
 		return candidate;
@@ -220,17 +243,18 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
 });
 
 export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
-	const { data: page, error } = await distillUrl(
-		url,
-		{ maxScrolls: 3 },
-		{ stripRelativeLinks: false },
-	);
+	const {
+		data: page,
+		success,
+		error,
+	} = await distillUrl(url, { maxScrolls: 3 }, { stripRelativeLinks: false });
 
-	if (error) throw error;
+	if (!success) throw error;
 
 	try {
 		const {
 			object: { result: candidates },
+			usage,
 		} = await generateObject({
 			model: modelHost('mistral-small-latest'),
 			schema: z.object({ result: z.array(CandidateSchema) }),
@@ -243,9 +267,11 @@ export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
 						'You are to extract all the candidates you can find (while following the guidelines for each). Place all of the valid candidates into the result array.',
 				},
 				{ role: 'user', content: `URL: ${url}` },
-				{ role: 'user', content: `Distilled Page Data:\n${page}` },
+				{ role: 'user', content: page },
 			],
 		});
+
+		reportGenerationUsage(url, usage);
 
 		return candidates.filter((v) => v.valid);
 	} catch (err) {
