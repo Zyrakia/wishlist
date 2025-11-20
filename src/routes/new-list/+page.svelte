@@ -6,4 +6,8 @@
 	const remote = createWishlist.preflight(WishlistSchema);
 </script>
 
-<WishlistEditor handler={remote} />
+<div class="flex h-full items-center justify-center">
+	<div class="h-max w-full flex justify-center">
+		<WishlistEditor handler={remote} />
+	</div>
+</div>
