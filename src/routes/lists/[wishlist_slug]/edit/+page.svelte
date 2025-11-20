@@ -9,12 +9,7 @@
 	import { WishlistSchema } from '$lib/schemas/wishlist';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { cleanBaseName } from '$lib/util/url.js';
-	import {
-		BadgeQuestionMarkIcon,
-		ExternalLinkIcon,
-		ShoppingBagIcon,
-		SparklesIcon,
-	} from '@lucide/svelte';
+	import { BadgeQuestionMarkIcon } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -55,6 +50,7 @@
 							<li class="w-full pb-2">
 								<WishlistConnection
 									{connection}
+									syncing={data.syncingConnectionIds.includes(connection.id)}
 									manage={{
 										id: connection.id,
 										lastSync: connection.lastSyncedAt,
@@ -75,9 +71,14 @@
 						href="/how/connect-amazon?return={encodeURIComponent(page.url.pathname)}"
 						class="button flex items-center gap-2 p-2 text-accent"
 					>
-						<BadgeQuestionMarkIcon class="text-success" />
-						Learn how to connect your <span class="font-bold text-warning">Amazon</span>
-						list!
+						<BadgeQuestionMarkIcon class="shrink-0 text-success" />
+
+						<div>
+							Learn how to connect your <span class="font-bold text-warning">
+								Amazon
+							</span>
+							list!
+						</div>
 					</a>
 				{/if}
 			</div>
