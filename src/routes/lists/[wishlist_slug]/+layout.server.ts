@@ -19,6 +19,7 @@ export const load: LayoutServerLoad = async ({ params }) => {
 	const now = new Date();
 	const staleConnectionIds = wishlist.connections
 		.filter((v) => {
+			if (v.syncError) return false;
 			if (!v.lastSyncedAt) return true;
 			return now.getTime() - v.lastSyncedAt.getTime() > STALE_THRESHOLD;
 		})

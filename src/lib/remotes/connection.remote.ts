@@ -98,27 +98,33 @@ export const syncWishlistConnection = form(
 
 		const { success, error: syncError } = await syncListConnection(connection.id);
 		if (!success) {
-			if (isHttpError(syncError)) throw syncError;
-			else if (typeof syncError === 'string') invalid(syncError);
+			if (typeof syncError === 'string') invalid(syncError);
 			else throw syncError;
 		}
 	},
 );
 
-export const wasRecentlySynced = query(
+export const checkSyncStatus = query(
 	z.object({
 		connectionIds: z.array(z.string()),
 		recentThresholdMs: z.number().default(ms('1m')),
 	}),
 	async ({ connectionIds, recentThresholdMs }) => {
-		if (!connectionIds.length) return true;
+		if (!connectionIds.length) return [];
 		const recentCutoff = new Date(Date.now() - recentThresholdMs);
 
 		const recentSynced = await db().query.WishlistConnectionTable.findMany({
-			where: (t, { and, inArray, gte }) =>
-				and(inArray(t.id, connectionIds), gte(t.lastSyncedAt, recentCutoff)),
+			where: (t, { and, inArray, gte, or, eq }) =>
+				and(
+					inArray(t.id, connectionIds),
+					or(gte(t.lastSyncedAt, recentCutoff), eq(t.syncError, true)),
+				),
 		});
 
-		return recentSynced.length === connectionIds.length;
+		return recentSynced.map((v) => ({
+			id: v.id,
+			lastSync: v.lastSyncedAt,
+			error: v.syncError,
+		}));
 	},
 );

@@ -7,7 +7,7 @@
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { formatRelative } from '$lib/util/date';
 	import { invalidateAll } from '$app/navigation';
-	import { wasRecentlySynced } from '$lib/remotes/connection.remote';
+	import { checkSyncStatus } from '$lib/remotes/connection.remote';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -19,13 +19,14 @@
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 	const hasJs = useHasJs();
 
-	const checkSyncStatus = async () => {
+	const updateSyncStatus = async () => {
 		const ids = data.syncingConnectionIds;
 
-		const complete = await wasRecentlySynced({ connectionIds: ids });
-		if (complete) {
+		const updatedStatus = await checkSyncStatus({ connectionIds: ids });
+		if (updatedStatus.length) {
 			await invalidateAll();
-			clearInterval(pollInterval);
+			if (updatedStatus.length === data.syncingConnectionIds.length)
+				clearInterval(pollInterval);
 		}
 	};
 
@@ -34,7 +35,7 @@
 		const ids = data.syncingConnectionIds;
 		if (!ids.length) return;
 
-		pollInterval = setInterval(() => untrack(checkSyncStatus), 5000);
+		pollInterval = setInterval(() => untrack(updateSyncStatus), 5000);
 		return () => {
 			clearInterval(pollInterval);
 			pollInterval = undefined;
@@ -70,7 +71,11 @@
 									? formatRelative(connection.lastSyncedAt)
 									: 'never'}"
 							>
-								<WishlistConnection {connection} syncing={isSyncing} />
+								<WishlistConnection
+									{connection}
+									syncing={isSyncing}
+									showLastSync={false}
+								/>
 							</div>
 
 							{#if i !== connections.length - 1}

@@ -33,6 +33,7 @@ export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
 	name: text().notNull(),
 	url: text().notNull(),
 	provider: text().notNull(),
+	syncError: integer({ mode: 'boolean' }),
 	lastSyncedAt: integer({ mode: 'timestamp' }),
 	createdAt: autoTimestampColumn,
 });
