@@ -24,13 +24,11 @@
 
 {#snippet stepTwo()}
 	<p class="text-lg text-text-muted">
-		You can share your wishlist as
+		You must share your wishlist as
 
 		<br />
 
-		"<span class="font-semibold text-success">VIEW ONLY</span>" or "<span
-			class="font-semibold text-success">VIEW AND EDIT</span
-		>".
+		"<span class="font-semibold text-danger">VIEW ONLY</span>"
 	</p>
 {/snippet}
 
@@ -75,12 +73,12 @@
 	<p class="flex items-center gap-4 border-t border-border py-6 text-lg">
 		<InfoIcon class="shrink-0 text-accent" size={32} />
 
-		Connections are updated automatically whenever someone visits your Wishlist (max once
-		per day), or when you update them manually in your wishlist settings.
+		Connections are updated automatically whenever someone visits your Wishlist (max once per
+		day), or when you update them manually in your wishlist settings.
 
-        <br />
-        <br />
+		<br />
+		<br />
 
-        The sync process may take up to 30 seconds.
+		The sync process may take up to 30 seconds.
 	</p>
 </div>

@@ -160,8 +160,8 @@
 >
 	{#if showPreview}
 		<aside
-			class="pane {pageState === 'generate-confirm'
-				? 'flex-8/12'
+			class="pane {pageState !== 'form'
+				? 'flex-6/12'
 				: 'flex-4/12'} grid place-items-center bg-background p-4 px-6"
 		>
 			<div class="snap relative w-full max-w-2xl rounded-xl bg-surface p-4 shadow-md">
@@ -183,16 +183,14 @@
 							</p>
 
 							{#if genTitle}
-								<div class="flex w-full justify-center gap-2">
+								<div class="grid max-w-10/12 grid-cols-[max-content_1fr] gap-2">
 									{#if genFavicon}
 										<img src={genFavicon} class="aspect-square w-6" alt="" />
 									{:else}
 										<GlobeIcon />
 									{/if}
 
-									<p
-										class="max-w-10/12 overflow-hidden text-nowrap text-ellipsis"
-									>
+									<p class="truncate">
 										{genTitle}
 									</p>
 								</div>
@@ -330,7 +328,7 @@
 						<h1 class="text-2xl">Is this right?</h1>
 
 						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
-							<div class="relative">
+							<div class="relative mb-10 md:mb-0">
 								<button
 									class="flex items-center gap-2 bg-success text-accent-fg"
 									{...submitButtonProps}

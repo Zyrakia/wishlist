@@ -51,10 +51,7 @@
 								<WishlistConnection
 									{connection}
 									syncing={data.syncingConnectionIds.includes(connection.id)}
-									manage={{
-										id: connection.id,
-										lastSync: connection.lastSyncedAt,
-									}}
+									manage
 								/>
 							</li>
 						{/each}

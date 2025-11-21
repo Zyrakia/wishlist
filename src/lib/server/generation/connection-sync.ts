@@ -7,7 +7,7 @@ import { generateItemCandidates } from './item-generator';
 import { ItemSchema } from '$lib/schemas/item';
 import { randomUUID } from 'crypto';
 import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
-import { count, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { touchList } from '$lib/remotes/wishlist.remote';
 
 const SYNC_DELAY = ms('1h');
@@ -26,11 +26,19 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		throw `Next sync ${formatRelative(nextSync)}`;
 	}
 
-	const { data: candidates, error: generationError } = await generateItemCandidates(
-		connection.url,
-	);
+	const {
+		data: candidates,
+		success: generationSuccess,
+		error: generationError,
+	} = await generateItemCandidates(connection.url);
 
-	if (generationError !== null) throw generationError;
+	if (!generationSuccess) {
+		await db()
+			.update(WishlistConnectionTable)
+			.set({ syncError: true })
+			.where(eq(WishlistConnectionTable, connectionId));
+		throw generationError;
+	}
 
 	const items = (candidates || []).flatMap((candidate) => {
 		const { success, data } = ItemSchema.safeParse(candidate);
@@ -47,12 +55,16 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
+		await db()
+			.update(WishlistConnectionTable)
+			.set({ syncError: true })
+			.where(eq(WishlistConnectionTable, connectionId));
 		throw 'Cannot find any items, is the list private?';
 	}
 
 	db().transaction((tx) => {
 		tx.update(WishlistConnectionTable)
-			.set({ lastSyncedAt: now })
+			.set({ lastSyncedAt: now, syncError: false })
 			.where(eq(WishlistConnectionTable.id, connectionId))
 			.run();
 

@@ -50,6 +50,13 @@
       "when": 1763472735314,
       "tag": "0006_late_rocket_raccoon",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1763656430318,
+      "tag": "0007_lumpy_the_watchers",
+      "breakpoints": true
     }
   ]
 }
