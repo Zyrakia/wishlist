@@ -3,8 +3,11 @@ import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 
 import type { LayoutServerLoad } from './$types';
+import { verifyAuth } from '$lib/server/auth';
 
 export const load: LayoutServerLoad = async ({ params, locals }) => {
+	verifyAuth();
+
 	const circle = await db().query.CircleTable.findFirst({
 		where: (t, { eq }) => eq(t.id, params.circle_id),
 		with: { owner: { columns: { id: true, name: true } } },
