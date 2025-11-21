@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { touchList } from '$lib/remotes/wishlist.remote';
+import { safePrune } from '$lib/util/safe-prune';
 
 const SYNC_DELAY = ms('1h');
 
@@ -41,17 +42,19 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	}
 
 	const items = (candidates || []).flatMap((candidate) => {
-		const { success, data } = ItemSchema.safeParse(candidate);
-		return success
-			? [
-					{
-						id: randomUUID(),
-						wishlistId: connection.wishlistId,
-						connectionId: connection.id,
-						...data,
-					},
-				]
-			: [];
+		if (!candidate.name || !candidate.valid) return [];
+
+		const data = safePrune(ItemSchema, candidate);
+		return [
+			{
+				id: randomUUID(),
+				wishlistId: connection.wishlistId,
+				connectionId: connection.id,
+				name: data.name || 'No Product Name',
+				notes: data.notes || '',
+				...data,
+			},
+		];
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {

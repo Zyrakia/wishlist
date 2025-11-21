@@ -1,7 +1,7 @@
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
-import z, { $output } from 'zod';
+import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
@@ -10,51 +10,29 @@ import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
 import TurndownService from 'turndown';
 import { reportGenerationUsage } from './usage-stats';
 
-const SYSTEM_PROMPT = `
-You are to extract the best product candidate from the given input.
-
-If it is a single product page, the page title often indicates the name of the core product on the page.
-Please try your hardest to discern every single candidate on the page, it is your only goal.
-
-**Name Formatting Guidelines**
-- MUST be below 30 characters (including whitespace and punctuation), so please summarize the name diligently
-- Keep the core product identity - what a person would call it when referencing it conversation.
-- Remove redundant details: sizes, color codes, SKUs, store names, promo text, "New," duplicates.
-- Keep essential identifiers like brand + model, but not descriptors of function or appearance of the product.
-- Avoid truncation that removes necessary context; prefer the shortest clear form when multiple appear.
-
-**General Extraction Rules**
-- Prefer clearly grouped name-price-image clusters over isolated mentions.
-- For product grids, treat each item as a separate candidate.
-- Ignore unrelated text like menus, reviews, ads, shipping details.
-- Select prices most likely to be the actual current selling price; avoid list/per-unit/off-sale unless clearly the main price.
-- Infer currency via explicit symbols/codes, metadata, or URL/locale hints; otherwise default to USD.
-- Prefer a clear standalone product image near the name or price.
-- When multiple candidates are available, take extra care to ensure you do not mix up images and names between the items.
-
-If you find an item that satisfies all criteria, most likely being a candidate,
-summarize it and make sure to set "valid" to \`true\` on the candidate.
-
-**Output Requirements**
-- A name is always required for a candidate to exist
-- All other properties are optional, and should only be included if they are confidently associated with the candidate.
-- If a candidate was found, summarize it in the requested shape and ensure you set "valid" to \`true\`.
-- If there was no candidate found at all, do not return any of the fields besides "valid" set to \`false\`.
-`;
+import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
 const CandidateSchema = z.object({
 	valid: z.boolean(),
 	name: z.string().optional(),
-	imageUrl: z.string().optional(),
-	price: z.number().optional(),
-	priceCurrency: z.string().length(3).toUpperCase().optional(),
-	url: z.url().optional(),
+	imageUrl: z.string().optional().nullish(),
+	price: z.number().optional().nullish(),
+	priceCurrency: z.string().length(3).toUpperCase().optional().nullish(),
+	url: z.url().optional().nullish(),
 });
 
+interface RenderOptions {
+	maxScrolls?: number;
+}
+
+interface DistillOptions {
+	stripRelativeLinks?: boolean;
+}
+
 async function scrollToBottom(page: Page, maxScrolls: number) {
-	const waitMs = 1000;
+	const waitMs = 2000;
 
 	let lastHeight = await page.evaluate(() => document.body.scrollHeight);
 
@@ -69,24 +47,13 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	}
 }
 
-interface RenderOptions {
-	maxScrolls?: number;
-}
-
-interface DistillOptions {
-	stripRelativeLinks?: boolean;
-}
-
 async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
-	const UA = devices['Desktop Chrome'].userAgent;
-
 	const browser = await chromium.launch({ headless: true });
 	const page = await browser.newPage({
-		userAgent: UA,
 		locale: 'en-US',
 		timezoneId: 'America/New_York',
-		viewport: { width: 1366, height: 768 },
 		extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+		...devices['iPhone 15 Pro Max'],
 	});
 
 	try {
