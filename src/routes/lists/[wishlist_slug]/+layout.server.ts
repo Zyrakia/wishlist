@@ -5,13 +5,10 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import ms from 'ms';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
-import { verifyAuth } from '$lib/server/auth';
 
 const STALE_THRESHOLD = ms('24h');
 
 export const load: LayoutServerLoad = async ({ params }) => {
-	verifyAuth();
-
 	const wishlist = await db().query.WishlistTable.findFirst({
 		where: (t, { eq }) => eq(t.slug, params.wishlist_slug),
 		with: { items: true, connections: true, user: { columns: { name: true } } },
