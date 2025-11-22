@@ -19,7 +19,7 @@ const TokenSchema = z.object({
 	rollingStartMs: z.number(),
 });
 
-type Token = z.infer<typeof TokenSchema>;
+export type SessionToken = z.infer<typeof TokenSchema>;
 
 export const verifyAuth = ({
 	check,
@@ -51,7 +51,7 @@ export const verifyAuth = ({
 	return user;
 };
 
-export const issueToken = async (token: Token) => {
+export const issueToken = async (token: SessionToken) => {
 	return await new SignJWT(token)
 		.setProtectedHeader({ alg: 'HS256' })
 		.setIssuedAt()
@@ -70,11 +70,15 @@ export const setSession = (cookies: Cookies, value: string) => {
 	Cookie.session(cookies).set(value);
 };
 
-export const rollingReadSession = async (cookies: Cookies) => {
+export const readSession = async (cookies: Cookies) => {
 	const token = Cookie.session(cookies).read();
 	if (!token) return;
 
-	const payload = await readToken(token);
+	return await readToken(token);
+};
+
+export const rollingReadSession = async (cookies: Cookies) => {
+	const payload = await readSession(cookies);
 	if (!payload) return;
 
 	const now = Date.now();

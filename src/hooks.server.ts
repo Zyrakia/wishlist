@@ -1,12 +1,15 @@
-import { getMySession } from '$lib/remotes/auth.remote';
+import { rollingReadSession } from '$lib/server/auth';
 import { Cookie } from '$lib/server/cookies';
 import { DefaultTheme } from '$lib/util/theme';
 
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	event.locals.user = await getMySession();
+	const session = await rollingReadSession(event.cookies);
+	if (session) event.locals.user = { id: session.sub, name: session.name };
+
 	const theme = Cookie.theme(event.cookies).read() || DefaultTheme;
+
 	return await resolve(event, {
 		transformPageChunk: ({ html }) =>
 			html.replace(

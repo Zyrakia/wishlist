@@ -15,6 +15,5 @@ export const load: PageServerLoad = async ({ params }) => {
 	});
 
 	const me = await resolveMySession();
-
 	return { invite, me };
 };

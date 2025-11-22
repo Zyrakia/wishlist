@@ -3,10 +3,10 @@ import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from 
 import {
 	createAccountAction,
 	issueToken,
-	rollingReadSession,
 	resolveAccountAction,
 	setSession,
 	verifyAuth,
+	readSession,
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
@@ -21,18 +21,14 @@ import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
 
-export const getMySession = query(async () => {
-	const { cookies } = getRequestEvent();
-	const payload = await rollingReadSession(cookies);
-	if (payload) return { id: payload.sub, name: payload.name };
-});
-
 export const resolveMySession = query(async () => {
-	const me = await getMySession();
-	if (!me) return;
+	const cookies = getRequestEvent().cookies;
+
+	const session = await readSession(cookies);
+	if (!session) return;
 
 	return await db().query.UserTable.findFirst({
-		where: (t, { eq }) => eq(t.id, me.id),
+		where: (t, { eq }) => eq(t.id, session.sub),
 	});
 });
 
