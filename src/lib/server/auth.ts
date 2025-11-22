@@ -11,12 +11,12 @@ import { db } from './db';
 import { AccountActionTable } from './db/schema';
 import ENV from './env.server';
 
-const COOKIE_NAME = 'session';
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
 
 const TokenSchema = z.object({
 	sub: z.string(),
 	name: z.string(),
+	rollingStartMs: z.number(),
 });
 
 type Token = z.infer<typeof TokenSchema>;
@@ -70,11 +70,23 @@ export const setSession = (cookies: Cookies, value: string) => {
 	Cookie.session(cookies).set(value);
 };
 
-export const readSession = async (cookies: Cookies) => {
+export const rollingReadSession = async (cookies: Cookies) => {
 	const token = Cookie.session(cookies).read();
 	if (!token) return;
 
-	return readToken(token);
+	const payload = await readToken(token);
+	if (!payload) return;
+
+	const now = Date.now();
+	if (now - payload.rollingStartMs > ENV.JWT_MAX_LIFETIME.milliseconds) {
+		clearSession(cookies);
+		return;
+	}
+
+	const refreshed = await issueToken({ ...payload });
+	setSession(cookies, refreshed);
+
+	return payload;
 };
 
 export const clearSession = (cookies: Cookies) => {

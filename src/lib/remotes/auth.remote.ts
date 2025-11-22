@@ -3,7 +3,7 @@ import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from 
 import {
 	createAccountAction,
 	issueToken,
-	readSession,
+	rollingReadSession,
 	resolveAccountAction,
 	setSession,
 	verifyAuth,
@@ -21,14 +21,14 @@ import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
 
-export const tryGetMe = query(async () => {
+export const getMySession = query(async () => {
 	const { cookies } = getRequestEvent();
-	const payload = await readSession(cookies);
+	const payload = await rollingReadSession(cookies);
 	if (payload) return { id: payload.sub, name: payload.name };
 });
 
-export const tryResolveMe = query(async () => {
-	const me = await tryGetMe();
+export const resolveMySession = query(async () => {
+	const me = await getMySession();
 	if (!me) return;
 
 	return await db().query.UserTable.findFirst({
@@ -76,7 +76,7 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 		password: passwordHash,
 	});
 
-	const token = await issueToken({ sub: id, name: username });
+	const token = await issueToken({ sub: id, name: username, rollingStartMs: Date.now() });
 	setSession(cookies, token);
 
 	const { data: returnUrl } = ReturnUrlSchema.safeParse(url.searchParams.get('redirect'));
@@ -98,7 +98,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const passwordValid = await compare(password, user.password);
 	if (!passwordValid) invalid('Invalid credentials');
 
-	const token = await issueToken({ sub: user.id, name: user.name });
+	const token = await issueToken({ sub: user.id, name: user.name, rollingStartMs: Date.now() });
 	setSession(cookies, token);
 
 	const { data: returnUrl } = ReturnUrlSchema.safeParse(url.searchParams.get('redirect'));
@@ -161,7 +161,7 @@ export const changeEmailStart = form(
 		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'));
 		const { url } = getRequestEvent();
 
-		await db().transaction
+		await db().transaction;
 		const emailResult = await sendEmail(email, {
 			template: {
 				id: '89718909-12de-4156-b766-5989ae2ab206',
