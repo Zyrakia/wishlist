@@ -184,7 +184,7 @@ export const revokeCircleInvite = form(z.object({ inviteId: z.string() }), async
 export const resolveCircleInvite = form(
 	z.object({ inviteId: z.string(), decision: z.enum(['accept', 'decline']) }),
 	async ({ inviteId, decision }, invalid) => {
-		const user = await resolveMe();
+		const user = await resolveMe({});
 		if (!user) error(401);
 
 		const invite = await db().query.CircleInviteTable.findFirst({
@@ -262,7 +262,7 @@ export const removeCircleMember = form(z.object({ targetId: z.string() }), async
 });
 
 export const getMyInvites = query(async () => {
-	const user = await resolveMe();
+	const user = await resolveMe({});
 	if (!user) return [];
 
 	return await db().query.CircleInviteTable.findMany({

@@ -6,6 +6,7 @@ import {
 	readSession,
 	resolveAccountAction,
 	setSession,
+	verifyAuth,
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
@@ -18,22 +19,43 @@ import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 
-export const getMe = query(async () => {
+export const tryGetMe = query(async () => {
 	const { cookies } = getRequestEvent();
 	const payload = await readSession(cookies);
 	if (payload) return { id: payload.sub, name: payload.name };
 });
 
-export const resolveMe = query(async () => {
-	const me = await getMe();
+export const tryResolveMe = query(async () => {
+	const me = await tryGetMe();
 	if (!me) return;
 
 	return await db().query.UserTable.findFirst({
 		where: (t, { eq }) => eq(t.id, me.id),
 	});
 });
+
+const failStratSchema = z.enum(['login', 'register', 'error']).optional();
+export const getMe = query(
+	z.object({ failStrategy: failStratSchema }),
+	async ({ failStrategy }) => {
+		return verifyAuth({ failStrategy });
+	},
+);
+
+export const resolveMe = query(
+	z.object({ failStrategy: failStratSchema }),
+	async ({ failStrategy }) => {
+		const me = verifyAuth({ failStrategy });
+
+		const user = await db().query.UserTable.findFirst({
+			where: (t, { eq }) => eq(t.id, me.id),
+		});
+
+		return user!;
+	},
+);
 
 export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
@@ -91,7 +113,7 @@ export const resetPasswordStart = form(
 		});
 
 		if (user) {
-			const { token, expiresAt } = await createAccountAction(user.id, ms('10m'));
+			const { token, expiresAt } = await createAccountAction(user.id, ms('11m'));
 			const { url } = getRequestEvent();
 
 			const emailResult = await sendEmail(email, {
@@ -124,5 +146,46 @@ export const resetPassword = form(
 			.where(eq(UserTable.id, user.userId));
 
 		redirect(303, `/login?updated=password`);
+	},
+);
+
+export const changeName = form(CredentialsSchema.pick({ username: true }), async ({ username }) => {
+	const me = verifyAuth();
+	await db().update(UserTable).set({ name: username }).where(eq(UserTable.id, me.id));
+});
+
+export const changeEmailStart = form(
+	CredentialsSchema.pick({ email: true }),
+	async ({ email }, invalid) => {
+		const me = await resolveMe({});
+		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'));
+		const { url } = getRequestEvent();
+
+		await db().transaction
+		const emailResult = await sendEmail(email, {
+			template: {
+				id: '89718909-12de-4156-b766-5989ae2ab206',
+				variables: {
+					RESET_LINK: `${url.protocol}//${url.host}/account?mode=changeEmail&token=${token}`,
+					EXPIRES_AT: formatRelative(expiresAt),
+				},
+			},
+		});
+
+		if (!emailResult.success) {
+			return invalid('Please try again later, emails are down.');
+		}
+	},
+);
+
+export const changeEmail = form(
+	CredentialsSchema.pick({ email: true }).extend({ token: z.string() }),
+	async ({ email, token }) => {
+		const me = await resolveAccountAction(token);
+		if (!me) error(401);
+
+		await db().update(UserTable).set({ email: email }).where(eq(UserTable.id, me.userId));
+
+		redirect(303, '/account?mode=emailChanged');
 	},
 );

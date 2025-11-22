@@ -6,6 +6,11 @@ import { verifyAuth } from '$lib/server/auth';
 export const load: PageServerLoad = async () => {
 	const user = verifyAuth();
 
-	const loadData = await Promise.all([getWishlists(), getCirclesActivity(), getMyInvites()]);
-	return { user, wishlists: loadData[0], circles: loadData[1], invites: loadData[2] };
+	const [wishlists, circles, invites] = await Promise.all([
+		getWishlists(),
+		getCirclesActivity(),
+		getMyInvites(),
+	]);
+
+	return { user, wishlists, circles, invites };
 };

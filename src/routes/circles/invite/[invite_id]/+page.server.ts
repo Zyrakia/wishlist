@@ -1,4 +1,4 @@
-import { resolveMe } from '$lib/remotes/auth.remote';
+import { tryResolveMe } from '$lib/remotes/auth.remote';
 import { db } from '$lib/server/db';
 
 import type { PageServerLoad } from './$types';
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		},
 	});
 
-	const me = await resolveMe();
+	const me = await tryResolveMe();
 
 	return { invite, me };
 };

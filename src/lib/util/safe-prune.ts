@@ -14,3 +14,7 @@ export function safePrune<T extends z.ZodObject<any>>(schema: T, data: any): Par
 
 	return output as Partial<z.infer<T>>;
 }
+
+export function safePruneParams<T extends z.ZodObject<any>>(schema: T, data: URLSearchParams) {
+	return safePrune(schema, Object.fromEntries(data.entries()));
+}
