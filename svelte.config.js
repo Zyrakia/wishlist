@@ -10,7 +10,7 @@ const config = {
 		experimental: { remoteFunctions: true },
 	},
 
-	compilerOptions: { runes: true, experimental: { async: true } },
+	compilerOptions: { runes: true },
 };
 
 export default config;

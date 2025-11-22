@@ -37,7 +37,8 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		await db()
 			.update(WishlistConnectionTable)
 			.set({ syncError: true })
-			.where(eq(WishlistConnectionTable, connectionId));
+			.where(eq(WishlistConnectionTable.id, connectionId));
+
 		throw generationError;
 	}
 
@@ -61,7 +62,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		await db()
 			.update(WishlistConnectionTable)
 			.set({ syncError: true })
-			.where(eq(WishlistConnectionTable, connectionId));
+			.where(eq(WishlistConnectionTable.id, connectionId));
 		throw 'Cannot find any items, is the list private?';
 	}
 

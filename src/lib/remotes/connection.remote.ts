@@ -114,17 +114,14 @@ export const checkSyncStatus = query(
 		const recentCutoff = new Date(Date.now() - recentThresholdMs);
 
 		const recentSynced = await db().query.WishlistConnectionTable.findMany({
-			where: (t, { and, inArray, gte, or, eq }) =>
+			where: (t, { and, inArray, gte, or }) =>
 				and(
 					inArray(t.id, connectionIds),
 					or(gte(t.lastSyncedAt, recentCutoff), eq(t.syncError, true)),
 				),
+			columns: { id: true, lastSyncedAt: true, syncError: true },
 		});
 
-		return recentSynced.map((v) => ({
-			id: v.id,
-			lastSync: v.lastSyncedAt,
-			error: v.syncError,
-		}));
+		return recentSynced;
 	},
 );

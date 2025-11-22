@@ -126,12 +126,3 @@ export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (da
 		} else return { ...candidate, url: data.url };
 	} else if (typeof error === 'string') invalid(error);
 });
-
-export const generateItems = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
-	verifyAuth();
-
-	const { data: candidates, error } = await generateItemCandidates(data.url);
-	if (candidates) {
-		return { candidates, url: data.url };
-	} else if (typeof error === 'string') invalid(error);
-});

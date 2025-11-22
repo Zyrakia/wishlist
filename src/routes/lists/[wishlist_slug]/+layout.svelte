@@ -22,10 +22,14 @@
 	const updateSyncStatus = async () => {
 		const ids = data.syncingConnectionIds;
 
-		const updatedStatus = await checkSyncStatus({ connectionIds: ids });
-		if (updatedStatus.length) {
+		const syncStatuses = await checkSyncStatus({ connectionIds: ids });
+		if (syncStatuses.length) {
 			await invalidateAll();
-			if (updatedStatus.length === data.syncingConnectionIds.length)
+
+			if (
+				syncStatuses.every((v) => !v.syncError) &&
+				syncStatuses.length === data.syncingConnectionIds.length
+			)
 				clearInterval(pollInterval);
 		}
 	};
