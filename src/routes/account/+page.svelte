@@ -58,7 +58,10 @@
 			{/each}
 		</div>
 
-		<a class="button mt-auto bg-danger text-center dark:text-accent-fg" href="/logout">Logout</a
-		>
+		<span class="text-text-muted italic">Change email, name and password coming soon!</span>
+
+		<a class="button mt-auto bg-danger text-center dark:text-accent-fg" href="/logout">
+			Logout
+		</a>
 	</div>
 </div>
