@@ -17,6 +17,7 @@ import { cleanBaseName } from '$lib/util/url';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
 import ms from 'ms';
 import { requestGeolocation } from '$lib/server/util/geolocation';
+import { getRequestAddress } from '$lib/server/util/request';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({
@@ -25,7 +26,6 @@ export const createWishlistConnection = form(
 	async (data, invalid) => {
 		const {
 			params: { wishlist_slug },
-			getClientAddress,
 		} = getRequestEvent();
 		if (!wishlist_slug) error(400, 'Cannot create connection without wishlist');
 
@@ -55,7 +55,7 @@ export const createWishlistConnection = form(
 		if (existing) invalid('Connection with specified URL already exists');
 		if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
 
-		const geo = await requestGeolocation(getClientAddress());
+		const geo = await requestGeolocation(getRequestAddress(getRequestEvent()));
 		const createdGeoId = geo ? randomUUID() : undefined;
 		if (geo && createdGeoId) {
 			await db()

@@ -15,6 +15,7 @@ import { db } from '../server/db';
 import { GeolocationTable, WishlistItemTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
 import { requestGeolocation } from '$lib/server/util/geolocation';
+import { getRequestAddress } from '$lib/server/util/request';
 
 export const createItem = form(
 	ItemSchema.extend({
@@ -120,8 +121,7 @@ export const deleteItem = form(
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	const { getClientAddress } = getRequestEvent();
-	const geo = await requestGeolocation(getClientAddress());
+	const geo = await requestGeolocation(getRequestAddress(getRequestEvent()));
 
 	const { data: candidate, error } = await generateItemCandidate(data.url, geo);
 	if (candidate) {
