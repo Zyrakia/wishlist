@@ -13,6 +13,13 @@ export const UserTable = sqliteTable('user', {
 	createdAt: autoTimestampColumn,
 });
 
+export const GeolocationTable = sqliteTable('geolocation', {
+	id: text().primaryKey(),
+	latitude: real().notNull(),
+	longitude: real().notNull(),
+	timemzone: text(),
+});
+
 export const WishlistTable = sqliteTable('wishlist', {
 	id: text().primaryKey(),
 	userId: text()
@@ -35,6 +42,7 @@ export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
 	provider: text().notNull(),
 	syncError: integer({ mode: 'boolean' }),
 	lastSyncedAt: integer({ mode: 'timestamp' }),
+	createdGeoId: text().references(() => GeolocationTable.id, { onDelete: 'set null' }),
 	createdAt: autoTimestampColumn,
 });
 
@@ -129,6 +137,10 @@ export const _WishlistConnectionRelations = relations(WishlistConnectionTable, (
 		references: [WishlistTable.id],
 	}),
 	items: many(WishlistItemTable),
+	createdGeolocation: one(GeolocationTable, {
+		fields: [WishlistConnectionTable.createdGeoId],
+		references: [GeolocationTable.id],
+	}),
 }));
 
 export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => ({

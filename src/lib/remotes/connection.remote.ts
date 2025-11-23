@@ -1,7 +1,11 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { db } from '$lib/server/db';
-import { WishlistConnectionTable, WishlistItemTable } from '$lib/server/db/schema';
+import {
+	GeolocationTable,
+	WishlistConnectionTable,
+	WishlistItemTable,
+} from '$lib/server/db/schema';
 import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 import { count, eq, sql } from 'drizzle-orm';
@@ -12,6 +16,7 @@ import { strBoolean } from '$lib/util/zod';
 import { cleanBaseName } from '$lib/util/url';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
 import ms from 'ms';
+import { requestGeolocation } from '$lib/server/util/geolocation';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({
@@ -20,6 +25,7 @@ export const createWishlistConnection = form(
 	async (data, invalid) => {
 		const {
 			params: { wishlist_slug },
+			getClientAddress,
 		} = getRequestEvent();
 		if (!wishlist_slug) error(400, 'Cannot create connection without wishlist');
 
@@ -29,7 +35,11 @@ export const createWishlistConnection = form(
 			return error(400, 'Cannot create connection without wishlist');
 
 		const existingQuery = await db().query.WishlistConnectionTable.findFirst({
-			where: (t, { eq }) => eq(sql<string>`LOWER(${t.url})`, data.url.toLowerCase()),
+			where: (t, { and, eq }) =>
+				and(
+					eq(sql<string>`LOWER(${t.url})`, data.url.toLowerCase()),
+					eq(t.wishlistId, wishlist.id),
+				),
 		});
 
 		const countQuery = await db()
@@ -45,6 +55,17 @@ export const createWishlistConnection = form(
 		if (existing) invalid('Connection with specified URL already exists');
 		if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
 
+		const geo = await requestGeolocation(getClientAddress());
+		const createdGeoId = geo ? randomUUID() : undefined;
+		if (geo && createdGeoId) {
+			await db()
+				.insert(GeolocationTable)
+				.values({
+					id: createdGeoId,
+					...geo,
+				});
+		}
+
 		const id = randomUUID();
 		await db()
 			.insert(WishlistConnectionTable)
@@ -52,6 +73,7 @@ export const createWishlistConnection = form(
 				id: id,
 				wishlistId: wishlist.id,
 				provider: cleanBaseName(new URL(data.url)),
+				createdGeoId: createdGeoId,
 				...data,
 			});
 
@@ -74,6 +96,12 @@ export const deleteWishlistConnection = form(
 			if (deleteItems) {
 				tx.delete(WishlistItemTable)
 					.where(eq(WishlistItemTable.connectionId, connectionId))
+					.run();
+			}
+
+			if (connection.createdGeoId) {
+				tx.delete(GeolocationTable)
+					.where(eq(GeolocationTable.id, connection.createdGeoId))
 					.run();
 			}
 

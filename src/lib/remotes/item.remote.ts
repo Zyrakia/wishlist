@@ -12,8 +12,9 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 import { db } from '../server/db';
-import { WishlistItemTable } from '../server/db/schema';
+import { GeolocationTable, WishlistItemTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
+import { requestGeolocation } from '$lib/server/util/geolocation';
 
 export const createItem = form(
 	ItemSchema.extend({
@@ -119,7 +120,10 @@ export const deleteItem = form(
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	const { data: candidate, error } = await generateItemCandidate(data.url);
+	const { getClientAddress } = getRequestEvent();
+	const geo = await requestGeolocation(getClientAddress());
+
+	const { data: candidate, error } = await generateItemCandidate(data.url, geo);
 	if (candidate) {
 		if (!candidate.name || !candidate.valid) {
 			invalid('No product found');

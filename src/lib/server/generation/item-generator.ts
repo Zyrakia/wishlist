@@ -11,6 +11,8 @@ import TurndownService from 'turndown';
 import { reportGenerationUsage } from './usage-stats';
 
 import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
+import type { Geolocation } from '../util/geolocation';
+import { dev } from '$app/environment';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
@@ -25,6 +27,7 @@ const CandidateSchema = z.object({
 
 interface RenderOptions {
 	maxScrolls?: number;
+	geolocation?: Geolocation;
 }
 
 interface DistillOptions {
@@ -32,13 +35,15 @@ interface DistillOptions {
 }
 
 async function scrollToBottom(page: Page, maxScrolls: number) {
-	const waitMs = 2000;
+	// const waitMs = 2000;
 
 	let lastHeight = await page.evaluate(() => document.body.scrollHeight);
 
 	for (let i = 0; i < maxScrolls; i++) {
 		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-		await page.waitForTimeout(waitMs);
+
+		await page.waitForLoadState('networkidle');
+		// await page.waitForTimeout(waitMs);
 
 		const newHeight = await page.evaluate(() => document.body.scrollHeight);
 		if (newHeight === lastHeight) break;
@@ -47,13 +52,16 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	}
 }
 
-async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
-	const browser = await chromium.launch({ headless: true });
+async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions = {}) {
+	const browser = await chromium.launch({ headless: !dev });
 	const page = await browser.newPage({
 		locale: 'en-US',
-		timezoneId: 'America/New_York',
+		timezoneId: geolocation?.timezone ? geolocation.timezone : 'America/New_York',
 		extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
 		...devices['iPhone 15 Pro Max'],
+		geolocation: geolocation
+			? { latitude: geolocation.latitude, longitude: geolocation.longitude }
+			: undefined,
 	});
 
 	try {
@@ -177,8 +185,8 @@ const distillUrl = wrapSafeAsync(
 	},
 );
 
-export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
-	const { data: page, success, error } = await distillUrl(url);
+export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Geolocation) => {
+	const { data: page, success, error } = await distillUrl(url, { geolocation: from });
 	if (!success) throw error;
 
 	try {
@@ -209,12 +217,12 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
 	}
 });
 
-export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
+export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: Geolocation) => {
 	const {
 		data: page,
 		success,
 		error,
-	} = await distillUrl(url, { maxScrolls: 3 }, { stripRelativeLinks: false });
+	} = await distillUrl(url, { maxScrolls: 3, geolocation: from }, { stripRelativeLinks: false });
 
 	if (!success) throw error;
 
