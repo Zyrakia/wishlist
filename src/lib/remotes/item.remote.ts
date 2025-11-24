@@ -1,10 +1,7 @@
 import { form, getRequestEvent } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
-import {
-	generateItemCandidate,
-	generateItemCandidates,
-} from '$lib/server/generation/item-generator';
+import { generateItemCandidate } from '$lib/server/generation/item-generator';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
@@ -12,10 +9,9 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 import { db } from '../server/db';
-import { GeolocationTable, WishlistItemTable } from '../server/db/schema';
+import { WishlistItemTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
 import { requestGeolocation } from '$lib/server/util/geolocation';
-import { getRequestAddress } from '$lib/server/util/request';
 
 export const createItem = form(
 	ItemSchema.extend({
@@ -121,7 +117,7 @@ export const deleteItem = form(
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	const geo = await requestGeolocation(getRequestAddress(getRequestEvent()));
+	const geo = await requestGeolocation(getRequestEvent().getClientAddress());
 
 	const { data: candidate, error } = await generateItemCandidate(data.url, geo);
 	if (candidate) {
