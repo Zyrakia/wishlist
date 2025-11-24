@@ -10,7 +10,8 @@ export const GeolocationSchema = z.object({
 export type Geolocation = z.infer<typeof GeolocationSchema>;
 
 const GeoResponseSchema = z.object({
-	success: z.literal(true),
+	status: z.enum(['success', 'fail']),
+	message: z.string().optional(),
 	lat: z.number(),
 	lon: z.number(),
 	timezone: z.string().optional().nullable(),
@@ -27,11 +28,13 @@ export const requestGeolocation = async (clientAddress: string) => {
 		return;
 	}
 
-	const url = `http://ip-api.com/json/${clientAddress}?fields=status,lat,lon,timezone`;
+	const url = `http://ip-api.com/json/${encodeURIComponent(clientAddress)}?fields=49600`;
 	try {
 		const res = await fetch(url).then((res) => res.json());
 
 		const geo = GeoResponseSchema.parse(await res.json());
+		if (geo.status === 'fail') throw geo.message;
+
 		return {
 			latitude: geo.lat,
 			longitude: geo.lon,
