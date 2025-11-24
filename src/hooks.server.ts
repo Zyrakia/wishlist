@@ -1,5 +1,6 @@
 import { rollingReadSession } from '$lib/server/auth';
 import { Cookie } from '$lib/server/cookies';
+import { getRequestAddress } from '$lib/server/util/request';
 import { DefaultTheme } from '$lib/util/theme';
 
 import type { Handle } from '@sveltejs/kit';
@@ -9,6 +10,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (session) event.locals.user = { id: session.sub, name: session.name };
 
 	const theme = Cookie.theme(event.cookies).read() || DefaultTheme;
+
+	console.log(getRequestAddress(event), '-', event.route);
 
 	return await resolve(event, {
 		transformPageChunk: ({ html }) =>
