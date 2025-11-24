@@ -65,9 +65,14 @@ async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions
 		});
 
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
-		if (!res) throw 'Invalid URL';
-		else if (res.status() !== 200) {
-			throw `Invalid status while rendering: ${res.status()} (${res.statusText()})`;
+		if (!res) {
+			console.warn(`Could not goto "${url}"`);
+			return;
+		} else if (res.status() !== 200) {
+			console.warn(`Invalid status while rendering "${url}" (${res.status()})`);
+			console.warn('Response Headers:');
+			console.warn(res.headers());
+			return;
 		}
 
 		if (maxScrolls) await scrollToBottom(page, maxScrolls);
