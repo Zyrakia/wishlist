@@ -64,7 +64,8 @@ async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions
 
 	try {
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
-		if (!res || res.status() !== 200) return;
+		if (!res || res.status() !== 200)
+			throw `Invalid status while rendering: ${res?.status()} (${res?.statusText()})`;
 
 		if (maxScrolls) await scrollToBottom(page, maxScrolls);
 		return await page.content();
