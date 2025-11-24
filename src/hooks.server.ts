@@ -10,10 +10,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const theme = Cookie.theme(event.cookies).read() || DefaultTheme;
 
-	if (event.route.id !== '/status') {
-		console.log(event.getClientAddress(), '-', event.route.id);
-	}
-
 	return await resolve(event, {
 		transformPageChunk: ({ html }) =>
 			html.replace(
