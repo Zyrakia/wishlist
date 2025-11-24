@@ -35,15 +35,13 @@ interface DistillOptions {
 }
 
 async function scrollToBottom(page: Page, maxScrolls: number) {
-	// const waitMs = 2000;
-
 	let lastHeight = await page.evaluate(() => document.body.scrollHeight);
 
 	for (let i = 0; i < maxScrolls; i++) {
 		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
 		await page.waitForLoadState('networkidle');
-		// await page.waitForTimeout(waitMs);
+		await page.waitForTimeout(1000);
 
 		const newHeight = await page.evaluate(() => document.body.scrollHeight);
 		if (newHeight === lastHeight) break;
@@ -222,7 +220,7 @@ export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: G
 		data: page,
 		success,
 		error,
-	} = await distillUrl(url, { maxScrolls: 3, geolocation: from }, { stripRelativeLinks: false });
+	} = await distillUrl(url, { maxScrolls: 5, geolocation: from }, { stripRelativeLinks: false });
 
 	if (!success) throw error;
 
