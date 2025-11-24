@@ -52,27 +52,30 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 
 async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions = {}) {
 	const browser = await chromium.launch({ headless: !dev });
-	const page = await browser.newPage({
-		locale: 'en-US',
-		timezoneId: geolocation?.timezone ? geolocation.timezone : 'America/New_York',
-		extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-		...devices['iPhone 15 Pro Max'],
-		geolocation: geolocation
-			? { latitude: geolocation.latitude, longitude: geolocation.longitude }
-			: undefined,
-	});
 
 	try {
+		const page = await browser.newPage({
+			locale: 'en-US',
+			timezoneId: geolocation?.timezone || 'America/New_York',
+			extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+			...devices['iPhone 15 Pro Max'],
+			geolocation: geolocation
+				? { latitude: geolocation.latitude, longitude: geolocation.longitude }
+				: undefined,
+		});
+
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
-		if (!res || res.status() !== 200)
-			throw `Invalid status while rendering: ${res?.status()} (${res?.statusText()})`;
+		if (!res) throw 'Invalid URL';
+		else if (res.status() !== 200) {
+			throw `Invalid status while rendering: ${res.status()} (${res.statusText()})`;
+		}
 
 		if (maxScrolls) await scrollToBottom(page, maxScrolls);
 		return await page.content();
 	} catch (err) {
 		console.warn(err);
 	} finally {
-		await page.close().then(() => browser.close());
+		await browser.close();
 	}
 }
 
