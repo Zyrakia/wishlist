@@ -209,9 +209,8 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Ge
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
 			throw 'Generation temporarily unavailable';
-		}
-
-		throw 'Generation failed';
+		} else if (typeof err === 'string') throw err;
+		else throw 'Generation failed';
 	}
 });
 
@@ -249,10 +248,10 @@ export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: G
 		return candidates.filter((v) => v.valid);
 	} catch (err) {
 		console.warn(err);
+
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
 			throw 'Generation temporarily unavailable';
-		}
-
-		throw 'Generation failed';
+		} else if (typeof err === 'string') throw err;
+		else throw 'Generation failed';
 	}
 });
