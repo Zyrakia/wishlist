@@ -32,7 +32,7 @@ export const requestGeolocation = async (clientAddress: string) => {
 	try {
 		const res = await fetch(url).then((res) => res.json());
 
-		const geo = GeoResponseSchema.parse(await res.json());
+		const geo = GeoResponseSchema.parse(res);
 		if (geo.status === 'fail') throw geo.message;
 
 		return {
