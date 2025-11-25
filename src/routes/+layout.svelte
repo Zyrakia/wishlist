@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -25,6 +26,17 @@
 
 	$effect(() => void (theme = data.savedTheme || DefaultTheme));
 	$effect(() => void (document.documentElement.dataset.theme = theme));
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition) return;
+
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <svelte:head>
@@ -67,7 +79,7 @@
 	class:*:duration-300={changingTheme}
 	data-theme={theme}
 >
-	<main class="row-start-1 md:row-start-2">
+	<main class="z-0 row-start-1 md:row-start-2">
 		{@render children()}
 	</main>
 
@@ -137,3 +149,82 @@
 		</header>
 	{/if}
 </div>
+
+<style>
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
+
+	main {
+		view-transition-name: main;
+	}
+
+	header {
+		view-transition-name: header;
+	}
+
+	::view-transition-old(main) {
+		animation: main-out 140ms ease-out forwards;
+	}
+
+	::view-transition-new(main) {
+		animation: main-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		::view-transition-old(main),
+		::view-transition-new(main) {
+			animation: none;
+		}
+
+		::view-transition-old(header),
+		::view-transition-new(header) {
+			animation: none;
+		}
+	}
+
+	@keyframes main-out {
+		from {
+			opacity: 1;
+			transform: translateY(0);
+		}
+		to {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+	}
+
+	@keyframes main-in {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	::view-transition-old(header) {
+		animation: header-out;
+	}
+
+	::view-transition-new(header) {
+		animation: header-in;
+	}
+
+	@keyframes header-out {
+		from {
+		}
+		to {
+		}
+	}
+
+	@keyframes header-in {
+		from {
+		}
+		to {
+		}
+	}
+</style>
