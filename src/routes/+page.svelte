@@ -3,6 +3,7 @@
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { resolveCircleInvite } from '$lib/remotes/circle.remote.js';
+	import { clock } from '$lib/runes/clock.svelte.js';
 	import { formatRelative } from '$lib/util/date.js';
 	import { asIssue } from '$lib/util/pick-issue';
 	import {
@@ -111,7 +112,7 @@
 							<hr class="my-2" />
 							<p class="text-xs font-light text-text-muted">
 								Last activity
-								{formatRelative(wishlist.activityAt)}
+								{formatRelative(wishlist.activityAt, clock.now)}
 							</p>
 						{/snippet}
 					</WishlistSummary>
