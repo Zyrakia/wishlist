@@ -8,7 +8,7 @@
 	import { DefaultTheme } from '$lib/util/theme.js';
 
 	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 
 	let { children, data } = $props();
 
@@ -36,6 +36,7 @@
 	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
 	const startNavigation = () => {
 		resetNavigation();
+		navAnimating = true;
 		requestAnimationFrame(() => (navAnimPerc = 0.9));
 	};
 
@@ -47,15 +48,12 @@
 		navAnimFinisher = setTimeout(() => {
 			navAnimOrigin = 'right';
 			requestAnimationFrame(() => (navAnimPerc = 0));
-
-			setTimeout(() => {
-				navAnimating = false;
-			}, 400);
+			setTimeout(resetNavigation, 400);
 		}, 300);
 	};
 
 	const resetNavigation = () => {
-		navAnimating = true;
+		navAnimating = false;
 		navAnimPerc = 0;
 		navAnimOrigin = 'left';
 
@@ -66,8 +64,8 @@
 	};
 
 	$effect(() => {
-		if (navigating.to) startNavigation();
-		else if (navAnimating) finishNavigation();
+		if (navigating.to) untrack(startNavigation);
+		else if (navAnimating) untrack(finishNavigation);
 	});
 
 	onDestroy(() => {

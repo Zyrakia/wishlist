@@ -7,9 +7,10 @@ import { generateItemCandidates } from './item-generator';
 import { ItemSchema } from '$lib/schemas/item';
 import { randomUUID } from 'crypto';
 import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { touchList } from '$lib/remotes/wishlist.remote';
 import { safePrune } from '$lib/util/safe-prune';
+import { buildUpsertSet } from '../util/drizzle';
 
 const SYNC_DELAY = ms('1h');
 
@@ -17,7 +18,7 @@ const syncing = new Map<string, Promise<Result<void>>>();
 const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	const connection = await db().query.WishlistConnectionTable.findFirst({
 		where: (t, { eq }) => eq(t.id, connectionId),
-		with: { createdGeolocation: true },
+		with: { createdGeolocation: true, items: { columns: { id: true, url: true } } },
 	});
 
 	if (!connection) error(400, 'Invalid connection');
@@ -43,18 +44,23 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		throw generationError;
 	}
 
+	const existingItems = connection.items;
+	const urlToId = new Map(existingItems.map((v) => [v.url, v.id]));
+
 	const items = (candidates || []).flatMap((candidate) => {
 		if (!candidate.name || !candidate.valid) return [];
 
 		const data = safePrune(ItemSchema, candidate);
+		const existingId = data.url ? urlToId.get(data.url) : undefined;
+
 		return [
 			{
-				id: randomUUID(),
+				id: existingId || randomUUID(),
 				wishlistId: connection.wishlistId,
 				connectionId: connection.id,
+				...data,
 				name: data.name || 'No Product Name',
 				notes: data.notes || '',
-				...data,
 			},
 		];
 	});
@@ -73,9 +79,36 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 			.where(eq(WishlistConnectionTable.id, connectionId))
 			.run();
 
-		tx.delete(WishlistItemTable).where(eq(WishlistItemTable.connectionId, connectionId)).run();
+		if (items.length === 0) {
+			tx.delete(WishlistItemTable)
+				.where(eq(WishlistItemTable.connectionId, connectionId))
+				.run();
+		} else {
+			const activeIds = items.map((v) => v.id);
+			tx.delete(WishlistItemTable)
+				.where(
+					and(
+						eq(WishlistItemTable.connectionId, connectionId),
+						notInArray(WishlistItemTable.id, activeIds),
+					),
+				)
+				.run();
 
-		if (items.length) tx.insert(WishlistItemTable).values(items).run();
+			tx.insert(WishlistItemTable)
+				.values(items)
+				.onConflictDoUpdate({
+					target: [WishlistItemTable.wishlistId, WishlistItemTable.id],
+					set: buildUpsertSet(
+						WishlistItemTable,
+						'name',
+						'price',
+						'priceCurrency',
+						'imageUrl',
+						'url',
+					),
+				})
+				.run();
+		}
 	});
 
 	await touchList({ id: connection.wishlistId }).catch(() => {});
