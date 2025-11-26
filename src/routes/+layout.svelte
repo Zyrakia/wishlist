@@ -35,6 +35,8 @@
 	let navAnimStepper: ReturnType<typeof setInterval> | undefined;
 	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
 	const startNavigation = () => {
+		if (navAnimating) return;
+		
 		resetNavigation();
 		navAnimating = true;
 		requestAnimationFrame(() => (navAnimPerc = 0.9));
