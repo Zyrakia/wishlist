@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { browser } from '$app/environment';
+	import { navigating, page } from '$app/state';
 	import '$lib/assets/app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { setSavedTheme } from '$lib/remotes/theme.remote.js';
@@ -7,6 +8,7 @@
 	import { DefaultTheme } from '$lib/util/theme.js';
 
 	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
+	import { onDestroy } from 'svelte';
 
 	let { children, data } = $props();
 
@@ -25,6 +27,53 @@
 
 	$effect(() => void (theme = data.savedTheme || DefaultTheme));
 	$effect(() => void (document.documentElement.dataset.theme = theme));
+
+	let navAnimating = $state(false);
+	let navAnimPerc = $state(0);
+	let navAnimOrigin: 'left' | 'right' = $state('left');
+
+	let navAnimStepper: ReturnType<typeof setInterval> | undefined;
+	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
+	const startNavigation = () => {
+		resetNavigation();
+		requestAnimationFrame(() => (navAnimPerc = 0.9));
+	};
+
+	const finishNavigation = () => {
+		clearInterval(navAnimStepper);
+		requestAnimationFrame(() => (navAnimPerc = 1));
+
+		clearInterval(navAnimFinisher);
+		navAnimFinisher = setTimeout(() => {
+			navAnimOrigin = 'right';
+			requestAnimationFrame(() => (navAnimPerc = 0));
+
+			setTimeout(() => {
+				navAnimating = false;
+			}, 400);
+		}, 300);
+	};
+
+	const resetNavigation = () => {
+		navAnimating = true;
+		navAnimPerc = 0;
+		navAnimOrigin = 'left';
+
+		clearInterval(navAnimStepper);
+		clearTimeout(navAnimFinisher);
+		navAnimStepper = undefined;
+		navAnimFinisher = undefined;
+	};
+
+	$effect(() => {
+		if (navigating.to) startNavigation();
+		else if (navAnimating) finishNavigation();
+	});
+
+	onDestroy(() => {
+		if (!browser) return;
+		resetNavigation();
+	});
 </script>
 
 <svelte:head>
@@ -75,6 +124,11 @@
 		<header
 			class="sticky bottom-0 z-50 row-start-2 flex h-auto min-h-16 w-full items-center gap-2 border-t border-border bg-surface p-4 drop-shadow-md md:top-0 md:row-start-1 md:border-t-0 md:border-b"
 		>
+			<div
+				class="fixed top-0 left-0 h-0.5 w-full bg-accent transition-transform will-change-transform md:top-full"
+				style="transform-origin: {navAnimOrigin}; transform: scaleX({navAnimPerc})"
+			></div>
+
 			<div class="flex w-full flex-wrap items-center justify-between gap-6">
 				{#if !(page.url.pathname === '/')}
 					<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
