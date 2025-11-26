@@ -78,7 +78,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		if (items.length) tx.insert(WishlistItemTable).values(items).run();
 	});
 
-	touchList({ id: connection.wishlistId });
+	await touchList({ id: connection.wishlistId }).catch(() => {});
 });
 
 export const syncListConnection = (connectionId: string) => {
