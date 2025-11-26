@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import type { Item } from '$lib/schemas/item';
 	import type { Snippet } from 'svelte';
 
@@ -52,18 +51,11 @@
 	});
 
 	const renderBody = $derived(item.price || item.url || item.notes);
-
-	const hasJs = useHasJs();
 </script>
 
 <div class="relative flex w-full max-w-full flex-col sm:max-w-2xs md:max-w-sm lg:max-w-md">
 	<svelte:element
-		this={!hasJs() && canClick ? 'a' : 'button'}
-		onclick={() => {
-			if (!canClick) return;
-			window.open(item.url!, '_blank', 'noopener,noreferrer');
-		}}
-		disabled={!canClick}
+		this={canClick ? 'a' : 'div'}
 		role="link"
 		tabindex="0"
 		class={[
