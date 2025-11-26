@@ -61,7 +61,7 @@
 		class={[
 			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-shadow dark:bg-radial-[at_50%_25%]',
 
-			canClick && 'interactive cursor-pointer hover:shadow-xl',
+			canClick && 'interactive cursor-pointer hover:border-accent hover:shadow-xl',
 		]}
 		href={item.url}
 		target="_blank"
