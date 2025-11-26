@@ -121,7 +121,7 @@
 
 		{#if isRoot}
 			<div
-				class="mt-4 -mb-2 flex flex-wrap items-center gap-0.5 border-t border-border/75 pt-1 text-xs text-text-muted"
+				class="mt-2 -mb-2 flex flex-wrap items-center gap-0.5 pt-1.5 border-t border-border/50 text-xs text-text-muted"
 			>
 				<p>{wishlist.items.length} items</p>
 				<DotIcon />
