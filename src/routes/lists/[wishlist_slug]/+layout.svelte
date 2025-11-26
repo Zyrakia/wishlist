@@ -2,12 +2,13 @@
 	import { onMount, untrack, type Snippet } from 'svelte';
 	import { type PageData } from './$types';
 	import { page } from '$app/state';
-	import { CircleArrowLeftIcon, LinkIcon } from '@lucide/svelte';
+	import { CircleArrowLeftIcon, DotIcon, LinkIcon } from '@lucide/svelte';
 	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { formatRelative } from '$lib/util/date';
 	import { invalidateAll } from '$app/navigation';
 	import { checkSyncStatus } from '$lib/remotes/connection.remote';
+	import { clock } from '$lib/runes/clock.svelte';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -45,9 +46,11 @@
 			pollInterval = undefined;
 		};
 	});
+
+	const isRoot = $derived(page.url.pathname.endsWith(wishlist.slug));
 </script>
 
-<div class="flex h-full w-full flex-col">
+<div class="flex h-full w-full flex-col justify-evenly">
 	<div class="border-b border-border px-5 py-4 shadow">
 		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>
 		<p class="text-lg font-light italic">
@@ -57,7 +60,7 @@
 			{/if}
 		</p>
 
-		{#if page.url.pathname.endsWith(wishlist.slug)}
+		{#if isRoot}
 			{#if connections.length}
 				<div class="pt-4">
 					<p class="flex items-center gap-2 font-bold">
@@ -100,9 +103,9 @@
 			{/if}
 		{/if}
 
-		{#if badges.length || !page.url.pathname.endsWith(wishlist.slug)}
+		{#if badges.length || !isRoot}
 			<div class="mt-4 flex flex-wrap items-center gap-4">
-				{#if !page.url.pathname.endsWith(wishlist.slug)}
+				{#if !isRoot}
 					<a title="Go Back" href="/lists/{wishlist.slug}">
 						<CircleArrowLeftIcon />
 					</a>
@@ -115,10 +118,20 @@
 				{/each}
 			</div>
 		{/if}
+
+		{#if isRoot}
+			<div
+				class="mt-4 -mb-2 flex flex-wrap items-center gap-0.5 border-t border-border/75 pt-1 text-xs text-text-muted"
+			>
+				<p>{wishlist.items.length} items</p>
+				<DotIcon />
+				<p>Last updated {formatRelative(wishlist.activityAt, clock.now)}</p>
+			</div>
+		{/if}
 	</div>
 
 	<div class="h-full w-full">
-		{#if description && page.url.pathname.endsWith(wishlist.slug)}
+		{#if description && isRoot}
 			<div class="m-4 mb-0 rounded-sm border border-accent/50 bg-accent/10 p-4 shadow-sm">
 				<p class="text-base wrap-break-word whitespace-pre-wrap">
 					{description}
