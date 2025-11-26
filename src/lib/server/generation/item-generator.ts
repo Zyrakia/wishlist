@@ -40,7 +40,9 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	for (let i = 0; i < maxScrolls; i++) {
 		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-		await page.waitForLoadState('networkidle');
+		try {
+			await page.waitForLoadState('networkidle', { timeout: 10000 });
+		} catch (err) {}
 		await page.waitForTimeout(1000);
 
 		const newHeight = await page.evaluate(() => document.body.scrollHeight);
