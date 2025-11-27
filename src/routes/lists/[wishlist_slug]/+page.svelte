@@ -4,7 +4,6 @@
 	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 	import {
 		Plus as AddIcon,
-		ArrowDownNarrowWide,
 		ArrowDownNarrowWideIcon,
 		ArrowDownWideNarrowIcon,
 		ClipboardCheck as CopiedIcon,
@@ -152,7 +151,7 @@
 			<span>Add Item</span>
 		</a>
 
-		{#if hasJs()}
+		{#if hasJs() && items.length !== 0}
 			<button
 				class={['button', isReorganizing && 'bg-success text-accent-fg']}
 				onclick={() => {
@@ -178,7 +177,7 @@
 			<span>Edit</span>
 		</a>
 
-		{#if isReorganizing && isSmallScreen.current}
+		{#if isReorganizing}
 			<button
 				class="fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl bg-success text-accent-fg"
 				onclick={saveOrganization}
@@ -259,7 +258,7 @@
 	use:dndzone={{ items, flipDurationMs: 300, dragDisabled: !canDragSort || !isReorganizing }}
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
-	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 	class:px-12={isReorganizing}
 >
 	{#if items.length !== 0}
@@ -300,7 +299,7 @@
 			</div>
 		{/each}
 	{:else}
-		<p class="font-light italic">
+		<p class="w-full font-light italic">
 			No items have been added to this list...
 			<span class="font-bold text-danger">yet.</span>
 		</p>

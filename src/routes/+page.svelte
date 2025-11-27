@@ -208,7 +208,7 @@
 												>
 													<FlameIcon class="text-danger" size={18} />
 
-													Updated Today
+													Updated Recently
 												</p>
 											{/if}
 										{/snippet}
