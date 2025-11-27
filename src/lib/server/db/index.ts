@@ -1,9 +1,13 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { createClient } from '@libsql/client/node';
+import { drizzle } from 'drizzle-orm/libsql';
 
 import ENV from '../env.server';
 import * as schema from './schema';
 
-const create = () => drizzle(ENV.DATABASE_PATH, { schema, casing: 'snake_case' });
+const create = () => {
+	const client = createClient({ url: ENV.DATABASE_PATH });
+	return drizzle(client, { schema, casing: 'snake_case' });
+};
 
 let _db: ReturnType<typeof create> | null = null;
 export const db = () => {

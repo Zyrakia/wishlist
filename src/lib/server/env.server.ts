@@ -29,7 +29,10 @@ const ENV = createEnv({
 	client: {},
 	server: {
 		MISTRAL_AI_KEY: z.string(),
-		DATABASE_PATH: z.string(),
+		DATABASE_PATH: z.string().transform((v) => {
+			if (v.startsWith('file:')) return v;
+			return `file:${v}`;
+		}),
 		JWT_SECRET: z.string(),
 		JWT_LIFETIME: z.string().default('7d').transform(transformTime),
 		JWT_MAX_LIFETIME: z.string().default('30d').transform(transformTime),
