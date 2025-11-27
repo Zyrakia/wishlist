@@ -5,14 +5,46 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import ms from 'ms';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
+import { safePruneParams } from '$lib/util/safe-prune';
+import z from 'zod';
 
 const STALE_THRESHOLD = ms('24h');
 
-export const load: LayoutServerLoad = async ({ params }) => {
+const ParamsSchema = z.object({
+	sort: z.enum(['alphabetical', 'created', 'price', 'user']),
+	direction: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export const load: LayoutServerLoad = async ({ params, url }) => {
+	const searchParams = safePruneParams(ParamsSchema, url.searchParams);
+
 	const wishlist = await db().query.WishlistTable.findFirst({
 		where: (t, { eq }) => eq(t.slug, params.wishlist_slug),
-		with: { items: true, connections: true, user: { columns: { name: true } } },
+		with: {
+			items: {
+				orderBy: (t, { asc, desc }) => {
+					const sortBy = (col: keyof typeof t) =>
+						searchParams.direction === 'asc' ? asc(t[col]) : desc(t[col]);
+
+					switch (searchParams.sort) {
+						case 'alphabetical':
+							return sortBy('name');
+						case 'created':
+							return sortBy('createdAt');
+						case 'price':
+							return sortBy('price');
+						case 'user':
+						default:
+							return sortBy('order');
+					}
+				},
+			},
+			connections: true,
+			user: { columns: { name: true } },
+		},
 	});
+
+	console.log(searchParams);
 
 	if (!wishlist) error(404);
 
