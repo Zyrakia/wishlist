@@ -130,7 +130,7 @@
 		isReorganizing = false;
 	};
 
-	const isSmall = new MediaQuery('max-width: 768px');
+	const isSmallScreen = new MediaQuery('max-width: 768px');
 
 	const sortOptions: Record<string, string> = {
 		['Default']: 'user:desc',
@@ -174,7 +174,7 @@
 			<span>Edit</span>
 		</a>
 
-		{#if isReorganizing && isSmall.current}
+		{#if isReorganizing && isSmallScreen.current}
 			<button
 				class="fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl bg-success text-accent-fg"
 				onclick={saveOrganization}
@@ -188,7 +188,7 @@
 	{/if}
 
 	{#if hasJs() && !isOwn}
-		<label class="relative flex flex-col text-sm gap-1">
+		<label class="relative flex flex-col gap-1 text-sm">
 			<span>Sort Items</span>
 
 			<select
@@ -211,7 +211,7 @@
 			<div
 				class="
 			pointer-events-none absolute right-0 bottom-0
-			flex items-center text-text-muted pe-3 pb-2.5
+			flex items-center pe-3 pb-2.5 text-text-muted
 		"
 			>
 				{#if sort.dir === 'desc'}
@@ -222,11 +222,11 @@
 			</div>
 		</label>
 	{/if}
-	
+
 	<button
 		disabled={!shareEnabled}
 		onclick={tryShare}
-		class="button transition-colors h-max"
+		class="button h-max transition-colors"
 		class:cursor-not-allowed={!shareEnabled}
 	>
 		{#if copyConfirm}
@@ -237,7 +237,6 @@
 			<span>Share</span>
 		{/if}
 	</button>
-
 
 	{#if isOwn}
 		<form {...deleteWishlist} class="ms-auto">
@@ -257,6 +256,8 @@
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
 	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+	class:px-16={isReorganizing}
+	class:gap-8={isReorganizing}
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
