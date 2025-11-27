@@ -120,7 +120,11 @@
 	};
 
 	const saveOrganization = async () => {
-		if (!organizationChangesPending) return;
+		if (!organizationChangesPending) {
+			isReorganizing = false;
+			return;
+		}
+
 		isSavingOrganization = true;
 
 		await reorderItems({ items: items.map((v) => ({ id: v.id, order: v.order })) });
@@ -152,8 +156,8 @@
 			<button
 				class={['button', isReorganizing && 'bg-success text-accent-fg']}
 				onclick={() => {
-					if (organizationChangesPending) saveOrganization();
-					isReorganizing = !isReorganizing;
+					if (isReorganizing) saveOrganization();
+					else isReorganizing = true;
 				}}
 				disabled={!canDragSort || isSavingOrganization}
 			>
@@ -256,8 +260,7 @@
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
 	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-	class:px-16={isReorganizing}
-	class:gap-8={isReorganizing}
+	class:px-12={isReorganizing}
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
