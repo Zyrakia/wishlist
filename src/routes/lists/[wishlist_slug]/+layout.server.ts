@@ -11,7 +11,7 @@ import z from 'zod';
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({
-	sort: z.enum(['alphabetical', 'created', 'price', 'user']),
+	sort: z.enum(['alphabetical', 'created', 'price', 'user']).default('user'),
 	direction: z.enum(['asc', 'desc']).default('desc'),
 });
 
@@ -35,7 +35,7 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 							return sortBy('price');
 						case 'user':
 						default:
-							return sortBy('order');
+							return asc(t.order);
 					}
 				},
 			},
@@ -43,8 +43,6 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 			user: { columns: { name: true } },
 		},
 	});
-
-	console.log(searchParams);
 
 	if (!wishlist) error(404);
 
@@ -68,5 +66,7 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 				wishlist.description || `Check out this wishlist by ${wishlist.user.name}!`,
 			author: wishlist.user.name,
 		},
+		sort: searchParams.sort,
+		sortDirection: searchParams.direction,
 	};
 };

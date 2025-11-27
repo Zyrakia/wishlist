@@ -53,7 +53,7 @@
 	const renderBody = $derived(item.price || item.url || item.notes);
 </script>
 
-<div class="relative flex w-full max-w-full flex-col sm:max-w-2xs md:max-w-sm lg:max-w-md">
+<div class="relative flex w-full max-w-full flex-col">
 	<svelte:element
 		this={canClick ? 'a' : 'div'}
 		role="link"

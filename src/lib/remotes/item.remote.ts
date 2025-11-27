@@ -1,8 +1,8 @@
-import { form, getRequestEvent } from '$app/server';
+import { form, getRequestEvent, query } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
 import { generateItemCandidate } from '$lib/server/generation/item-generator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
 
@@ -74,6 +74,48 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 	touchList({ id: wl.id });
 	redirect(303, `/lists/${wishlist_slug}`);
 });
+
+export const reorderItems = query(
+	z.object({
+		items: z.array(
+			z.object({
+				id: z.string(),
+				order: z.number(),
+			}),
+		),
+	}),
+	async ({ items }) => {
+		const {
+			params: { wishlist_slug },
+		} = getRequestEvent();
+
+		const user = verifyAuth();
+		if (!wishlist_slug) error(400, 'A wishlist slug is required while updating item ordering');
+
+		const wl = await db().query.WishlistTable.findFirst({
+			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
+			columns: { id: true },
+		});
+
+		if (!wl) error(400, 'Invalid wishlist slug provided');
+
+		await db().transaction(async (tx) => {
+			await Promise.all(
+				items.map((v) => {
+					return tx
+						.update(WishlistItemTable)
+						.set({ order: v.order })
+						.where(
+							and(
+								eq(WishlistItemTable.id, v.id),
+								eq(WishlistItemTable.wishlistId, wl.id),
+							),
+						);
+				}),
+			);
+		});
+	},
+);
 
 export const deleteItem = form(
 	z.object({

@@ -7,18 +7,21 @@
 		ClipboardCheck as CopiedIcon,
 		Settings2Icon as EditIcon,
 		LinkIcon,
+		MoveIcon,
 		Share2 as ShareIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import { flip } from 'svelte/animate';
+	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { reorderItems } from '$lib/remotes/item.remote';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data }: { data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
-	const items = $derived(
-		wishlist.items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-	);
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 
 	let shareEnabled = $state(true);
@@ -56,6 +59,73 @@
 	};
 
 	onMount(() => (shareEnabled = !!navigator.share || !!navigator.clipboard));
+
+	let items = $state(data.wishlist.items);
+	$effect(() => void (items = wishlist.items));
+
+	const hasJs = useHasJs();
+
+	const sort = $derived({ type: data.sort || 'user', dir: data.sortDirection || 'desc' });
+	const canDragSort = $derived(hasJs() && sort.type === 'user' && isOwn);
+
+	let isReorganizing = $state(false);
+	let organizationChangesPending = $state(false);
+	let isSavingOrganization = $state(false);
+	$effect(() => void (!canDragSort && (isReorganizing = false)));
+
+	type DragEvent = CustomEvent<DndEvent<(typeof items)[number]>>;
+	const onDragSortConsider = (ev: DragEvent) => (items = ev.detail.items);
+	const onDragSortFinalize = async (ev: DragEvent) => {
+		if (!canDragSort) return;
+		const BOTTOM_GAP = 1000;
+
+		items = ev.detail.items;
+
+		const { id: itemId } = ev.detail.info;
+		const newIndex = items.findIndex((v) => v.id === itemId);
+		if (newIndex === -1) return;
+
+		const prevItem = items[newIndex - 1];
+		const nextItem = items[newIndex + 1];
+
+		const prevOrder = prevItem?.order ?? 0;
+		const nextOrder = nextItem?.order ?? 0;
+
+		const gapTooSmall =
+			prevOrder !== 0 && nextOrder !== 0 && Math.abs(nextOrder - prevOrder) < 0.00001;
+		const needsReindex =
+			(prevItem && prevOrder === 0) || (nextItem && nextOrder === 0) || gapTooSmall;
+
+		if (needsReindex) {
+			items = items.map((item, i) => {
+				return { ...item, order: (i + 1) * BOTTOM_GAP };
+			});
+		} else {
+			let newOrder = 0;
+
+			if (!prevItem && !nextItem) newOrder = 0;
+			else if (!prevItem) newOrder = nextItem.order / 2;
+			else if (!nextItem) newOrder = prevItem.order + BOTTOM_GAP;
+			else newOrder = (prevItem.order + nextItem.order) / 2;
+
+			items[newIndex].order = newOrder;
+		}
+
+		organizationChangesPending = true;
+	};
+
+	const saveOrganization = async () => {
+		if (!organizationChangesPending) return;
+		isSavingOrganization = true;
+
+		await reorderItems({ items: items.map((v) => ({ id: v.id, order: v.order })) });
+
+		isSavingOrganization = false;
+		organizationChangesPending = false;
+		isReorganizing = false;
+	};
+
+	const isSmall = new MediaQuery('max-width: 768px');
 </script>
 
 <div class="mt-2 flex flex-wrap items-stretch justify-between gap-3 p-4">
@@ -65,10 +135,43 @@
 			<span>Add Item</span>
 		</a>
 
+		{#if hasJs()}
+			<button
+				class={['button', isReorganizing && 'bg-success text-accent-fg']}
+				onclick={() => {
+					if (organizationChangesPending) saveOrganization();
+					isReorganizing = !isReorganizing;
+				}}
+				disabled={!canDragSort || isSavingOrganization}
+			>
+				<MoveIcon size={16} />
+
+				<span>
+					{#if isReorganizing}
+						Save
+					{:else}
+						Reorganize
+					{/if}
+				</span>
+			</button>
+		{/if}
+
 		<a class="button" href="/lists/{wishlist.slug}/edit">
 			<EditIcon size={16} />
 			<span>Edit</span>
 		</a>
+
+		{#if isReorganizing && isSmall.current}
+			<button
+				class="fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl bg-success text-accent-fg"
+				onclick={saveOrganization}
+				disabled={!canDragSort || isSavingOrganization}
+			>
+				<MoveIcon size={16} />
+
+				Save
+			</button>
+		{/if}
 	{/if}
 
 	<button
@@ -99,32 +202,48 @@
 	{/if}
 </div>
 
-<main class="flex w-full flex-wrap justify-center gap-4 px-4 pt-2 pb-12">
+<div
+	use:dndzone={{ items, flipDurationMs: 300, dragDisabled: !canDragSort || !isReorganizing }}
+	onconsider={onDragSortConsider}
+	onfinalize={onDragSortFinalize}
+	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+>
 	{#if items.length !== 0}
-		{#each items as item}
-			<WishlistItem {item}>
-				{#snippet footer()}
-					{#if isOwn}
-						{@const connection = wishlist.connections.find(
-							(v) => v.id === item.connectionId,
-						)}
+		{#each items as item (item.id)}
+			<div animate:flip={{ duration: 300 }} class="h-full w-full">
+				<WishlistItem {item} interactive={!isReorganizing}>
+					{#snippet footer()}
+						{#if isReorganizing}
+							<div
+								class="absolute top-0 left-0 z-10 grid h-full w-full place-items-center rounded-xl bg-black/35 ring-4 ring-accent/50 dark:bg-black/50 dark:ring-2"
+							>
+								<MoveIcon size={32} class="text-white" />
+							</div>
+						{:else if isOwn}
+							{@const connection = wishlist.connections.find(
+								(v) => v.id === item.connectionId,
+							)}
 
-						{#if connection}
-							<p class="mt-2 flex items-center gap-2 text-text-muted">
-								<LinkIcon size={18} />
+							{#if connection}
+								<p class="mt-2 flex items-center gap-2 text-text-muted">
+									<LinkIcon size={18} />
 
-								From
+									From
 
-								<a class="text-accent hover:underline" href={connection.url}>
-									{connection.name}
-								</a>
-							</p>
-						{:else}
-							<WishlistItemToolbar itemId={item.id} wishlistSlug={wishlist.slug} />
+									<a class="text-accent hover:underline" href={connection.url}>
+										{connection.name}
+									</a>
+								</p>
+							{:else}
+								<WishlistItemToolbar
+									itemId={item.id}
+									wishlistSlug={wishlist.slug}
+								/>
+							{/if}
 						{/if}
-					{/if}
-				{/snippet}
-			</WishlistItem>
+					{/snippet}
+				</WishlistItem>
+			</div>
 		{/each}
 	{:else}
 		<p class="font-light italic">
@@ -132,7 +251,7 @@
 			<span class="font-bold text-danger">yet.</span>
 		</p>
 	{/if}
-</main>
+</div>
 
 <style>
 	.button {

@@ -60,7 +60,7 @@ export const WishlistItemTable = sqliteTable(
 		price: real(),
 		imageUrl: text(),
 		url: text(),
-		order: autoTimestampColumn,
+		order: real().default(0).notNull(),
 		createdAt: autoTimestampColumn,
 	},
 	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],

@@ -1,6 +1,6 @@
 import type z from 'zod';
 
-export function safePrune<T extends z.ZodObject<any>>(schema: T, data: any): Partial<z.infer<T>> {
+export function safePrune<T extends z.ZodObject<any>>(schema: T, data: any) {
 	const shape = schema.shape;
 	const source = typeof data === 'object' ? (data as Record<string, unknown>) : {};
 	const output: Record<string, unknown> = {};
