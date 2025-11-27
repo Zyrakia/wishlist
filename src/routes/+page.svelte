@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { resolveCircleInvite } from '$lib/remotes/circle.remote.js';
@@ -10,11 +9,12 @@
 		ArrowRightIcon,
 		BellDotIcon,
 		CircleIcon,
+		FlameIcon,
 		LayoutGridIcon,
 		PlusIcon,
 		UsersIcon,
 	} from '@lucide/svelte';
-	import z from 'zod';
+	import ms from 'ms';
 
 	let { data } = $props();
 	const user = $derived(data.user);
@@ -22,6 +22,8 @@
 	const wishlists = $derived(data.wishlists);
 	const circles = $derived(data.circles);
 	const circleInvites = $derived(data.invites);
+
+	const oneDayMs = ms('1d');
 </script>
 
 <div class="flex h-full flex-col gap-12 px-6 py-12">
@@ -195,7 +197,22 @@
 						>
 							{#if filteredActivity.length}
 								{#each filteredActivity as wishlist}
-									<WishlistSummary {wishlist} author={wishlist.userName} />
+									{@const wasUpdatedToday =
+										Date.now() - wishlist.activityAt.getTime() <= oneDayMs}
+
+									<WishlistSummary {wishlist} author={wishlist.userName}>
+										{#snippet footer()}
+											{#if wasUpdatedToday}
+												<p
+													class="absolute top-0 right-0 flex items-center gap-4 rounded-bl border-b border-l border-border bg-success/15 px-4 py-2 text-sm font-normal"
+												>
+													<FlameIcon class="text-danger" size={18} />
+
+													Updated Today
+												</p>
+											{/if}
+										{/snippet}
+									</WishlistSummary>
 								{/each}
 							{:else}
 								<p>No recent activity</p>
