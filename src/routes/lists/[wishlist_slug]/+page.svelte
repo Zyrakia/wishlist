@@ -4,6 +4,9 @@
 	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 	import {
 		Plus as AddIcon,
+		ArrowDownNarrowWide,
+		ArrowDownNarrowWideIcon,
+		ArrowDownWideNarrowIcon,
 		ClipboardCheck as CopiedIcon,
 		Settings2Icon as EditIcon,
 		LinkIcon,
@@ -18,6 +21,7 @@
 	import { dndzone, type DndEvent } from 'svelte-dnd-action';
 	import { reorderItems } from '$lib/remotes/item.remote';
 	import { MediaQuery } from 'svelte/reactivity';
+	import { goto } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -66,6 +70,7 @@
 	const hasJs = useHasJs();
 
 	const sort = $derived({ type: data.sort || 'user', dir: data.sortDirection || 'desc' });
+	const sortKey = $derived(`${sort.type}:${sort.dir}`);
 	const canDragSort = $derived(hasJs() && sort.type === 'user' && isOwn);
 
 	let isReorganizing = $state(false);
@@ -126,9 +131,17 @@
 	};
 
 	const isSmall = new MediaQuery('max-width: 768px');
+
+	const sortOptions: Record<string, string> = {
+		['Default']: 'user:desc',
+		['Price (Low to High)']: 'price:asc',
+		['Price (High to Low)']: 'price:desc',
+		['Created (Newest to Oldest)']: 'created:desc',
+		['Created (Oldest to Newest)']: 'created:asc',
+	};
 </script>
 
-<div class="mt-2 flex flex-wrap items-stretch gap-3 p-4">
+<div class="mt-2 flex flex-wrap items-end gap-3 p-4">
 	{#if isOwn}
 		<a class="button bg-success text-accent-fg" href="/lists/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
@@ -174,10 +187,46 @@
 		{/if}
 	{/if}
 
+	{#if hasJs() && !isOwn}
+		<label class="relative flex flex-col text-sm gap-1">
+			<span>Sort Items</span>
+
+			<select
+				class="appearance-none pe-12"
+				onchange={async (e) => {
+					const [sort, dir] = e.currentTarget.value.split(':');
+					const newSearchParams = new URLSearchParams(window.location.search);
+
+					newSearchParams.set('sort', sort);
+					newSearchParams.set('direction', dir);
+
+					await goto(`?${newSearchParams.toString()}`, { replaceState: true });
+				}}
+			>
+				{#each Object.entries(sortOptions) as [label, value]}
+					<option {value} selected={value === sortKey}>{label}</option>
+				{/each}
+			</select>
+
+			<div
+				class="
+			pointer-events-none absolute right-0 bottom-0
+			flex items-center text-text-muted pe-3 pb-2.5
+		"
+			>
+				{#if sort.dir === 'desc'}
+					<ArrowDownWideNarrowIcon size={16} />
+				{:else}
+					<ArrowDownNarrowWideIcon size={16} />
+				{/if}
+			</div>
+		</label>
+	{/if}
+	
 	<button
 		disabled={!shareEnabled}
 		onclick={tryShare}
-		class="button transition-colors"
+		class="button transition-colors h-max"
 		class:cursor-not-allowed={!shareEnabled}
 	>
 		{#if copyConfirm}
@@ -188,6 +237,7 @@
 			<span>Share</span>
 		{/if}
 	</button>
+
 
 	{#if isOwn}
 		<form {...deleteWishlist} class="ms-auto">
