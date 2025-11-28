@@ -134,8 +134,6 @@
 		organizationChangesPending = false;
 	};
 
-	const isSmallScreen = new MediaQuery('max-width: 768px');
-
 	const sortOptions: Record<string, string> = {
 		['Default']: 'user:desc',
 		['Price (Low to High)']: 'price:asc',
