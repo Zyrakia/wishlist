@@ -21,6 +21,7 @@
 	import { reorderItems } from '$lib/remotes/item.remote';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
+	import { fade, slide } from 'svelte/transition';
 
 	let { data }: { data: PageData } = $props();
 
@@ -178,6 +179,8 @@
 
 		{#if isReorganizing}
 			<button
+				in:fade={{ duration: 300 }}
+				out:fade={{ duration: 300 }}
 				class="fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl bg-success text-accent-fg"
 				onclick={saveOrganization}
 				disabled={!canDragSort || isSavingOrganization}
@@ -254,7 +257,7 @@
 </div>
 
 <div
-	use:dndzone={{ items, flipDurationMs: 300, dragDisabled: !canDragSort || !isReorganizing }}
+	use:dndzone={{ items, flipDurationMs: 200, dragDisabled: !canDragSort || !isReorganizing }}
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
 	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -262,11 +265,13 @@
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
-			<div animate:flip={{ duration: 300 }} class="h-full w-full">
+			<div animate:flip={{ duration: 200 }} class="h-full w-full">
 				<WishlistItem {item} interactive={!isReorganizing}>
 					{#snippet footer()}
 						{#if isReorganizing}
 							<div
+								in:fade={{ duration: 300 }}
+								out:fade={{ duration: 300 }}
 								class="absolute top-0 left-0 z-10 grid h-full w-full place-items-center rounded-xl bg-black/35 ring-4 ring-accent/50 dark:bg-black/50 dark:ring-2"
 							>
 								<MoveIcon size={32} class="text-white" />
