@@ -272,7 +272,7 @@
 	}}
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
-	class="grid w-full grid-cols-1 place-items-center gap-y-4 gap-x-5 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+	class="grid w-full grid-cols-1 place-items-center gap-x-6 gap-y-4 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 	class:px-8={isReorganizing}
 >
 	{#if items.length !== 0}
@@ -298,10 +298,10 @@
 							{@const favHandler = setItemFavorited.for(item.id)}
 
 							{#if connection}
-								<p class="mt-2 flex items-center gap-2 text-text-muted">
+								<p class="mt-2 flex h-12 items-center gap-2 text-text-muted">
 									<LinkIcon size={18} />
 
-									From
+									Controlled by
 
 									<a class="text-accent hover:underline" href={connection.url}>
 										{connection.name}
@@ -314,7 +314,7 @@
 								/>
 							{/if}
 
-							<form {...favHandler} class="absolute top-3 right-3">
+							<form {...favHandler} class="absolute -top-1.5 -right-1.5">
 								<input {...favHandler.fields.itemId.as('hidden', item.id)} />
 								<input
 									{...favHandler.fields.favorited.as(
@@ -324,8 +324,11 @@
 								/>
 
 								<button
+									title={isFavorited ? 'Remove Favorite' : 'Mark as Favorite'}
 									disabled={favTogglesLoading.has(item.id)}
-									class="border-0 p-1 text-shimmer"
+									class="bg-surface p-1.5 {isFavorited
+										? 'text-danger'
+										: 'text-shimmer'} drop-shadow-sm drop-shadow-background disabled:brightness-100 border-border-strong"
 									{...favHandler.buttonProps.enhance(async ({ submit }) => {
 										favTogglesLoading.set(item.id, !item.favorited);
 										await submit();
@@ -335,9 +338,9 @@
 									})}
 								>
 									{#if isFavorited}
-										<StarOffIcon />
+										<StarOffIcon size={20} />
 									{:else}
-										<StarIcon />
+										<StarIcon size={20} />
 									{/if}
 								</button>
 							</form>
