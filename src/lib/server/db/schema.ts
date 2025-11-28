@@ -60,6 +60,7 @@ export const WishlistItemTable = sqliteTable(
 		price: real(),
 		imageUrl: text(),
 		url: text(),
+		favorited: integer({ mode: 'boolean' }).notNull().default(false),
 		order: real().default(0).notNull(),
 		createdAt: autoTimestampColumn,
 	},

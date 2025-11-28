@@ -9,9 +9,10 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 import { db } from '../server/db';
-import { WishlistItemTable } from '../server/db/schema';
+import { WishlistItemTable, WishlistTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
 import { requestGeolocation } from '$lib/server/util/geolocation';
+import { strBoolean } from '$lib/util/zod';
 
 export const createItem = form(
 	ItemSchema.extend({
@@ -74,6 +75,30 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 	touchList({ id: wl.id });
 	redirect(303, `/lists/${wishlist_slug}`);
 });
+
+export const setItemFavorited = form(
+	z.object({ favorited: strBoolean(), itemId: z.string() }),
+	async ({ favorited, itemId }) => {
+		const {
+			params: { wishlist_slug },
+		} = getRequestEvent();
+
+		const user = verifyAuth();
+		if (!wishlist_slug) error(400, 'A wishlist slug is required while favoriting an item');
+
+		const wl = await db().query.WishlistTable.findFirst({
+			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
+			columns: { id: true },
+		});
+
+		if (!wl) error(400, 'Invalid wishlist slug provided');
+
+		await db()
+			.update(WishlistItemTable)
+			.set({ favorited })
+			.where(and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wl.id)));
+	},
+);
 
 export const reorderItems = query(
 	z.object({

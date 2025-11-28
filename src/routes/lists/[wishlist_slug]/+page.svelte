@@ -11,6 +11,8 @@
 		LinkIcon,
 		MoveIcon,
 		Share2 as ShareIcon,
+		StarIcon,
+		StarOffIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -18,8 +20,8 @@
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { flip } from 'svelte/animate';
 	import { dndzone, type DndEvent } from 'svelte-dnd-action';
-	import { reorderItems } from '$lib/remotes/item.remote';
-	import { MediaQuery } from 'svelte/reactivity';
+	import { reorderItems, setItemFavorited } from '$lib/remotes/item.remote';
+	import { MediaQuery, SvelteMap } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import { fade, slide } from 'svelte/transition';
 
@@ -134,6 +136,8 @@
 		isSavingOrganization = false;
 		organizationChangesPending = false;
 	};
+
+	const favTogglesLoading = new SvelteMap<string, boolean>();
 
 	const sortOptions: Record<string, string> = {
 		['Default']: 'user:desc',
@@ -268,13 +272,15 @@
 	}}
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
-	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+	class="grid w-full grid-cols-1 place-items-center gap-y-4 gap-x-5 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 	class:px-8={isReorganizing}
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
+			{@const isFavorited = favTogglesLoading.get(item.id) ?? item.favorited}
+
 			<div animate:flip={{ duration: 200 }} class="h-full w-full">
-				<WishlistItem {item} interactive={!isReorganizing}>
+				<WishlistItem {item} interactive={!isReorganizing} highlighted={isFavorited}>
 					{#snippet footer()}
 						{#if isReorganizing}
 							<div
@@ -288,6 +294,8 @@
 							{@const connection = wishlist.connections.find(
 								(v) => v.id === item.connectionId,
 							)}
+
+							{@const favHandler = setItemFavorited.for(item.id)}
 
 							{#if connection}
 								<p class="mt-2 flex items-center gap-2 text-text-muted">
@@ -305,6 +313,35 @@
 									wishlistSlug={wishlist.slug}
 								/>
 							{/if}
+
+							<form {...favHandler} class="absolute top-3 right-3">
+								<input {...favHandler.fields.itemId.as('hidden', item.id)} />
+								<input
+									{...favHandler.fields.favorited.as(
+										'hidden',
+										`${!item.favorited}`,
+									)}
+								/>
+
+								<button
+									disabled={favTogglesLoading.has(item.id)}
+									class="border-0 p-1 text-shimmer"
+									{...favHandler.buttonProps.enhance(async ({ submit }) => {
+										favTogglesLoading.set(item.id, !item.favorited);
+										await submit();
+										setTimeout(() => {
+											favTogglesLoading.delete(item.id);
+										}, 500);
+									})}
+								>
+									{#if isFavorited}
+										<StarOffIcon />
+									{:else}
+										<StarIcon />
+									{/if}
+								</button>
+							</form>
+							{#if item.favorited}{/if}
 						{/if}
 					{/snippet}
 				</WishlistItem>

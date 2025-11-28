@@ -6,10 +6,12 @@
 	let {
 		item,
 		interactive = true,
+		highlighted = false,
 		footer,
 	}: {
 		item: Partial<Item>;
 		interactive?: boolean;
+		highlighted?: boolean;
 		footer?: Snippet<[]>;
 	} = $props();
 
@@ -53,15 +55,16 @@
 	const renderBody = $derived(item.price || item.url || item.notes);
 </script>
 
-<div class="relative flex w-full h-full max-w-full flex-col">
+<div class="relative flex h-full w-full max-w-full flex-col">
 	<svelte:element
 		this={canClick ? 'a' : 'div'}
 		role="link"
 		tabindex="0"
 		class={[
-			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-shadow dark:bg-radial-[at_50%_25%]',
+			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-all dark:bg-radial-[at_50%_25%]',
 
 			canClick && 'interactive cursor-pointer hover:border-accent hover:shadow-xl',
+			highlighted && 'ring-2 ring-accent/75 drop-shadow-[0_0_8px_white] drop-shadow-accent',
 		]}
 		href={item.url}
 		target="_blank"
