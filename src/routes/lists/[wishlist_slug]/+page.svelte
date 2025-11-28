@@ -257,11 +257,19 @@
 </div>
 
 <div
-	use:dndzone={{ items, flipDurationMs: 200, dragDisabled: !canDragSort || !isReorganizing }}
+	use:dndzone={{
+		items,
+		flipDurationMs: 200,
+		dragDisabled: !canDragSort || !isReorganizing,
+		centreDraggedOnCursor: true,
+		dropAnimationDisabled: true,
+		delayTouchStart: true,
+		dropTargetStyle: { outline: 'none' },
+	}}
 	onconsider={onDragSortConsider}
 	onfinalize={onDragSortFinalize}
 	class="grid w-full grid-cols-1 place-items-center gap-4 px-4 pt-2 pb-12 transition-[padding] duration-700 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-	class:px-12={isReorganizing}
+	class:px-8={isReorganizing}
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
