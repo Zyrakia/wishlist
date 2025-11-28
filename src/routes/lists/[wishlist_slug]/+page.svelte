@@ -119,18 +119,19 @@
 	};
 
 	const saveOrganization = async () => {
+		while (isSavingOrganization) await new Promise((res) => setTimeout(res, 50));
 		if (!organizationChangesPending) {
 			isReorganizing = false;
 			return;
 		}
 
 		isSavingOrganization = true;
+		isReorganizing = false;
 
 		await reorderItems({ items: items.map((v) => ({ id: v.id, order: v.order })) });
 
 		isSavingOrganization = false;
 		organizationChangesPending = false;
-		isReorganizing = false;
 	};
 
 	const isSmallScreen = new MediaQuery('max-width: 768px');
