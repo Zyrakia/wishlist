@@ -5,7 +5,7 @@ import z from 'zod';
 import { createEnv } from '@t3-oss/env-core';
 
 const { error } = flow.config();
-if (error) console.warn(error);
+if (error) console.warn('No environment loaded from `.env` files.');
 
 const transformTime = (v: string, ctx: z.RefinementCtx) => {
 	const milliseconds = ms(v as ms.StringValue);
