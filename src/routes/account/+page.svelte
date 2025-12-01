@@ -81,7 +81,7 @@
 					<form
 						{...handler}
 						oninput={() => handler.validate()}
-						class="flex items-end gap-2"
+						class="flex flex-col gap-2 md:flex-row md:items-end"
 					>
 						<InputGroup label="Change Username" error={handler.fields.allIssues()}>
 							{#snippet control()}
@@ -138,7 +138,7 @@
 					<form
 						{...handler}
 						oninput={() => handler.validate()}
-						class="flex items-end gap-2"
+						class="flex flex-col gap-2 md:flex-row md:items-end"
 					>
 						<InputGroup
 							label="Change Email"
@@ -218,7 +218,7 @@
 							{/snippet}
 						</InputGroup>
 
-						<div class="flex gap-2">
+						<div class="flex flex-wrap gap-2 md:flex-nowrap">
 							<InputGroup
 								label="New Password"
 								error={handler.fields.password.issues()}
