@@ -7,7 +7,8 @@ import z from 'zod';
 import { safePruneParams } from '$lib/util/safe-prune';
 
 const ParamsSchema = z.object({
-	change: z.enum(['name']),
+	change: z.enum(['name', 'email', 'password']),
+	notice: z.string(),
 });
 
 export const load: PageServerLoad = async ({ url }) => {

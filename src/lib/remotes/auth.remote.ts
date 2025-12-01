@@ -162,7 +162,7 @@ export const changeName = form(
 		const me = await resolveMe({});
 		await db().update(UserTable).set({ name: username }).where(eq(UserTable.id, me.id));
 
-		redirect(303, '/account');
+		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
 	},
 );
 
@@ -176,7 +176,7 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	const newPasswordHash = await hashPassword(newPassword);
 	await db().update(UserTable).set({ password: newPasswordHash }).where(eq(UserTable.id, me.id));
 
-	redirect(303, '/account');
+	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
 
 export const changeEmailStart = form(
@@ -207,7 +207,11 @@ export const changeEmailStart = form(
 
 		if (!emailResult.success) {
 			return invalid('Emails are temporarily down');
-		} else redirect(303, '/account');
+		} else
+			redirect(
+				303,
+				`/account?notice=${encodeURIComponent('A confirmation email has been sent.')}`,
+			);
 	},
 );
 
@@ -220,5 +224,5 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 		.set({ email: action.payload.newEmail })
 		.where(eq(UserTable.id, action.userId));
 
-	redirect(303, '/account');
+	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
 });
