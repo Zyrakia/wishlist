@@ -73,28 +73,29 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		throw 'Cannot find any items, is the list private?';
 	}
 
-	db().transaction((tx) => {
-		tx.update(WishlistConnectionTable)
+	await db().transaction(async (tx) => {
+		await tx
+			.update(WishlistConnectionTable)
 			.set({ lastSyncedAt: new Date(), syncError: false })
-			.where(eq(WishlistConnectionTable.id, connectionId))
-			.run();
+			.where(eq(WishlistConnectionTable.id, connectionId));
 
 		if (items.length === 0) {
-			tx.delete(WishlistItemTable)
-				.where(eq(WishlistItemTable.connectionId, connectionId))
-				.run();
+			await tx
+				.delete(WishlistItemTable)
+				.where(eq(WishlistItemTable.connectionId, connectionId));
 		} else {
 			const activeIds = items.map((v) => v.id);
-			tx.delete(WishlistItemTable)
+			await tx
+				.delete(WishlistItemTable)
 				.where(
 					and(
 						eq(WishlistItemTable.connectionId, connectionId),
 						notInArray(WishlistItemTable.id, activeIds),
 					),
-				)
-				.run();
+				);
 
-			tx.insert(WishlistItemTable)
+			await tx
+				.insert(WishlistItemTable)
 				.values(items)
 				.onConflictDoUpdate({
 					target: [WishlistItemTable.wishlistId, WishlistItemTable.id],
@@ -106,8 +107,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 						'imageUrl',
 						'url',
 					),
-				})
-				.run();
+				});
 		}
 	});
 

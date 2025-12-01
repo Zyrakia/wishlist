@@ -3,10 +3,18 @@ import { resolveMe } from '$lib/remotes/auth.remote';
 import { redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
+import z from 'zod';
+import { safePruneParams } from '$lib/util/safe-prune';
 
-export const load: PageServerLoad = async () => {
+const ParamsSchema = z.object({
+	change: z.enum(['name']),
+});
+
+export const load: PageServerLoad = async ({ url }) => {
 	const me = await resolveMe({});
 	if (!me) redirect(303, '/login?return=/account');
 
-	return { me };
+	const props = safePruneParams(ParamsSchema, url.searchParams);
+
+	return { me, ...props };
 };

@@ -4,7 +4,10 @@ import { CircleSchema } from '$lib/schemas/circle';
 import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import {
-    CircleInviteTable, CircleMembershipTable, CircleTable, UserTable
+	CircleInviteTable,
+	CircleMembershipTable,
+	CircleTable,
+	UserTable,
 } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
 import { strBoolean } from '$lib/util/zod';
@@ -24,8 +27,8 @@ export const createCircle = form(CircleSchema, async (data, invalid) => {
 	});
 	if (existing) invalid('You can only own one circle');
 
-	const circle = db().transaction((tx) => {
-		const circle = tx
+	const circle = await db().transaction(async (tx) => {
+		const circle = await tx
 			.insert(CircleTable)
 			.values({
 				id: randomUUID(),
@@ -36,14 +39,10 @@ export const createCircle = form(CircleSchema, async (data, invalid) => {
 			.returning()
 			.get();
 
-		if (!circle) tx.rollback();
-
-		tx.insert(CircleMembershipTable)
-			.values({
-				circleId: circle.id,
-				userId: user.id,
-			})
-			.run();
+		await tx.insert(CircleMembershipTable).values({
+			circleId: circle.id,
+			userId: user.id,
+		});
 
 		return circle;
 	});
@@ -213,15 +212,13 @@ export const resolveCircleInvite = form(
 		if (circle.memberCount >= circle.memberLimit)
 			return invalid(invalid.inviteId('Circle is full'));
 
-		db().transaction((tx) => {
-			tx.insert(CircleMembershipTable)
-				.values({
-					userId: user.id,
-					circleId: invite.circleId,
-				})
-				.run();
+		await db().transaction(async (tx) => {
+			await tx.insert(CircleMembershipTable).values({
+				userId: user.id,
+				circleId: invite.circleId,
+			});
 
-			tx.delete(CircleInviteTable).where(eq(CircleInviteTable.id, invite.id)).run();
+			await tx.delete(CircleInviteTable).where(eq(CircleInviteTable.id, invite.id));
 		});
 
 		redirect(303, `/`);

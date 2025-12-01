@@ -15,7 +15,7 @@ import { requestGeolocation } from '$lib/server/util/geolocation';
 import { strBoolean } from '$lib/util/zod';
 
 export const createItem = form(
-	ItemSchema.extend({
+	ItemSchema.safeExtend({
 		continue: z.boolean().optional(),
 	}),
 	async (data) => {

@@ -6,7 +6,7 @@ import {
 	WishlistConnectionTable,
 	WishlistItemTable,
 } from '$lib/server/db/schema';
-import { error, isHttpError, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 import { count, eq, sql } from 'drizzle-orm';
 import z from 'zod';
@@ -92,22 +92,22 @@ export const deleteWishlistConnection = form(
 
 		if (!connection || connection.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
-		db().transaction((tx) => {
+		await db().transaction(async (tx) => {
 			if (deleteItems) {
-				tx.delete(WishlistItemTable)
-					.where(eq(WishlistItemTable.connectionId, connectionId))
-					.run();
+				await tx
+					.delete(WishlistItemTable)
+					.where(eq(WishlistItemTable.connectionId, connectionId));
 			}
 
 			if (connection.createdGeoId) {
-				tx.delete(GeolocationTable)
-					.where(eq(GeolocationTable.id, connection.createdGeoId))
-					.run();
+				await tx
+					.delete(GeolocationTable)
+					.where(eq(GeolocationTable.id, connection.createdGeoId));
 			}
 
-			tx.delete(WishlistConnectionTable)
-				.where(eq(WishlistConnectionTable.id, connectionId))
-				.run();
+			await tx
+				.delete(WishlistConnectionTable)
+				.where(eq(WishlistConnectionTable.id, connectionId));
 		});
 	},
 );
