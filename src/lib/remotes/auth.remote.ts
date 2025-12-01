@@ -1,25 +1,30 @@
 import { form, getRequestEvent, query } from '$app/server';
-import { CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema } from '$lib/schemas/auth';
 import {
-	createAccountAction,
+	ChangePasswordSchema,
+	CreateCredentialsSchema,
+	CredentialsSchema,
+	ResetPasswordSchema,
+} from '$lib/schemas/auth';
+import {
 	issueToken,
-	resolveAccountAction,
 	setSession,
 	verifyAuth,
 	readSession,
+	compPasswords,
+	hashPassword,
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
 import ENV from '$lib/server/env.server';
 import { formatRelative } from '$lib/util/date';
-import { compare, hash } from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
+import { createAccountAction, resolveAccountAction } from '$lib/server/account-action';
 
 export const resolveMySession = query(async () => {
 	const cookies = getRequestEvent().cookies;
@@ -62,7 +67,7 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	});
 	if (existing) invalid(invalid.email('Email is already registered'));
 
-	const passwordHash = await hash(password, ENV.SALT_ROUNDS);
+	const passwordHash = await hashPassword(password);
 	const id = uuid4();
 
 	await db().insert(UserTable).values({
@@ -91,7 +96,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 
 	if (!user) return invalid('Invalid credentials');
 
-	const passwordValid = await compare(password, user.password);
+	const passwordValid = await compPasswords(password, user.password);
 	if (!passwordValid) invalid('Invalid credentials');
 
 	const token = await issueToken({ sub: user.id, name: user.name, rollingStartMs: Date.now() });
@@ -109,14 +114,20 @@ export const resetPasswordStart = form(
 		});
 
 		if (user) {
-			const { token, expiresAt } = await createAccountAction(user.id, ms('11m'));
+			const { token, expiresAt } = await createAccountAction(
+				user.id,
+				ms('11m'),
+				'reset-password',
+				{},
+			);
+
 			const { url } = getRequestEvent();
 
 			const emailResult = await sendEmail(email, {
 				template: {
 					id: '6c41869c-105c-4ec1-9054-c0a65c97beaf',
 					variables: {
-						RESET_LINK: `${url.protocol}//${url.host}/reset-password/${token}`,
+						RESET_LINK: `${url.protocol}//${url.host}/reset-password/${encodeURIComponent(token)}`,
 						EXPIRES_AT: formatRelative(expiresAt),
 					},
 				},
@@ -132,56 +143,82 @@ export const resetPasswordStart = form(
 export const resetPassword = form(
 	ResetPasswordSchema,
 	async ({ actionToken, password }, invalid) => {
-		const user = await resolveAccountAction(actionToken);
-		if (!user) return invalid('Password reset link have expired');
+		const action = await resolveAccountAction(actionToken, 'reset-password');
+		if (!action) return invalid('Password reset link have expired');
 
-		const passwordHash = await hash(password, ENV.SALT_ROUNDS);
+		const passwordHash = await hashPassword(password);
 		await db()
 			.update(UserTable)
 			.set({ password: passwordHash })
-			.where(eq(UserTable.id, user.userId));
+			.where(eq(UserTable.id, action.userId));
 
 		redirect(303, `/login?updated=password`);
 	},
 );
 
-export const changeName = form(CredentialsSchema.pick({ username: true }), async ({ username }) => {
-	const me = verifyAuth();
-	await db().update(UserTable).set({ name: username }).where(eq(UserTable.id, me.id));
+export const changeName = form(
+	CreateCredentialsSchema.pick({ username: true }),
+	async ({ username }) => {
+		const me = await resolveMe({});
+		await db().update(UserTable).set({ name: username }).where(eq(UserTable.id, me.id));
+
+		redirect(303, '/account');
+	},
+);
+
+export const changePassword = form(ChangePasswordSchema, async (data, invalid) => {
+	const { oldPassword, password: newPassword } = data;
+	const me = await resolveMe({});
+
+	const isOldPasswordValid = await compPasswords(oldPassword, me.password);
+	if (!isOldPasswordValid) return invalid(invalid.oldPassword('Current password is invalid'));
+
+	const newPasswordHash = await hashPassword(newPassword);
+	await db().update(UserTable).set({ password: newPasswordHash }).where(eq(UserTable.id, me.id));
+
+	redirect(303, '/account');
 });
 
 export const changeEmailStart = form(
 	CredentialsSchema.pick({ email: true }),
 	async ({ email }, invalid) => {
 		const me = await resolveMe({});
-		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'));
 		const { url } = getRequestEvent();
 
-		await db().transaction;
+		const existing = await db().query.UserTable.findFirst({
+			where: (t, { eq }) => eq(t.email, email),
+		});
+
+		if (existing) return invalid(invalid.email('Email already taken'));
+
+		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'), 'change-email', {
+			newEmail: email,
+		});
+
 		const emailResult = await sendEmail(email, {
 			template: {
 				id: '89718909-12de-4156-b766-5989ae2ab206',
 				variables: {
-					RESET_LINK: `${url.protocol}//${url.host}/account?mode=changeEmail&token=${token}`,
+					CHANGE_LINK: `${url.protocol}//${url.host}/account/change-email/${encodeURIComponent(token)}`,
 					EXPIRES_AT: formatRelative(expiresAt),
 				},
 			},
 		});
 
 		if (!emailResult.success) {
-			return invalid('Please try again later, emails are down.');
-		}
+			return invalid('Emails are temporarily down');
+		} else redirect(303, '/account');
 	},
 );
 
-export const changeEmail = form(
-	CredentialsSchema.pick({ email: true }).extend({ token: z.string() }),
-	async ({ email, token }) => {
-		const me = await resolveAccountAction(token);
-		if (!me) error(401);
+export const changeEmail = form(z.object({ token: z.string() }), async ({ token }) => {
+	const action = await resolveAccountAction(token, 'change-email');
+	if (!action) error(401);
 
-		await db().update(UserTable).set({ email: email }).where(eq(UserTable.id, me.userId));
+	await db()
+		.update(UserTable)
+		.set({ email: action.payload.newEmail })
+		.where(eq(UserTable.id, action.userId));
 
-		redirect(303, '/account?mode=emailChanged');
-	},
-);
+	redirect(303, '/account');
+});

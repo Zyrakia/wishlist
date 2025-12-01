@@ -153,7 +153,7 @@ export const issueCircleInvite = form(
 				variables: {
 					SENDER: circle.owner.name,
 					CIRCLE: circle.name,
-					INVITE_LINK: `${url.protocol}//${url.host}/circles/invite/${createdInvite.id}`,
+					INVITE_LINK: `${url.protocol}//${url.host}/circles/invite/${encodeURIComponent(createdInvite.id)}`,
 				},
 			},
 		});

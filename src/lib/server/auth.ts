@@ -10,6 +10,7 @@ import { Cookie } from './cookies';
 import { db } from './db';
 import { AccountActionTable } from './db/schema';
 import ENV from './env.server';
+import bcrypt from 'bcryptjs';
 
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
 
@@ -20,6 +21,14 @@ const TokenSchema = z.object({
 });
 
 export type SessionToken = z.infer<typeof TokenSchema>;
+
+export const hashPassword = async (raw: string) => {
+	return await bcrypt.hash(raw, ENV.SALT_ROUNDS);
+};
+
+export const compPasswords = async (raw: string, hash: string) => {
+	return await bcrypt.compare(raw, hash);
+};
 
 export const verifyAuth = ({
 	check,
@@ -95,48 +104,4 @@ export const rollingReadSession = async (cookies: Cookies) => {
 
 export const clearSession = (cookies: Cookies) => {
 	Cookie.session(cookies).clear();
-};
-
-export const createAccountAction = async (userId: string, lifetimeMs: number) => {
-	const token = randomUUID();
-
-	const expiresAt = new Date();
-	expiresAt.setTime(expiresAt.getTime() + lifetimeMs);
-
-	await db().insert(AccountActionTable).values({
-		userId,
-		token,
-		expiresAt,
-	});
-
-	return { token, expiresAt };
-};
-
-export const resolveAccountAction = async (token: string) => {
-	const action = await db().query.AccountActionTable.findFirst({
-		where: (t, { eq }) => eq(t.token, token),
-	});
-
-	if (!action) return;
-
-	await db().delete(AccountActionTable).where(eq(AccountActionTable.token, token));
-
-	const now = new Date();
-	if (action.expiresAt.getTime() < now.getTime()) return;
-
-	return { userId: action.userId };
-};
-
-export const peekAccountAction = async (token: string) => {
-	const action = await db().query.AccountActionTable.findFirst({
-		where: (t, { eq }) => eq(t.token, token),
-		with: { user: true },
-	});
-
-	if (!action) return;
-
-	const now = new Date();
-	if (action.expiresAt.getTime() < now.getTime()) return;
-
-	return { expiresAt: action.expiresAt, user: action.user };
 };

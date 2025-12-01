@@ -111,6 +111,8 @@ export const AccountActionTable = sqliteTable('account_action', {
 		.notNull()
 		.references(() => UserTable.id),
 	expiresAt: integer({ mode: 'timestamp' }).notNull(),
+	type: text().notNull(),
+	payload: text({ mode: 'json' }).notNull(),
 });
 
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
