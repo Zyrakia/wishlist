@@ -24,6 +24,7 @@
 	import { MediaQuery, SvelteMap } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import { fade, slide } from 'svelte/transition';
+	import { seen } from '$lib/runes/seen-ids.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -146,6 +147,10 @@
 		['Created (Newest to Oldest)']: 'created:desc',
 		['Created (Oldest to Newest)']: 'created:asc',
 	};
+
+	onMount(() => {
+		seen.markSeen(wishlist.id);
+	});
 </script>
 
 <div class="mt-2 flex flex-wrap items-end gap-3 p-4">
@@ -328,7 +333,7 @@
 									disabled={favTogglesLoading.has(item.id)}
 									class="bg-surface p-1.5 {isFavorited
 										? 'text-danger'
-										: 'text-shimmer'} drop-shadow-sm drop-shadow-background disabled:brightness-100 border-border-strong"
+										: 'text-shimmer'} border-border-strong drop-shadow-sm drop-shadow-background disabled:brightness-100"
 									{...favHandler.buttonProps.enhance(async ({ submit }) => {
 										favTogglesLoading.set(item.id, !item.favorited);
 										await submit();

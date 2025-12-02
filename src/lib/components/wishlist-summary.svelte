@@ -12,7 +12,7 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button relative flex w-full max-w-full flex-col border bg-surface p-0"
+	class="button relative flex w-full max-w-full flex-col rounded border bg-surface p-0 shadow"
 >
 	{#if author}
 		<div

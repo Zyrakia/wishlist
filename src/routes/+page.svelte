@@ -3,12 +3,12 @@
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import { resolveCircleInvite } from '$lib/remotes/circle.remote.js';
 	import { clock } from '$lib/runes/clock.svelte.js';
+	import { seen } from '$lib/runes/seen-ids.svelte.js';
 	import { formatRelative } from '$lib/util/date.js';
 	import { asIssue } from '$lib/util/pick-issue';
 	import {
 		ArrowRightIcon,
 		BellDotIcon,
-		CircleIcon,
 		FlameIcon,
 		LayoutGridIcon,
 		PlusIcon,
@@ -200,15 +200,22 @@
 									{@const wasUpdatedToday =
 										Date.now() - wishlist.activityAt.getTime() <= oneDayMs}
 
+									{@const seenLatestActivity = seen.hasSeen(
+										wishlist.id,
+										wishlist.activityAt.getTime(),
+									)}
+
+									{$inspect(seenLatestActivity)}
+
 									<WishlistSummary {wishlist} author={wishlist.userName}>
 										{#snippet footer()}
-											{#if wasUpdatedToday}
+											{#if wasUpdatedToday && !seenLatestActivity}
 												<p
-													class="absolute top-0 right-0 flex items-center gap-4 rounded-bl border-b border-l border-border bg-success/15 px-4 py-2 text-sm font-normal"
+													class="absolute top-0 right-0 flex max-w-1/2 items-center gap-4 rounded-bl border-b border-l border-border bg-success/15 px-4 py-2 text-sm font-normal"
 												>
 													<FlameIcon class="text-danger" size={18} />
 
-													Updated Recently
+													Updated
 												</p>
 											{/if}
 										{/snippet}
