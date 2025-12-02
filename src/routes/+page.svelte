@@ -205,8 +205,6 @@
 										wishlist.activityAt.getTime(),
 									)}
 
-									{$inspect(seenLatestActivity)}
-
 									<WishlistSummary {wishlist} author={wishlist.userName}>
 										{#snippet footer()}
 											{#if wasUpdatedToday && !seenLatestActivity}
