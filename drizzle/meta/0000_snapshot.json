@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c77f63ad-7623-46ae-9d39-328df49ae706",
+  "id": "a47248cd-cfc3-4fc3-9fc1-fcc9c4756012",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account_action": {
@@ -87,8 +87,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "timemzone": {
-          "name": "timemzone",
+        "timezone": {
+          "name": "timezone",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -180,8 +180,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "joined_at": {
+          "name": "joined_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -625,6 +625,14 @@
         },
         "created_at": {
           "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch())"
+        },
+        "activity_at": {
+          "name": "activity_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

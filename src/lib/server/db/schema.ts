@@ -18,7 +18,7 @@ export const GeolocationTable = sqliteTable('geolocation', {
 	id: text().primaryKey(),
 	latitude: real().notNull(),
 	longitude: real().notNull(),
-	timemzone: text(),
+	timezone: text(),
 });
 
 export const WishlistTable = sqliteTable('wishlist', {

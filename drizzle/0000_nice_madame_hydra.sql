@@ -11,7 +11,7 @@ CREATE TABLE `geolocation` (
 	`id` text PRIMARY KEY NOT NULL,
 	`latitude` real NOT NULL,
 	`longitude` real NOT NULL,
-	`timemzone` text
+	`timezone` text
 );
 --> statement-breakpoint
 CREATE TABLE `group_invite` (
@@ -26,7 +26,7 @@ CREATE UNIQUE INDEX `group_invitee_unique` ON `group_invite` (`group_id`,`target
 CREATE TABLE `group_membership` (
 	`group_id` text NOT NULL,
 	`user_id` text NOT NULL,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`joined_at` integer DEFAULT (unixepoch()) NOT NULL,
 	PRIMARY KEY(`group_id`, `user_id`),
 	FOREIGN KEY (`group_id`) REFERENCES `group`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
@@ -90,6 +90,7 @@ CREATE TABLE `wishlist` (
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`activity_at` integer DEFAULT (unixepoch()) NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
