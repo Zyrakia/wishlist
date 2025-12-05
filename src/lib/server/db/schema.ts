@@ -1,16 +1,17 @@
 import { relations, sql } from 'drizzle-orm';
 import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
-const autoTimestampColumn = integer({ mode: 'timestamp' })
-	.notNull()
-	.default(sql`(unixepoch())`);
+const autoTimestampColumn = () =>
+	integer({ mode: 'timestamp' })
+		.notNull()
+		.default(sql`(unixepoch())`);
 
 export const UserTable = sqliteTable('user', {
 	id: text().primaryKey(),
 	name: text().notNull(),
 	email: text().notNull().unique(),
 	password: text().notNull(),
-	createdAt: autoTimestampColumn,
+	createdAt: autoTimestampColumn(),
 });
 
 export const GeolocationTable = sqliteTable('geolocation', {
@@ -28,8 +29,8 @@ export const WishlistTable = sqliteTable('wishlist', {
 	slug: text().notNull().unique(),
 	name: text().notNull(),
 	description: text().notNull(),
-	createdAt: autoTimestampColumn,
-	activityAt: autoTimestampColumn,
+	createdAt: autoTimestampColumn(),
+	activityAt: autoTimestampColumn(),
 });
 
 export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
@@ -43,7 +44,7 @@ export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
 	syncError: integer({ mode: 'boolean' }),
 	lastSyncedAt: integer({ mode: 'timestamp' }),
 	createdGeoId: text().references(() => GeolocationTable.id, { onDelete: 'set null' }),
-	createdAt: autoTimestampColumn,
+	createdAt: autoTimestampColumn(),
 });
 
 export const WishlistItemTable = sqliteTable(
@@ -62,7 +63,7 @@ export const WishlistItemTable = sqliteTable(
 		url: text(),
 		favorited: integer({ mode: 'boolean' }).notNull().default(false),
 		order: real().default(0).notNull(),
-		createdAt: autoTimestampColumn,
+		createdAt: autoTimestampColumn(),
 	},
 	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],
 );
@@ -75,7 +76,7 @@ export const GroupTable = sqliteTable('group', {
 		.unique()
 		.references(() => UserTable.id, { onDelete: 'cascade' }),
 	memberLimit: integer().notNull(),
-	createdAt: autoTimestampColumn,
+	createdAt: autoTimestampColumn(),
 });
 
 export const GroupInviteTable = sqliteTable(
@@ -86,7 +87,7 @@ export const GroupInviteTable = sqliteTable(
 			.notNull()
 			.references(() => GroupTable.id, { onDelete: 'cascade' }),
 		targetEmail: text().notNull(),
-		createdAt: autoTimestampColumn,
+		createdAt: autoTimestampColumn(),
 	},
 	(t) => [unique('group_invitee_unique').on(t.groupId, t.targetEmail)],
 );
@@ -100,7 +101,7 @@ export const GroupMembershipTable = sqliteTable(
 		userId: text()
 			.notNull()
 			.references(() => UserTable.id, { onDelete: 'cascade' }),
-		joinedAt: autoTimestampColumn,
+		joinedAt: autoTimestampColumn(),
 	},
 	(t) => [primaryKey({ columns: [t.groupId, t.userId] })],
 );
