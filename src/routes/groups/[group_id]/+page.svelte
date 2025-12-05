@@ -2,10 +2,10 @@
 	import InputGroup from '$lib/components/input-group.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
 	import {
-		issueCircleInvite,
-		removeCircleMember,
-		revokeCircleInvite,
-	} from '$lib/remotes/circle.remote.js';
+		issueGroupInvite,
+		removeGroupMember,
+		revokeGroupInvite,
+	} from '$lib/remotes/group.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
 	import { asIssue } from '$lib/util/pick-issue.js';
 	import {
@@ -23,7 +23,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const circle = $derived(data.circle);
+	const group = $derived(data.group);
 	const isOwn = $derived(data.isOwn);
 	const members = $derived(data.members);
 	const pendingInvites = $derived(data.pendingInvites);
@@ -32,7 +32,7 @@
 		dateStyle: 'medium',
 	});
 
-	const isFull = $derived(members.length + pendingInvites.length >= circle.memberLimit);
+	const isFull = $derived(members.length + pendingInvites.length >= group.memberLimit);
 </script>
 
 {#snippet membersList()}
@@ -44,7 +44,7 @@
 
 			<span class:text-warning={isFull}>
 				<span class="font-bold">[</span>
-				{members.length}/{circle.memberLimit}
+				{members.length}/{group.memberLimit}
 				<span class="font-bold">]</span>
 			</span>
 
@@ -59,9 +59,9 @@
 			class="flex flex-col gap-4 divide-y divide-accent/50 border-s border-dashed border-border/75 ps-3"
 		>
 			{#each members as { user: member, joinedAt }}
-				{@const isOwner = member.id === circle.ownerId}
+				{@const isOwner = member.id === group.ownerId}
 				{@const isMe = member.id === data.user?.id}
-				{@const kickHandler = removeCircleMember.for(member.id)}
+				{@const kickHandler = removeGroupMember.for(member.id)}
 
 				<div class="flex flex-col gap-2">
 					<div class="flex items-center gap-2">
@@ -77,7 +77,7 @@
 
 						<p
 							class="font-bold"
-							title="Circle {isOwner ? 'Owner' : 'Member'}{isMe ? ' (You)' : ''}"
+							title="Group {isOwner ? 'Owner' : 'Member'}{isMe ? ' (You)' : ''}"
 						>
 							{member.name}
 						</p>
@@ -120,14 +120,14 @@
 <div class="p-4">
 	{#if members.length === 1 && isOwn}
 		<p class="mt-4 mb-6 text-center font-light text-text-muted italic">
-			Welcome to your new circle
+			Welcome to your new group
 			<br />
 			Get started by inviting someone
 		</p>
 	{/if}
 
 	{#if isOwn}
-		{@const inviteHandler = issueCircleInvite.preflight(
+		{@const inviteHandler = issueGroupInvite.preflight(
 			z.object({ targetEmail: CredentialsSchema.shape.email }),
 		)}
 
@@ -137,7 +137,7 @@
 			>
 				<div class="flex w-full gap-2">
 					<a
-						href="/circles/{circle.id}/edit"
+						href="/groups/{group.id}/edit"
 						class="button flex items-center justify-center gap-2"
 					>
 						<Settings2Icon size={20} />
@@ -145,7 +145,7 @@
 					</a>
 
 					<a
-						href="/circles/{circle.id}/delete-confirm"
+						href="/groups/{group.id}/delete-confirm"
 						class="button ms-auto border-danger text-danger"
 					>
 						<Trash2Icon size={20} />
@@ -189,7 +189,7 @@
 
 							<ul class="flex flex-col gap-1">
 								{#each invites as invite}
-									{@const revokeHandler = revokeCircleInvite.for(invite.id)}
+									{@const revokeHandler = revokeGroupInvite.for(invite.id)}
 
 									<li
 										class="flex items-center gap-2 rounded-sm border border-border p-2"

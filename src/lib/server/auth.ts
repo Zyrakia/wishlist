@@ -1,16 +1,13 @@
 import { getRequestEvent } from '$app/server';
-import { createSecretKey, randomUUID } from 'crypto';
-import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
+import { createSecretKey } from 'crypto';
 import { jwtVerify, SignJWT } from 'jose';
 import z from 'zod';
 
 import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import { Cookie } from './cookies';
-import { db } from './db';
-import { AccountActionTable } from './db/schema';
 import ENV from './env.server';
-import bcrypt from 'bcryptjs';
 
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
 

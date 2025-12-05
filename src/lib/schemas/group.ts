@@ -1,6 +1,6 @@
 import z from 'zod';
 
-export const CircleSchema = z.object({
+export const GroupSchema = z.object({
 	name: z
 		.string({ error: 'Name is required' })
 		.trim()
@@ -9,4 +9,4 @@ export const CircleSchema = z.object({
 		.max(50, { error: 'Maximmum 50 characters' }),
 });
 
-export type Circle = z.infer<typeof CircleSchema>;
+export type Group = z.infer<typeof GroupSchema>;

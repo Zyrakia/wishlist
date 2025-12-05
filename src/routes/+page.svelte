@@ -1,7 +1,7 @@
 <script lang="ts">
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
-	import { resolveCircleInvite } from '$lib/remotes/circle.remote.js';
+	import { resolveGroupInvite } from '$lib/remotes/group.remote.js';
 	import { clock } from '$lib/runes/clock.svelte.js';
 	import { seen } from '$lib/runes/seen-ids.svelte.js';
 	import { formatRelative } from '$lib/util/date.js';
@@ -20,8 +20,8 @@
 	const user = $derived(data.user);
 
 	const wishlists = $derived(data.wishlists);
-	const circles = $derived(data.circles);
-	const circleInvites = $derived(data.invites);
+	const groups = $derived(data.groups);
+	const invites = $derived(data.invites);
 
 	const oneDayMs = ms('1d');
 </script>
@@ -29,7 +29,7 @@
 <div class="flex h-full flex-col gap-12 px-6 py-12">
 	<UserIntro name={user.name} />
 
-	{#if circleInvites.length}
+	{#if invites.length}
 		<div class="flex flex-col gap-3">
 			<div class="flex items-center gap-2">
 				<div class="relative">
@@ -42,23 +42,23 @@
 
 					<BellDotIcon />
 				</div>
-				<p>You have pending circle invites!</p>
+				<p>You have pending group invites!</p>
 			</div>
 
 			<div
 				class="flex flex-nowrap gap-4 overflow-x-auto overflow-y-hidden scroll-smooth pb-1.5"
 			>
-				{#each circleInvites as invite}
-					{@const inviteHandler = resolveCircleInvite.for(invite.id)}
+				{#each invites as invite}
+					{@const inviteHandler = resolveGroupInvite.for(invite.id)}
 					{@const issue = asIssue(inviteHandler.fields.allIssues())}
 
 					<div
 						class="flex flex-none flex-col gap-2 rounded border border-border bg-surface p-4"
 					>
 						<p>
-							<span class="font-bold">{invite.circle.owner.name}</span>
+							<span class="font-bold">{invite.group.owner.name}</span>
 							invited you to
-							<span class="font-bold text-success">{invite.circle.name}</span>
+							<span class="font-bold text-success">{invite.group.name}</span>
 						</p>
 
 						<form class="flex gap-2" {...inviteHandler}>
@@ -140,9 +140,9 @@
 				Your Groups
 			</p>
 
-			{#if circles && !circles.find((v) => v.circle.ownerId === user.id)}
+			{#if groups && !groups.find((v) => v.group.ownerId === user.id)}
 				<a
-					href="/new-circle"
+					href="/new-group"
 					class="flex items-center gap-2 font-light italic hover:text-accent"
 				>
 					Create your own
@@ -154,12 +154,12 @@
 
 		<hr class="mt-2 mb-3 border-dashed border-border" />
 
-		{#if circles.length}
+		{#if groups.length}
 			<div class="flex flex-col gap-4">
-				{#each circles as { circle, activity }, i}
-					{@const isOwn = circle.ownerId === user.id}
+				{#each groups as { group, activity }, i}
+					{@const isOwn = group.ownerId === user.id}
 
-					{@const seenLists = circles
+					{@const seenLists = groups
 						.slice(0, i)
 						.flatMap((v) => v.activity.map((v) => v.id))}
 
@@ -171,15 +171,15 @@
 					<div class="flex flex-col gap-2">
 						<div class="flex gap-2">
 							<a
-								href="/circles/{circle.id}"
+								href="/groups/{group.id}"
 								class="flex items-center gap-2 font-bold hover:text-accent"
 							>
 								<UsersIcon size={16} />
-								{circle.name}
+								{group.name}
 							</a>
 
 							<a
-								href="/circles/{circle.id}"
+								href="/groups/{group.id}"
 								class="ms-auto flex items-center gap-2 font-light italic hover:text-accent"
 							>
 								{#if isOwn}
@@ -229,12 +229,12 @@
 		{:else}
 			<div class="flex flex-col items-center gap-2 py-6">
 				<p class="text-center font-light italic">
-					Circles let you automatically share your lists with family, friends and everyone
+					Groups let you automatically share your lists with family, friends and everyone
 					in between.
 				</p>
 
-				<a href="/new-circle" class="button mt-2 bg-success px-4 py-3 text-accent-fg">
-					Create Your Circle
+				<a href="/new-group" class="button mt-2 bg-success px-4 py-3 text-accent-fg">
+					Create Your Group
 				</a>
 			</div>
 		{/if}

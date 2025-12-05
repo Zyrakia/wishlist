@@ -1,19 +1,18 @@
+import { dev } from '$app/environment';
+import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
+import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
+import TurndownService from 'turndown';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
 import ENV from '../env.server';
-import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
-import TurndownService from 'turndown';
 import { reportGenerationUsage } from './usage-stats';
 
-import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
 import type { Geolocation } from '../util/geolocation';
-import { dev } from '$app/environment';
-
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
 const CandidateSchema = z.object({

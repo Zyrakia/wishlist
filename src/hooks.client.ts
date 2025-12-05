@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+
 import type { HandleClientError } from '@sveltejs/kit';
 
 if (browser) {

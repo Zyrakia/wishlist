@@ -1,16 +1,16 @@
 import type { PageServerLoad } from './$types';
-import { getCirclesActivity, getMyInvites } from '$lib/remotes/circle.remote';
+import { getGroupActivity, getMyInvites } from '$lib/remotes/group.remote';
 import { getWishlists } from '$lib/remotes/wishlist.remote';
 import { verifyAuth } from '$lib/server/auth';
 
 export const load: PageServerLoad = async () => {
 	const user = verifyAuth();
 
-	const [wishlists, circles, invites] = await Promise.all([
+	const [wishlists, groups, invites] = await Promise.all([
 		getWishlists(),
-		getCirclesActivity(),
+		getGroupActivity(),
 		getMyInvites(),
 	]);
 
-	return { user, wishlists, circles, invites };
+	return { user, wishlists, groups, invites };
 };

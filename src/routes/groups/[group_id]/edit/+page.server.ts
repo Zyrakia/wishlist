@@ -3,6 +3,6 @@ import { verifyAuth } from '$lib/server/auth';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
-	const owner = (await parent()).circle.ownerId;
+	const owner = (await parent()).group.ownerId;
 	verifyAuth({ check: (user) => user.id === owner, failStrategy: 'error' });
 };

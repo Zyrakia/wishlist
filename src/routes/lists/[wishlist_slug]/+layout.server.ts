@@ -1,13 +1,12 @@
 import { db } from '$lib/server/db';
+import { syncListConnection } from '$lib/server/generation/connection-sync';
+import { safePruneParams } from '$lib/util/safe-prune';
+import ms from 'ms';
+import z from 'zod';
 
 import { error } from '@sveltejs/kit';
 
 import type { LayoutServerLoad } from './$types';
-import ms from 'ms';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
-import { safePruneParams } from '$lib/util/safe-prune';
-import z from 'zod';
-
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({

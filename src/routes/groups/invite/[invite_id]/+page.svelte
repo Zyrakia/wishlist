@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { resolveCircleInvite } from '$lib/remotes/circle.remote';
+	import { resolveGroupInvite } from '$lib/remotes/group.remote';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { TriangleAlertIcon } from '@lucide/svelte';
 
@@ -25,16 +25,16 @@
 		<div class="flex flex-col items-center gap-4">
 			<p>You have been invited to join</p>
 
-			<h1 class="max-w-full text-3xl font-bold text-success">{invite.circle.name}</h1>
+			<h1 class="max-w-full text-3xl font-bold text-success">{invite.group.name}</h1>
 
 			<hr class="w-full border-border" />
 
 			{#if me}
 				{#if me.email === invite.targetEmail}
-					{@const issue = asIssue(resolveCircleInvite.fields.allIssues())}
+					{@const issue = asIssue(resolveGroupInvite.fields.allIssues())}
 
-					<form {...resolveCircleInvite} class="flex gap-3">
-						<input {...resolveCircleInvite.fields.inviteId.as('hidden', invite.id)} />
+					<form {...resolveGroupInvite} class="flex gap-3">
+						<input {...resolveGroupInvite.fields.inviteId.as('hidden', invite.id)} />
 
 						<button name="decision" value="accept" class="bg-success text-accent-fg">
 							Accept

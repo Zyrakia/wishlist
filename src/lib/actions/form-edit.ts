@@ -3,7 +3,7 @@ import type { Action } from 'svelte/action';
 export type FormEditHandler = (
 	name: string,
 	value: unknown,
-	ev: InputEvent & { target: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement },
+	ev: Event & { target: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement },
 ) => void;
 
 /**
@@ -11,7 +11,7 @@ export type FormEditHandler = (
  * the field that was edited.
  */
 export const formEdit: Action<HTMLFormElement, FormEditHandler> = (node, handler) => {
-	const onInput = (ev: InputEvent) => {
+	const onInput = (ev: Event) => {
 		const control = ev.target;
 		if (
 			!(

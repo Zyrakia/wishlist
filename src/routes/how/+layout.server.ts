@@ -1,7 +1,7 @@
-import z from 'zod';
-import type { LayoutServerLoad } from './$types';
 import { safePrune } from '$lib/util/safe-prune';
+import z from 'zod';
 
+import type { LayoutServerLoad } from './$types';
 const searchParams = z.object({
 	return: z
 		.string()

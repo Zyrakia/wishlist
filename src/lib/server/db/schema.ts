@@ -67,7 +67,7 @@ export const WishlistItemTable = sqliteTable(
 	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],
 );
 
-export const CircleTable = sqliteTable('circles', {
+export const GroupTable = sqliteTable('group', {
 	id: text().primaryKey(),
 	name: text().notNull(),
 	ownerId: text()
@@ -78,31 +78,31 @@ export const CircleTable = sqliteTable('circles', {
 	createdAt: autoTimestampColumn,
 });
 
-export const CircleInviteTable = sqliteTable(
-	'circle_invite',
+export const GroupInviteTable = sqliteTable(
+	'group_invite',
 	{
 		id: text().primaryKey(),
-		circleId: text()
+		groupId: text()
 			.notNull()
-			.references(() => CircleTable.id, { onDelete: 'cascade' }),
+			.references(() => GroupTable.id, { onDelete: 'cascade' }),
 		targetEmail: text().notNull(),
 		createdAt: autoTimestampColumn,
 	},
-	(t) => [unique('circle_invitee_unique').on(t.circleId, t.targetEmail)],
+	(t) => [unique('group_invitee_unique').on(t.groupId, t.targetEmail)],
 );
 
-export const CircleMembershipTable = sqliteTable(
-	'circle_membership',
+export const GroupMembershipTable = sqliteTable(
+	'group_membership',
 	{
-		circleId: text()
+		groupId: text()
 			.notNull()
-			.references(() => CircleTable.id, { onDelete: 'cascade' }),
+			.references(() => GroupTable.id, { onDelete: 'cascade' }),
 		userId: text()
 			.notNull()
 			.references(() => UserTable.id, { onDelete: 'cascade' }),
 		joinedAt: autoTimestampColumn,
 	},
-	(t) => [primaryKey({ columns: [t.circleId, t.userId] })],
+	(t) => [primaryKey({ columns: [t.groupId, t.userId] })],
 );
 
 export const AccountActionTable = sqliteTable('account_action', {
@@ -117,11 +117,11 @@ export const AccountActionTable = sqliteTable('account_action', {
 
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	wishlists: many(WishlistTable),
-	circleMemberships: many(CircleMembershipTable),
+	groupMemberships: many(GroupMembershipTable),
 	pendingActions: many(AccountActionTable),
-	createdCircle: one(CircleTable, {
+	createdGroup: one(GroupTable, {
 		fields: [UserTable.id],
-		references: [CircleTable.ownerId],
+		references: [GroupTable.ownerId],
 	}),
 }));
 
@@ -158,29 +158,29 @@ export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => 
 	}),
 }));
 
-export const _CirclesRelations = relations(CircleTable, ({ one, many }) => ({
-	members: many(CircleMembershipTable),
+export const _GroupsRelations = relations(GroupTable, ({ one, many }) => ({
+	members: many(GroupMembershipTable),
 	owner: one(UserTable, {
-		fields: [CircleTable.ownerId],
+		fields: [GroupTable.ownerId],
 		references: [UserTable.id],
 	}),
-	pendingInvites: many(CircleInviteTable),
+	pendingInvites: many(GroupInviteTable),
 }));
 
-export const _CircleInviteRelations = relations(CircleInviteTable, ({ one }) => ({
-	circle: one(CircleTable, {
-		fields: [CircleInviteTable.circleId],
-		references: [CircleTable.id],
+export const _GroupInviteRelations = relations(GroupInviteTable, ({ one }) => ({
+	group: one(GroupTable, {
+		fields: [GroupInviteTable.groupId],
+		references: [GroupTable.id],
 	}),
 }));
 
-export const _CircleMembershipRelations = relations(CircleMembershipTable, ({ one }) => ({
-	circle: one(CircleTable, {
-		fields: [CircleMembershipTable.circleId],
-		references: [CircleTable.id],
+export const _GroupMembershipRelations = relations(GroupMembershipTable, ({ one }) => ({
+	group: one(GroupTable, {
+		fields: [GroupMembershipTable.groupId],
+		references: [GroupTable.id],
 	}),
 	user: one(UserTable, {
-		fields: [CircleMembershipTable.userId],
+		fields: [GroupMembershipTable.userId],
 		references: [UserTable.id],
 	}),
 }));

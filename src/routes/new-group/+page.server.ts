@@ -6,9 +6,9 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const user = verifyAuth();
 
-	const ownedCircle = await db().query.CircleTable.findFirst({
+	const ownedGroup = await db().query.GroupTable.findFirst({
 		where: (t, { eq }) => eq(t.ownerId, user.id),
 	});
 
-	return { ownedCircle };
+	return { ownedGroup };
 };

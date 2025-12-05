@@ -1,25 +1,25 @@
 <script lang="ts">
-	import { CircleSchema, type Circle } from '$lib/schemas/circle';
+	import { GroupSchema, type Group } from '$lib/schemas/group';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount } from 'svelte';
 	import InputGroup from './input-group.svelte';
 	import { fade } from 'svelte/transition';
-	import { createCircle, updateCircle } from '$lib/remotes/circle.remote';
+	import { createGroup, updateGroup } from '$lib/remotes/group.remote';
 
 	let {
 		handler,
 		init,
 	}: {
-		handler: typeof createCircle | typeof updateCircle;
-		init?: Partial<Circle>;
+		handler: typeof createGroup | typeof updateGroup;
+		init?: Partial<Group>;
 	} = $props();
 
-	const mode: 'edit' | 'create' = $derived(handler === createCircle ? 'create' : 'edit');
+	const mode: 'edit' | 'create' = $derived(handler === createGroup ? 'create' : 'edit');
 	const generalIssue = $derived(asIssue(handler.fields.issues()));
 
-	const seed = (props?: Partial<Circle>) => {
-		const cleanProps = safePrune(CircleSchema, props);
+	const seed = (props?: Partial<Group>) => {
+		const cleanProps = safePrune(GroupSchema, props);
 		handler.fields.set(cleanProps as any);
 	};
 
@@ -35,7 +35,7 @@
 		}}
 		class="float-container flex flex-col gap-4 p-8"
 	>
-		<h1 class="text-2xl font-bold">{mode === 'edit' ? 'Edit' : 'Create'} Circle</h1>
+		<h1 class="text-2xl font-bold">{mode === 'edit' ? 'Edit' : 'Create'} Group</h1>
 
 		<hr class="-mt-3" />
 

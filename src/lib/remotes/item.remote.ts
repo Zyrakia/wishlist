@@ -2,7 +2,9 @@ import { form, getRequestEvent, query } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
 import { generateItemCandidate } from '$lib/server/generation/item-generator';
-import { and, eq, SQL } from 'drizzle-orm';
+import { requestGeolocation } from '$lib/server/util/geolocation';
+import { strBoolean } from '$lib/util/zod';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
 
@@ -11,8 +13,6 @@ import { error, redirect } from '@sveltejs/kit';
 import { db } from '../server/db';
 import { WishlistItemTable, WishlistTable } from '../server/db/schema';
 import { touchList } from './wishlist.remote';
-import { requestGeolocation } from '$lib/server/util/geolocation';
-import { strBoolean } from '$lib/util/zod';
 
 export const createItem = form(
 	ItemSchema.safeExtend({

@@ -1,9 +1,10 @@
 import { CreateCredentialsSchema } from '$lib/schemas/auth';
 import { randomUUID } from 'crypto';
-import z from 'zod';
-import { AccountActionTable } from './db/schema';
-import { db } from './db';
 import { eq } from 'drizzle-orm';
+import z from 'zod';
+
+import { db } from './db';
+import { AccountActionTable } from './db/schema';
 
 const AccountActionSchemas = {
 	'change-email': z.object({

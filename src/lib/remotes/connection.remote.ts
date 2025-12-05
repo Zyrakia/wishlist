@@ -1,22 +1,22 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
+import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import {
-	GeolocationTable,
-	WishlistConnectionTable,
-	WishlistItemTable,
+    GeolocationTable, WishlistConnectionTable, WishlistItemTable
 } from '$lib/server/db/schema';
-import { error } from '@sveltejs/kit';
+import { syncListConnection } from '$lib/server/generation/connection-sync';
+import { requestGeolocation } from '$lib/server/util/geolocation';
+import { cleanBaseName } from '$lib/util/url';
+import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
 import { count, eq, sql } from 'drizzle-orm';
-import z from 'zod';
-import { getWishlist } from './wishlist.remote';
-import { verifyAuth } from '$lib/server/auth';
-import { strBoolean } from '$lib/util/zod';
-import { cleanBaseName } from '$lib/util/url';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
 import ms from 'ms';
-import { requestGeolocation } from '$lib/server/util/geolocation';
+import z from 'zod';
+
+import { error } from '@sveltejs/kit';
+
+import { getWishlist } from './wishlist.remote';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({

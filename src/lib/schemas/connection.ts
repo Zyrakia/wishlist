@@ -1,4 +1,5 @@
 import z from 'zod';
+
 import { RequiredUrlSchema } from './item';
 
 export const WishlistConnectionSchema = z.object({

@@ -1,11 +1,10 @@
 import { resolveMe } from '$lib/remotes/auth.remote';
+import { safePruneParams } from '$lib/util/safe-prune';
+import z from 'zod';
 
 import { redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
-import z from 'zod';
-import { safePruneParams } from '$lib/util/safe-prune';
-
 const ParamsSchema = z.object({
 	change: z.enum(['name', 'email', 'password']),
 	notice: z.string(),
