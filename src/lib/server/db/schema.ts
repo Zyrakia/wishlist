@@ -47,25 +47,38 @@ export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
 	createdAt: autoTimestampColumn(),
 });
 
-export const WishlistItemTable = sqliteTable(
-	'wishlist_item',
+export const WishlistItemTable = sqliteTable('wishlist_item', {
+	id: text().notNull().primaryKey(),
+	wishlistId: text()
+		.notNull()
+		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+	connectionId: text().references(() => WishlistConnectionTable.id, { onDelete: 'set null' }),
+	name: text().notNull(),
+	notes: text().notNull(),
+	priceCurrency: text(),
+	price: real(),
+	imageUrl: text(),
+	url: text(),
+	favorited: integer({ mode: 'boolean' }).notNull().default(false),
+	order: real().default(0).notNull(),
+	createdAt: autoTimestampColumn(),
+});
+
+export const ReservationTable = sqliteTable(
+	'item_reservation',
 	{
 		wishlistId: text()
 			.notNull()
 			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-		id: text().notNull(),
-		connectionId: text().references(() => WishlistConnectionTable.id, { onDelete: 'set null' }),
-		name: text().notNull(),
-		notes: text().notNull(),
-		priceCurrency: text(),
-		price: real(),
-		imageUrl: text(),
-		url: text(),
-		favorited: integer({ mode: 'boolean' }).notNull().default(false),
-		order: real().default(0).notNull(),
+		itemId: text()
+			.notNull()
+			.references(() => WishlistItemTable.id, { onDelete: 'cascade' }),
+		userId: text()
+			.notNull()
+			.references(() => UserTable.id, { onDelete: 'cascade' }),
 		createdAt: autoTimestampColumn(),
 	},
-	(t) => [primaryKey({ columns: [t.wishlistId, t.id] })],
+	(t) => [primaryKey({ columns: [t.itemId, t.wishlistId] })],
 );
 
 export const GroupTable = sqliteTable('group', {
@@ -156,6 +169,17 @@ export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => 
 	source: one(WishlistConnectionTable, {
 		fields: [WishlistItemTable.connectionId],
 		references: [WishlistConnectionTable.id],
+	}),
+}));
+
+export const _ReservationRelations = relations(ReservationTable, ({ one }) => ({
+	item: one(WishlistItemTable, {
+		fields: [ReservationTable.itemId],
+		references: [WishlistItemTable.id],
+	}),
+	reserver: one(UserTable, {
+		fields: [ReservationTable.userId],
+		references: [UserTable.id],
 	}),
 }));
 
