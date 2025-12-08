@@ -7,6 +7,7 @@ import z from 'zod';
 import { error } from '@sveltejs/kit';
 
 import type { LayoutServerLoad } from './$types';
+import { getReservations } from '$lib/remotes/reservation.remote';
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({
@@ -17,31 +18,34 @@ const ParamsSchema = z.object({
 export const load: LayoutServerLoad = async ({ params, url }) => {
 	const searchParams = safePruneParams(ParamsSchema, url.searchParams);
 
-	const wishlist = await db().query.WishlistTable.findFirst({
-		where: (t, { eq }) => eq(t.slug, params.wishlist_slug),
-		with: {
-			items: {
-				orderBy: (t, { asc, desc }) => {
-					const sortBy = (col: keyof typeof t) =>
-						searchParams.direction === 'asc' ? asc(t[col]) : desc(t[col]);
+	const [wishlist, reservations] = await Promise.all([
+		db().query.WishlistTable.findFirst({
+			where: (t, { eq }) => eq(t.slug, params.wishlist_slug),
+			with: {
+				items: {
+					orderBy: (t, { asc, desc }) => {
+						const sortBy = (col: keyof typeof t) =>
+							searchParams.direction === 'asc' ? asc(t[col]) : desc(t[col]);
 
-					switch (searchParams.sort) {
-						case 'alphabetical':
-							return sortBy('name');
-						case 'created':
-							return sortBy('createdAt');
-						case 'price':
-							return sortBy('price');
-						case 'user':
-						default:
-							return asc(t.order);
-					}
+						switch (searchParams.sort) {
+							case 'alphabetical':
+								return sortBy('name');
+							case 'created':
+								return sortBy('createdAt');
+							case 'price':
+								return sortBy('price');
+							case 'user':
+							default:
+								return asc(t.order);
+						}
+					},
 				},
+				connections: true,
+				user: { columns: { name: true } },
 			},
-			connections: true,
-			user: { columns: { name: true } },
-		},
-	});
+		}),
+		getReservations(),
+	]);
 
 	if (!wishlist) error(404);
 
@@ -58,6 +62,7 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 
 	return {
 		wishlist,
+		reservations,
 		syncingConnectionIds: staleConnectionIds,
 		meta: {
 			title: `${wishlist.name} by ${wishlist.user.name}`,
