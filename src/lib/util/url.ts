@@ -5,7 +5,7 @@ export function cleanBaseName(url: string | URL) {
 	if (typeof url === 'string') {
 		let { data } = safeCall(() => new URL(url).hostname);
 		if (data) hostname = data;
-	}
+	} else hostname = url.hostname;
 
 	if (!hostname) return '';
 

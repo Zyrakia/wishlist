@@ -3,7 +3,9 @@ import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { verifyAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import {
-    GeolocationTable, WishlistConnectionTable, WishlistItemTable
+	GeolocationTable,
+	WishlistConnectionTable,
+	WishlistItemTable,
 } from '$lib/server/db/schema';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { requestGeolocation } from '$lib/server/util/geolocation';
@@ -72,7 +74,7 @@ export const createWishlistConnection = form(
 			.values({
 				id: id,
 				wishlistId: wishlist.id,
-				provider: cleanBaseName(new URL(data.url)),
+				provider: cleanBaseName(data.url),
 				createdGeoId: createdGeoId,
 				...data,
 			});
