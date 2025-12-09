@@ -100,7 +100,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 				.insert(WishlistItemTable)
 				.values(items)
 				.onConflictDoUpdate({
-					target: [WishlistItemTable.wishlistId, WishlistItemTable.id],
+					target: WishlistItemTable.id,
 					set: buildUpsertSet(
 						WishlistItemTable,
 						'name',
