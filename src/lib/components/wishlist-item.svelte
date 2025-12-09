@@ -45,8 +45,8 @@
 		if (!item.url) return;
 
 		try {
-			const url = new URL(item.url);
-			return url.hostname.replace('www.', '');
+			const [, ...hostParts] = new URL(item.url).hostname.split('.');
+			return hostParts.join('.');
 		} catch (err) {
 			console.warn(err);
 		}

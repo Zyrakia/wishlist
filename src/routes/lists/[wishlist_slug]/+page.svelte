@@ -1,5 +1,4 @@
 <script lang="ts">
-	import WishlistItemToolbar from '$lib/components/wishlist-item-toolbar.svelte';
 	import WishlistItem from '$lib/components/wishlist-item.svelte';
 	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 	import {
@@ -11,8 +10,6 @@
 		LinkIcon,
 		MoveIcon,
 		Share2 as ShareIcon,
-		StarIcon,
-		StarOffIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -20,15 +17,19 @@
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { flip } from 'svelte/animate';
 	import { dndzone, type DndEvent } from 'svelte-dnd-action';
-	import { reorderItems, setItemFavorited } from '$lib/remotes/item.remote';
-	import { MediaQuery, SvelteMap } from 'svelte/reactivity';
+	import { reorderItems } from '$lib/remotes/item.remote';
 	import { goto } from '$app/navigation';
-	import { fade, slide } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import { seen } from '$lib/runes/seen-ids.svelte';
+	import ItemOwnerToolbar from '$lib/components/item-owner-toolbar.svelte';
+	import ItemViewerToolbar from '$lib/components/item-viewer-toolbar.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	const wishlist = $derived(data.wishlist);
+	const connections = $derived(wishlist.connections);
+	const reservations = $derived(data.reservations);
+
 	const isOwn = $derived(wishlist.userId === data.user?.id);
 
 	let shareEnabled = $state(true);
@@ -137,8 +138,6 @@
 		isSavingOrganization = false;
 		organizationChangesPending = false;
 	};
-
-	const favTogglesLoading = new SvelteMap<string, boolean>();
 
 	const sortOptions: Record<string, string> = {
 		['Default']: 'user:desc',
@@ -282,10 +281,11 @@
 >
 	{#if items.length !== 0}
 		{#each items as item (item.id)}
-			{@const isFavorited = favTogglesLoading.get(item.id) ?? item.favorited}
+			{@const connection = connections.find((v) => v.id === item.connectionId)}
+			{@const reservation = reservations.find((v) => v.itemId === item.id)}
 
 			<div animate:flip={{ duration: 200 }} class="h-full w-full">
-				<WishlistItem {item} interactive={!isReorganizing} highlighted={isFavorited}>
+				<WishlistItem {item} interactive={!isReorganizing} highlighted={item.favorited}>
 					{#snippet footer()}
 						{#if isReorganizing}
 							<div
@@ -296,60 +296,25 @@
 								<MoveIcon size={32} class="text-white" />
 							</div>
 						{:else if isOwn}
-							{@const connection = wishlist.connections.find(
-								(v) => v.id === item.connectionId,
-							)}
-
-							{@const favHandler = setItemFavorited.for(item.id)}
-
-							{#if connection}
-								<p class="mt-2 flex h-12 items-center gap-2 text-text-muted">
-									<LinkIcon size={18} />
-
-									Controlled by
-
-									<a class="text-accent hover:underline" href={connection.url}>
-										{connection.name}
-									</a>
-								</p>
-							{:else}
-								<WishlistItemToolbar
-									itemId={item.id}
-									wishlistSlug={wishlist.slug}
-								/>
-							{/if}
-
-							<form {...favHandler} class="absolute -top-1.5 -right-1.5">
-								<input {...favHandler.fields.itemId.as('hidden', item.id)} />
-								<input
-									{...favHandler.fields.favorited.as(
-										'hidden',
-										`${!item.favorited}`,
-									)}
-								/>
-
-								<button
-									title={isFavorited ? 'Remove Favorite' : 'Mark as Favorite'}
-									disabled={favTogglesLoading.has(item.id)}
-									class="bg-surface p-1.5 {isFavorited
-										? 'text-danger'
-										: 'text-shimmer'} border-border-strong drop-shadow-sm drop-shadow-background disabled:brightness-100"
-									{...favHandler.buttonProps.enhance(async ({ submit }) => {
-										favTogglesLoading.set(item.id, !item.favorited);
-										await submit();
-										setTimeout(() => {
-											favTogglesLoading.delete(item.id);
-										}, 500);
-									})}
-								>
-									{#if isFavorited}
-										<StarOffIcon size={20} />
-									{:else}
-										<StarIcon size={20} />
-									{/if}
-								</button>
-							</form>
-							{#if item.favorited}{/if}
+							<ItemOwnerToolbar
+								itemId={item.id}
+								wishlistSlug={wishlist.slug}
+								favorited={item.favorited}
+								{connection}
+							/>
+						{:else if data.user}
+							<ItemViewerToolbar
+								itemId={item.id}
+								wishlistSlug={wishlist.slug}
+								reservation={!data.canAccessReservations
+									? undefined
+									: {
+											active: !!reservation,
+											canModify:
+												!reservation ||
+												reservation.userId === data.user?.id,
+										}}
+							/>
 						{/if}
 					{/snippet}
 				</WishlistItem>

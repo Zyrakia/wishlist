@@ -62,7 +62,8 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 
 	return {
 		wishlist,
-		reservations,
+		reservations: reservations || [],
+		canAccessReservations: reservations !== undefined,
 		syncingConnectionIds: staleConnectionIds,
 		meta: {
 			title: `${wishlist.name} by ${wishlist.user.name}`,
