@@ -13,6 +13,7 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 import { resolveMe } from './auth.remote';
+import { cleanReservationsAfterGroupExit } from '$lib/server/reservations';
 
 export const createGroup = form(GroupSchema, async (data, invalid) => {
 	const user = verifyAuth();
@@ -228,11 +229,14 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	if (!group_id) error(400, 'A group ID is required');
 
 	const group = await db().query.GroupTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.id, group_id), eq(t.ownerId, user.id)),
+		where: (t, { eq }) => eq(t.id, group_id),
 	});
 
 	if (!group) error(400, 'Invalid group ID provided');
-	if (group.ownerId === targetId) error(400, 'Cannot kick group owner');
+
+	if (group.ownerId === targetId) error(400, 'Cannot remove group owner');
+	if (group.ownerId !== user.id && user.id !== targetId)
+		error(401, 'Cannot modify other members of this group');
 
 	const membership = await db().query.GroupMembershipTable.findFirst({
 		where: (t, { and, eq }) => and(eq(t.groupId, group.id), eq(t.userId, targetId)),
@@ -248,6 +252,8 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 				eq(GroupMembershipTable.userId, targetId),
 			),
 		);
+
+	await cleanReservationsAfterGroupExit(targetId);
 
 	redirect(303, `/groups/${group.id}`);
 });
