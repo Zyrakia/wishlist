@@ -19,7 +19,7 @@ const SYNC_DELAY = ms('1h');
 const normalizeCompareUrl = (raw: string) => {
 	try {
 		const url = new URL(raw);
-		return `${url.protocol}//${url.host}/${url.pathname}`;
+		return `${url.protocol}//${url.host}${url.pathname}`;
 	} catch {
 		return raw;
 	}
@@ -59,8 +59,6 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	const urlToId = new Map(
 		existingItems.map((v) => [v.url ? normalizeCompareUrl(v.url) : null, v.id]),
 	);
-
-	console.log(urlToId);
 
 	const items = (candidates || []).flatMap((candidate) => {
 		if (!candidate.name || !candidate.valid) return [];
