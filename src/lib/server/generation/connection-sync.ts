@@ -16,6 +16,15 @@ import { generateItemCandidates } from './item-generator';
 
 const SYNC_DELAY = ms('1h');
 
+const normalizeCompareUrl = (raw: string) => {
+	try {
+		const url = new URL(raw);
+		return `${url.protocol}//${url.host}/${url.pathname}`;
+	} catch {
+		return raw;
+	}
+};
+
 const syncing = new Map<string, Promise<Result<void>>>();
 const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	const connection = await db().query.WishlistConnectionTable.findFirst({
@@ -47,13 +56,17 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	}
 
 	const existingItems = connection.items;
-	const urlToId = new Map(existingItems.map((v) => [v.url, v.id]));
+	const urlToId = new Map(
+		existingItems.map((v) => [v.url ? normalizeCompareUrl(v.url) : null, v.id]),
+	);
+
+	console.log(urlToId);
 
 	const items = (candidates || []).flatMap((candidate) => {
 		if (!candidate.name || !candidate.valid) return [];
 
 		const data = safePrune(ItemSchema, candidate);
-		const existingId = data.url ? urlToId.get(data.url) : undefined;
+		const existingId = data.url ? urlToId.get(normalizeCompareUrl(data.url)) : undefined;
 
 		return [
 			{
