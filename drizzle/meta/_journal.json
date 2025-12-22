@@ -15,6 +15,13 @@
       "when": 1765311309152,
       "tag": "0001_daffy_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1766411371170,
+      "tag": "0002_magenta_slipstream",
+      "breakpoints": true
     }
   ]
 }
