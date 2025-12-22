@@ -11,6 +11,9 @@ export const UserTable = sqliteTable('user', {
 	name: text().notNull(),
 	email: text().notNull().unique(),
 	password: text().notNull(),
+	role: text({ enum: ['USER', 'ADMIN'] })
+		.default('USER')
+		.notNull(),
 	createdAt: autoTimestampColumn(),
 });
 

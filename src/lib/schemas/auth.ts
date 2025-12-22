@@ -46,3 +46,8 @@ export const ResetPasswordSchema = PasswordSchema.safeExtend({
 export const ChangePasswordSchema = PasswordSchema.safeExtend({
 	oldPassword: CredentialsSchema.shape.password,
 });
+
+export const UserRoles = ['USER', 'ADMIN'] as const;
+export const RoleSchema = z.enum(UserRoles);
+
+export type UserRole = z.infer<typeof RoleSchema>;

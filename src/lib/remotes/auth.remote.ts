@@ -1,10 +1,19 @@
 import { form, getRequestEvent, query } from '$app/server';
 import {
-    ChangePasswordSchema, CreateCredentialsSchema, CredentialsSchema, ResetPasswordSchema
+	ChangePasswordSchema,
+	CreateCredentialsSchema,
+	CredentialsSchema,
+	ResetPasswordSchema,
+	RoleSchema,
 } from '$lib/schemas/auth';
 import { createAccountAction, resolveAccountAction } from '$lib/server/account-action';
 import {
-    compPasswords, hashPassword, issueToken, readSession, setSession, verifyAuth
+	compPasswords,
+	hashPassword,
+	issueToken,
+	readSession,
+	setSession,
+	verifyAuth,
 } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { UserTable } from '$lib/server/db/schema';
@@ -18,9 +27,9 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 export const resolveMySession = query(async () => {
-	const cookies = getRequestEvent().cookies;
+	const ev = getRequestEvent();
 
-	const session = await readSession(cookies);
+	const session = await readSession(ev.cookies);
 	if (!session) return;
 
 	return await db().query.UserTable.findFirst({
@@ -48,6 +57,11 @@ export const resolveMe = query(
 		return user!;
 	},
 );
+
+export const checkRole = query(z.object({ targetRole: RoleSchema }), async ({ targetRole }) => {
+	const me = await resolveMySession();
+	return me?.role === targetRole;
+});
 
 export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
