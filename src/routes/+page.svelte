@@ -117,7 +117,7 @@
 				{#each wishlists as wishlist}
 					<WishlistSummary {wishlist}>
 						{#snippet footer()}
-							<hr class="my-2" />
+							<hr class="my-2 border-border" />
 							<p class="text-xs font-light text-text-muted">
 								Last activity
 								{formatRelative(wishlist.activityAt, clock.now)}
