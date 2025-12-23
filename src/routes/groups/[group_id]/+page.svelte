@@ -118,14 +118,6 @@
 {/snippet}
 
 <div class="p-4">
-	{#if members.length === 1 && isOwn}
-		<p class="mt-4 mb-6 text-center font-light text-text-muted italic">
-			Welcome to your new group
-			<br />
-			Get started by inviting someone
-		</p>
-	{/if}
-
 	{#if isOwn}
 		{@const inviteHandler = issueGroupInvite.preflight(
 			z.object({ targetEmail: CredentialsSchema.shape.email }),
@@ -133,8 +125,16 @@
 
 		<div class="md:reverse relative grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
 			<div
-				class="flex flex-col gap-4 rounded-md border-border py-2 lg:sticky lg:top-4 lg:order-2 lg:h-max"
+				class="flex flex-col gap-4 border-b border-border-strong pb-6 lg:sticky lg:top-4 lg:order-2 lg:border-b-0 lg:pb-0"
 			>
+				{#if members.length === 1 && isOwn}
+					<p class="mt-4 mb-6 text-center font-light text-text-muted italic">
+						Welcome to your new group
+						<br />
+						Get started by inviting someone
+					</p>
+				{/if}
+
 				<div class="flex w-full gap-2">
 					<a
 						href="/groups/{group.id}/edit"

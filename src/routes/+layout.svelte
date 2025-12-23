@@ -36,7 +36,7 @@
 	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
 	const startNavigation = () => {
 		if (navAnimating) return;
-		
+
 		resetNavigation();
 		navAnimating = true;
 		requestAnimationFrame(() => (navAnimPerc = 0.9));
@@ -122,7 +122,7 @@
 
 	{#if page.data.showHeader !== false}
 		<header
-			class="sticky bottom-0 z-50 row-start-2 flex h-auto min-h-16 w-full items-center gap-2 border-t border-border bg-surface p-4 drop-shadow-md md:top-0 md:row-start-1 md:border-t-0 md:border-b"
+			class="sticky bottom-0 z-50 row-start-2 flex h-auto min-h-16 w-full items-center gap-2 border-t-2 border-accent/80 bg-surface p-4 md:top-0 md:row-start-1 md:border-t-0 md:border-b md:border-border md:inset-shadow-none md:drop-shadow-md"
 		>
 			<div
 				class="fixed top-0 left-0 h-0.5 w-full bg-accent transition-transform will-change-transform md:top-full"
@@ -133,7 +133,7 @@
 				{#if !(page.url.pathname === '/')}
 					<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
 						<HouseIcon />
-						Go Home
+						Home
 					</a>
 				{:else}
 					<p class="font-semibold">Wishii</p>

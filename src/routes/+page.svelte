@@ -10,11 +10,13 @@
 		ArrowRightIcon,
 		BellDotIcon,
 		FlameIcon,
-		LayoutGridIcon,
-		PlusIcon,
+		ListPlusIcon,
+		ScrollTextIcon,
 		UsersIcon,
+		type Icon as IconType,
 	} from '@lucide/svelte';
 	import ms from 'ms';
+	import type { Snippet } from 'svelte';
 
 	let { data } = $props();
 	const user = $derived(data.user);
@@ -25,6 +27,19 @@
 
 	const oneDayMs = ms('1d');
 </script>
+
+{#snippet section(Icon: typeof IconType, title: string, children: Snippet<[]>)}
+	<section class="relative w-full">
+		<p class="flex flex-1 gap-2 font-bold">
+			<Icon size={20} />
+			{title}
+		</p>
+
+		<hr class="mt-2 mb-3 border border-dashed border-accent/30" />
+
+		{@render children()}
+	</section>
+{/snippet}
 
 <div class="flex h-full flex-col gap-12 px-6 py-12">
 	<UserIntro name={user.name} />
@@ -86,23 +101,14 @@
 		</div>
 	{/if}
 
-	<div class="w-full">
-		<p class="flex items-center gap-2">
-			<span class="flex flex-1 gap-2 font-bold">
-				<LayoutGridIcon />
-				Your lists
-			</span>
-
-			<a
-				href="/new-list"
-				class="button flex items-center justify-center gap-2 bg-success text-xs text-accent-fg"
-			>
-				<PlusIcon size={16} />
-				Add List
-			</a>
-		</p>
-
-		<hr class="mt-2 mb-3 border-dashed border-border" />
+	{#snippet wishlistSection()}
+		<a
+			class="button absolute -top-3.5 right-0 flex h-9 w-max items-center gap-2 border-border bg-success text-accent-fg"
+			href="/new-list"
+		>
+			<ListPlusIcon size={18} />
+			<span>New List</span>
+		</a>
 
 		{#if wishlists.length}
 			<div
@@ -131,28 +137,18 @@
 				</a>
 			</div>
 		{/if}
-	</div>
+	{/snippet}
 
-	<div>
-		<div class="flex flex-wrap gap-2">
-			<p class="flex flex-1 items-center gap-2 font-bold">
-				<UsersIcon />
-				Your Groups
-			</p>
-
-			{#if groups && !groups.find((v) => v.group.ownerId === user.id)}
-				<a
-					href="/new-group"
-					class="flex items-center gap-2 font-light italic hover:text-accent"
-				>
-					Create your own
-
-					<ArrowRightIcon size={16} />
-				</a>
-			{/if}
-		</div>
-
-		<hr class="mt-2 mb-3 border-dashed border-border" />
+	{#snippet groupsSection()}
+		{#if groups && !groups.find((v) => v.group.ownerId === user.id)}
+			<a
+				class="absolute top-0 right-0 flex w-max items-center gap-2 border-border italic dark:text-success"
+				href="/new-group"
+			>
+				<span>Create your own</span>
+				<ArrowRightIcon size={18} />
+			</a>
+		{/if}
 
 		{#if groups.length}
 			<div class="flex flex-col gap-4">
@@ -169,13 +165,19 @@
 					})}
 
 					<div class="flex flex-col gap-2">
-						<div class="flex gap-2">
+						<div class="flex items-center gap-2">
 							<a
 								href="/groups/{group.id}"
 								class="flex items-center gap-2 font-bold hover:text-accent"
 							>
 								<UsersIcon size={16} />
 								{group.name}
+
+								{#if isOwn}
+									<span class="text-sm font-semibold text-danger italic"
+										>(Yours)</span
+									>
+								{/if}
 							</a>
 
 							<a
@@ -238,5 +240,8 @@
 				</a>
 			</div>
 		{/if}
-	</div>
+	{/snippet}
+
+	{@render section(ScrollTextIcon, 'Your Wishlists', wishlistSection)}
+	{@render section(UsersIcon, 'Your Groups', groupsSection)}
 </div>

@@ -61,7 +61,7 @@
 		role="link"
 		tabindex="0"
 		class={[
-			'button flex h-full w-full flex-col justify-center rounded-xl border border-border-strong from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-all dark:bg-radial-[at_50%_25%]',
+			'button flex h-full w-full flex-col justify-center rounded-xl border border-accent/30 from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-all dark:bg-radial-[at_50%_25%]',
 
 			canClick && 'interactive cursor-pointer hover:border-accent hover:shadow-xl',
 			highlighted && 'ring-2 ring-accent/75 drop-shadow-[0_0_6px_white] drop-shadow-accent',
