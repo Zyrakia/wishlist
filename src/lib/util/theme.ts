@@ -1,3 +1,5 @@
+import z from 'zod';
+
 const ThemeTokens = {
 	background: 'bg',
 	surface: 'surface',
@@ -17,6 +19,7 @@ const ThemeTokens = {
 export type ThemeTokens = typeof ThemeTokens;
 
 export const ValidThemes = ['dark', 'light'] as const;
-export type Theme = (typeof ValidThemes)[number];
+export const ThemeSchema = z.enum(ValidThemes);
+export type Theme = z.infer<typeof ThemeSchema>;
 
 export const DefaultTheme: Theme = 'light';

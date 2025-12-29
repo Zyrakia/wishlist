@@ -1,20 +1,14 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { navigating, page } from '$app/state';
 	import '$lib/assets/app.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import { setSavedTheme } from '$lib/remotes/theme.remote.js';
-	import { useHasJs } from '$lib/runes/has-js.svelte.js';
-	import { DefaultTheme } from '$lib/util/theme.js';
 
-	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
-	import { onDestroy, untrack } from 'svelte';
+	import { page } from '$app/state';
+	import favicon from '$lib/assets/favicon.svg';
+	import Header from '$lib/components/header.svelte';
+	import { untrack } from 'svelte';
 
 	let { children, data } = $props();
 
-	const hasJs = useHasJs();
-
-	let theme = $state(data.savedTheme || DefaultTheme);
+	let theme = $derived(data.savedTheme);
 	let changingTheme = $state(false);
 
 	const meta = $derived({
@@ -25,54 +19,15 @@
 		...page.data.meta,
 	});
 
-	$effect(() => void (theme = data.savedTheme || DefaultTheme));
-	$effect(() => void (document.documentElement.dataset.theme = theme));
-
-	let navAnimating = $state(false);
-	let navAnimPerc = $state(0);
-	let navAnimOrigin: 'left' | 'right' = $state('left');
-
-	let navAnimStepper: ReturnType<typeof setInterval> | undefined;
-	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
-	const startNavigation = () => {
-		if (navAnimating) return;
-
-		resetNavigation();
-		navAnimating = true;
-		requestAnimationFrame(() => (navAnimPerc = 0.9));
-	};
-
-	const finishNavigation = () => {
-		clearInterval(navAnimStepper);
-		requestAnimationFrame(() => (navAnimPerc = 1));
-
-		clearInterval(navAnimFinisher);
-		navAnimFinisher = setTimeout(() => {
-			navAnimOrigin = 'right';
-			requestAnimationFrame(() => (navAnimPerc = 0));
-			setTimeout(resetNavigation, 400);
-		}, 300);
-	};
-
-	const resetNavigation = () => {
-		navAnimating = false;
-		navAnimPerc = 0;
-		navAnimOrigin = 'left';
-
-		clearInterval(navAnimStepper);
-		clearTimeout(navAnimFinisher);
-		navAnimStepper = undefined;
-		navAnimFinisher = undefined;
-	};
-
 	$effect(() => {
-		if (navigating.to) untrack(startNavigation);
-		else if (navAnimating) untrack(finishNavigation);
-	});
+		untrack(() => {
+			if (!changingTheme) {
+				changingTheme = true;
+				setTimeout(() => (changingTheme = false), 500);
+			}
+		});
 
-	onDestroy(() => {
-		if (!browser) return;
-		resetNavigation();
+		document.documentElement.dataset.theme = theme;
 	});
 </script>
 
@@ -121,73 +76,6 @@
 	</main>
 
 	{#if page.data.showHeader !== false}
-		<header
-			class="sticky bottom-0 z-50 row-start-2 flex h-auto min-h-16 w-full items-center gap-2 border-t-2 border-accent/80 bg-surface p-4 md:top-0 md:row-start-1 md:border-t-0 md:border-b md:border-border md:inset-shadow-none md:drop-shadow-md"
-		>
-			<div
-				class="fixed top-0 left-0 h-0.5 w-full bg-accent transition-transform will-change-transform md:top-full"
-				style="transform-origin: {navAnimOrigin}; transform: scaleX({navAnimPerc})"
-			></div>
-
-			<div class="flex w-full flex-wrap items-center justify-between gap-6">
-				{#if !(page.url.pathname === '/')}
-					<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
-						<HouseIcon />
-						Home
-					</a>
-				{:else}
-					<p class="font-semibold">Wishii</p>
-				{/if}
-
-				<div class="flex gap-6">
-					{#if hasJs()}
-						<button
-							disabled={changingTheme}
-							class="border-0 p-2"
-							onclick={async () => {
-								changingTheme = true;
-
-								const oldTheme = theme;
-								const nextTheme = oldTheme === 'dark' ? 'light' : 'dark';
-								try {
-									theme = nextTheme;
-									await setSavedTheme({ theme: nextTheme });
-								} catch (err) {
-									theme = oldTheme;
-								} finally {
-									changingTheme = false;
-								}
-							}}
-						>
-							{#if theme === 'light'}
-								<SunIcon />
-							{:else}
-								<MoonIcon />
-							{/if}
-						</button>
-					{/if}
-
-					{#if data.user}
-						<a
-							href="/account"
-							class="flex items-center gap-2 truncate transition-colors hover:text-accent"
-						>
-							<SquareUserIcon />
-
-							{data.user.name}
-						</a>
-					{:else}
-						<a
-							href="/login"
-							class="flex items-center gap-2 transition-colors hover:text-accent"
-						>
-							Login
-
-							<LogInIcon />
-						</a>
-					{/if}
-				</div>
-			</div>
-		</header>
+		<Header {theme} user={data.user} />
 	{/if}
 </div>

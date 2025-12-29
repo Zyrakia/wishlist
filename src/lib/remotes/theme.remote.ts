@@ -1,13 +1,23 @@
-import { command, getRequestEvent } from '$app/server';
-import { Cookie } from '$lib/server/cookies';
+import { command, form, getRequestEvent } from '$app/server';
+import { getTheme, setTheme } from '$lib/server/theme';
+import { ThemeSchema } from '$lib/util/theme';
+import { redirect } from '@sveltejs/kit';
 import z from 'zod';
 
 export const getSavedTheme = command(() => {
 	const { cookies } = getRequestEvent();
-	return Cookie.theme(cookies).read();
+	return getTheme(cookies);
 });
 
-export const setSavedTheme = command(z.object({ theme: z.string().max(24) }), ({ theme }) => {
-	const { cookies } = getRequestEvent();
-	return Cookie.theme(cookies).set(theme);
+export const setSavedTheme = form(z.object({ theme: ThemeSchema }), async ({ theme }) => {
+	const { cookies, url } = getRequestEvent();
+	setTheme(cookies, theme);
+	redirect(303, url);
+});
+
+export const toggleSavedTheme = form(async () => {
+	const { cookies, url } = getRequestEvent();
+	const theme = getTheme(cookies) === 'dark' ? 'light' : 'dark';
+	setTheme(cookies, theme);
+	redirect(303, url);
 });
