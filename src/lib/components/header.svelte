@@ -6,11 +6,15 @@
 	import { navigating, page } from '$app/state';
 	import type { Theme } from '$lib/util/theme';
 	import type { CookieUser } from '$lib/schemas/auth';
-	import { fade, slide } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import Search from './search.svelte';
 
 	let { theme, user }: { theme: Theme; user?: CookieUser } = $props();
 
+	const isHome = $derived(page.url.pathname === '/');
 	const changingTheme = $derived(!!setSavedTheme.pending);
+	const hasJs = useHasJs();
 
 	let navAnimating = $state(false);
 	let navAnimPerc = $state(0);
@@ -68,8 +72,8 @@
 		style="transform-origin: {navAnimOrigin}; transform: scaleX({navAnimPerc})"
 	></div>
 
-	<div class="flex w-full flex-wrap items-center justify-between gap-6">
-		{#if !(page.url.pathname === '/')}
+	<div class="grid w-full grid-cols-2 items-center gap-x-6 gap-y-2 md:grid-cols-[auto_1fr_auto]">
+		{#if !isHome}
 			<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
 				<HouseIcon />
 				Home
@@ -78,7 +82,7 @@
 			<p class="font-semibold">Wishii</p>
 		{/if}
 
-		<div class="flex items-center gap-6">
+		<div class="flex items-center justify-end gap-6 md:order-3">
 			<form {...toggleSavedTheme}>
 				<button
 					disabled={changingTheme}
@@ -102,9 +106,11 @@
 					href="/account"
 					class="flex items-center gap-2 truncate transition-colors hover:text-accent"
 				>
-					<SquareUserIcon />
+					<SquareUserIcon class="shrink-0" />
 
-					{user.name}
+					<span class="truncate">
+						{user.name}
+					</span>
 				</a>
 			{:else}
 				<a
@@ -113,9 +119,18 @@
 				>
 					Login
 
-					<LogInIcon />
+					<LogInIcon class="shrink-0" />
 				</a>
 			{/if}
 		</div>
+
+		{#if hasJs() && isHome}
+			<div
+				in:slide={{ duration: 200 }}
+				class="col-span-2 grid shrink-0 place-items-center md:order-2 md:col-span-1"
+			>
+				<Search />
+			</div>
+		{/if}
 	</div>
 </header>
