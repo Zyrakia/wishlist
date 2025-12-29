@@ -1,7 +1,7 @@
-import { Cookie } from '$lib/server/cookies';
+import { getTheme } from '$lib/server/theme';
 
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, cookies }) => {
-	return { user: locals.user, savedTheme: Cookie.theme(cookies).read() };
+	return { user: locals.user, savedTheme: getTheme(cookies) };
 };

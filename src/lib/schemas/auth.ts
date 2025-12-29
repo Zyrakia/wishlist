@@ -11,6 +11,11 @@ export const CredentialsSchema = z.object({
 		.nonempty({ error: 'Password is required' }),
 });
 
+export const UserCookieSchema = z.object({
+	id: z.string(),
+	name: CredentialsSchema.shape.username,
+});
+
 const matchPassword = (
 	{ password, passwordConfirm }: { password: string; passwordConfirm: string },
 	ctx: z.RefinementCtx,
@@ -51,3 +56,4 @@ export const UserRoles = ['USER', 'ADMIN'] as const;
 export const RoleSchema = z.enum(UserRoles);
 
 export type UserRole = z.infer<typeof RoleSchema>;
+export type CookieUser = z.infer<typeof UserCookieSchema>;
