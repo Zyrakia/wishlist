@@ -102,9 +102,8 @@
 	$effect(() => {
 		if (!searchRef) return;
 
-		if (searching) {
-			if (searchFocused || searchHovered) searchRef?.focus();
-		} else searchRef.blur();
+		if (searchFocused) searchRef?.focus();
+		else searchRef.blur();
 	});
 </script>
 
@@ -116,6 +115,7 @@
 		class="flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
 		disabled={isAsking || !cleanQuery}
 		onclick={askQuestion}
+		type="button"
 	>
 		<span>Ask</span>
 
@@ -135,15 +135,17 @@
 		<div
 			role="combobox"
 			aria-expanded={searching}
-			aria-haspopup="listbox"
-			aria-controls="results-listbox"
+			aria-haspopup="dialog"
+			aria-controls="search-panel"
 			class="w-full max-w-full px-3 transition-all duration-300 sm:relative {searching
 				? 'md:w-full'
 				: 'md:w-2/3'}"
 		>
 			<input
 				name="Global Search"
-				aria-haspopup="dialog"
+				aria-autocomplete="none"
+				aria-expanded={searching}
+				aria-controls="search-panel"
 				bind:this={searchRef}
 				bind:value={query}
 				onfocus={() => (searchFocused = true)}
@@ -155,8 +157,9 @@
 			/>
 
 			<div
-				id="results-listbox"
-				role="listbox"
+				id="search-panel"
+				role="dialog"
+				aria-label="Search Results and AI"
 				tabindex="0"
 				onfocus={() => (resultsFocused = true)}
 				onblur={() => (resultsFocused = false)}
@@ -165,20 +168,21 @@
 				class="absolute bottom-full left-0 max-h-85 min-h-0 w-full transition-[opacity,translate] md:top-full md:bottom-[unset] {searching
 					? 'pointer-events-auto translate-y-0 opacity-100'
 					: 'pointer-events-none -translate-y-8 opacity-0'}"
-				class:opacity-100={searching}
 			>
 				<div
+					role="group"
+					aria-label="Search Results"
 					class="mb-2 flex flex-col gap-3 rounded-md border bg-surface p-3 md:mt-2 md:mb-0 {resultsFocused
 						? 'border-primary'
 						: 'border-accent'}"
 				>
-					<ul class="flex-1 overflow-y-auto">
-						<li class="text-text-muted italic">No results...</li>
+					<ul class="flex-1 overflow-y-auto" role="listbox">
+						<p class="text-text-muted italic">No results...</p>
 					</ul>
 
 					<hr class="border-border-strong" />
 
-					<div>
+					<div role="group" aria-label="AI Assistant">
 						<div class="flex items-center gap-2 text-accent">
 							<SparklesIcon size={18} />
 
