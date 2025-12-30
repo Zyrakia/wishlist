@@ -7,6 +7,7 @@
 		SparklesIcon,
 	} from '@lucide/svelte';
 	import Loader from './loader.svelte';
+	import { slide } from 'svelte/transition';
 
 	const hasJs = useHasJs();
 	const questionWords = new Set([
@@ -19,6 +20,7 @@
 		'is',
 		'can',
 		'does',
+		'are',
 		'do',
 	]);
 
@@ -194,7 +196,11 @@
 						</div>
 
 						{#if shouldPromptToAsk}
-							<div class="flex items-center gap-2">
+							<div
+								in:slide={{ duration: 150 }}
+								out:slide={{ duration: 150 }}
+								class="flex items-center gap-2"
+							>
 								<CircleQuestionMarkIcon class="shrink-0" size={14} />
 
 								<p class="me-auto truncate text-text-muted italic">{question}</p>
