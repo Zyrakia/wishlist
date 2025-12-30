@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import {
-		ArrowRightIcon,
 		CircleQuestionMarkIcon,
+		CornerDownLeftIcon,
 		SearchIcon,
 		SparklesIcon,
 	} from '@lucide/svelte';
@@ -35,6 +35,7 @@
 	const queryWords = $derived(cleanQuery.toLowerCase().split(' '));
 	const isQueryQuestion = $derived.by(() => {
 		if (cleanQuery.endsWith('?')) return true;
+		if (queryWords.length < 2) return false;
 
 		const startingWord = queryWords[0];
 		if (!startingWord) return false;
@@ -43,7 +44,10 @@
 	});
 
 	let isAsking = $state(false);
-	const shouldPromptToAsk = $derived(cleanQuery && isQueryQuestion && !isAsking);
+	let questionResponse = $state('');
+	let questionError = $state('');
+	const question = $derived(isQueryQuestion ? cleanQuery : '');
+	const shouldPromptToAsk = $derived(question && !isAsking);
 
 	let searchFocused = $state(false);
 	let searchHovered = $state(false);
@@ -66,20 +70,29 @@
 		searchFocused = true;
 	};
 
-	const askQuery = async () => {
+	const askQuestion = async () => {
 		if (isAsking) return;
+
+		const prompt = question || cleanQuery;
+		if (!prompt) return;
+
 		isAsking = true;
 
-		const question = cleanQuery;
+		questionResponse = '';
+		questionError = '';
 		query = '';
 
-		isAsking = false;
+		console.log(`Asking "${prompt}"`);
+
+		setTimeout(() => {
+			isAsking = false;
+		}, 2000);
 	};
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
 		if (searching) {
 			if (ev.key === 'Escape') closeSearch();
-			else if (ev.key === 'Enter') askQuery();
+			else if (ev.key === 'Enter') askQuestion();
 		} else {
 			if (ev.key === '/') openSearch();
 		}
@@ -99,13 +112,16 @@
 
 {#snippet askButton()}
 	<button
-		class="flex items-center gap-2 p-2 py-1 text-xs text-text"
-		disabled={isAsking}
-		onclick={askQuery}
+		title="Ask Wishii AI"
+		class="flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
+		disabled={isAsking || !cleanQuery}
+		onclick={askQuestion}
 	>
 		<span>Ask</span>
 
-		<ArrowRightIcon size={14} />
+		{#if searchFocused}
+			<CornerDownLeftIcon size={12} />
+		{/if}
 	</button>
 {/snippet}
 
@@ -163,7 +179,7 @@
 					<hr class="border-border-strong" />
 
 					<div>
-						<div class="mb-2 flex items-center gap-2 text-accent">
+						<div class="flex items-center gap-2 text-accent">
 							<SparklesIcon size={18} />
 
 							<span class="me-auto">Wishii AI</span>
@@ -177,14 +193,14 @@
 							<div class="flex items-center gap-2">
 								<CircleQuestionMarkIcon class="shrink-0" size={14} />
 
-								<p class="me-auto truncate text-text-muted italic">{cleanQuery}</p>
+								<p class="me-auto truncate text-text-muted italic">{question}</p>
 
 								{@render askButton()}
 							</div>
 						{/if}
 
 						{#if isAsking}
-							<div class="h-12 w-12 py-2">
+							<div class="h-12 w-12 pt-2">
 								<Loader
 									thickness="2px"
 									pulseDur="1.25s"
@@ -192,13 +208,16 @@
 									pulseCount={2}
 								/>
 							</div>
-
-							<!-- {:else if questionResponse }  -->
-							<!-- {:else} -->
-							<!-- error -->
+						{:else if questionResponse}
+							<div
+								aria-live="polite"
+								class="mt-2 font-mono wrap-break-word whitespace-pre-wrap"
+							>
+								{questionResponse}
+							</div>
+						{:else if questionError}
+							<p class="mt-2 text-danger/75 italic">{questionError}</p>
 						{/if}
-
-						<div aria-live="polite" id="question-response-container"></div>
 					</div>
 				</div>
 			</div>
