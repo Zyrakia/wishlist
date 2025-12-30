@@ -1,8 +1,49 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import { SearchIcon, SparklesIcon } from '@lucide/svelte';
+	import {
+		ArrowRightIcon,
+		CircleQuestionMarkIcon,
+		SearchIcon,
+		SparklesIcon,
+	} from '@lucide/svelte';
+	import Loader from './loader.svelte';
 
 	const hasJs = useHasJs();
+	const questionWords = new Set([
+		'who',
+		'what',
+		'when',
+		'where',
+		'why',
+		'how',
+		'is',
+		'can',
+		'does',
+		'do',
+	]);
+
+	let query = $state('');
+	const cleanQuery = $derived(
+		query
+			.trim()
+			.split(' ')
+			.map((v) => v.trim())
+			.filter((v) => v !== '')
+			.join(' '),
+	);
+
+	const queryWords = $derived(cleanQuery.toLowerCase().split(' '));
+	const isQueryQuestion = $derived.by(() => {
+		if (cleanQuery.endsWith('?')) return true;
+
+		const startingWord = queryWords[0];
+		if (!startingWord) return false;
+
+		return questionWords.has(startingWord);
+	});
+
+	let isAsking = $state(false);
+	const shouldPromptToAsk = $derived(cleanQuery && isQueryQuestion && !isAsking);
 
 	let searchFocused = $state(false);
 	let searchHovered = $state(false);
@@ -14,16 +55,33 @@
 		return resultsHovered;
 	});
 
+	const closeSearch = () => {
+		searchFocused = false;
+		searchHovered = false;
+		resultsFocused = false;
+		resultsHovered = false;
+	};
+
+	const openSearch = () => {
+		searchFocused = true;
+	};
+
+	const askQuery = async () => {
+		if (isAsking) return;
+		isAsking = true;
+
+		const question = cleanQuery;
+		query = '';
+
+		isAsking = false;
+	};
+
 	const handleKeyUp = (ev: KeyboardEvent) => {
 		if (searching) {
-			if (ev.key === 'Escape') {
-				searchFocused = false;
-				searchHovered = false;
-				resultsFocused = false;
-				resultsHovered = false;
-			}
+			if (ev.key === 'Escape') closeSearch();
+			else if (ev.key === 'Enter') askQuery();
 		} else {
-			if (ev.key === '/') searchFocused = true;
+			if (ev.key === '/') openSearch();
 		}
 	};
 
@@ -39,8 +97,20 @@
 
 <svelte:window onkeyup={handleKeyUp} />
 
+{#snippet askButton()}
+	<button
+		class="flex items-center gap-2 p-2 py-1 text-xs text-text"
+		disabled={isAsking}
+		onclick={askQuery}
+	>
+		<span>Ask</span>
+
+		<ArrowRightIcon size={14} />
+	</button>
+{/snippet}
+
 {#if hasJs()}
-	<div title="Search Wishii" class="flex w-full items-center justify-center gap-4 px-4">
+	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
 		<SearchIcon
 			size={20}
 			class={`shrink-0 transition-colors ${searching ? 'text-accent' : 'text-text'}`}
@@ -51,7 +121,7 @@
 			aria-expanded={searching}
 			aria-haspopup="listbox"
 			aria-controls="results-listbox"
-			class="relative w-full max-w-full px-3 transition-all duration-300 {searching
+			class="w-full max-w-full px-3 transition-all duration-300 sm:relative {searching
 				? 'md:w-full'
 				: 'md:w-2/3'}"
 		>
@@ -59,6 +129,7 @@
 				name="Global Search"
 				aria-haspopup="dialog"
 				bind:this={searchRef}
+				bind:value={query}
 				onfocus={() => (searchFocused = true)}
 				onblur={() => (searchFocused = false)}
 				onmouseenter={() => (searchHovered = true)}
@@ -89,18 +160,45 @@
 						<li class="text-text-muted italic">No results...</li>
 					</ul>
 
-					<hr />
+					<hr class="border-border-strong" />
 
-					<div class="">
+					<div>
 						<div class="mb-2 flex items-center gap-2 text-accent">
 							<SparklesIcon size={18} />
 
-							<span>Wishii AI</span>
+							<span class="me-auto">Wishii AI</span>
+
+							{#if !shouldPromptToAsk && !isAsking}
+								{@render askButton()}
+							{/if}
 						</div>
 
-						<div aria-live="polite" id="question-response-container">
-							<p class="text-text-muted italic">Not active...</p>
-						</div>
+						{#if shouldPromptToAsk}
+							<div class="flex items-center gap-2">
+								<CircleQuestionMarkIcon class="shrink-0" size={14} />
+
+								<p class="me-auto truncate text-text-muted italic">{cleanQuery}</p>
+
+								{@render askButton()}
+							</div>
+						{/if}
+
+						{#if isAsking}
+							<div class="h-12 w-12 py-2">
+								<Loader
+									thickness="2px"
+									pulseDur="1.25s"
+									pulseStaggerDur="250ms"
+									pulseCount={2}
+								/>
+							</div>
+
+							<!-- {:else if questionResponse }  -->
+							<!-- {:else} -->
+							<!-- error -->
+						{/if}
+
+						<div aria-live="polite" id="question-response-container"></div>
 					</div>
 				</div>
 			</div>
