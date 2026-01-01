@@ -1,10 +1,10 @@
 <script lang="ts">
 	import UserIntro from '$lib/components/user-intro.svelte';
 	import WishlistSummary from '$lib/components/wishlist-summary.svelte';
-	import { resolveGroupInvite } from '$lib/remotes/group.remote.js';
-	import { clock } from '$lib/runes/clock.svelte.js';
-	import { seen } from '$lib/runes/seen-ids.svelte.js';
-	import { formatRelative } from '$lib/util/date.js';
+	import { resolveGroupInvite } from '$lib/remotes/group.remote';
+	import { clock } from '$lib/runes/clock.svelte';
+	import { seen } from '$lib/runes/seen-ids.svelte';
+	import { formatRelative } from '$lib/util/date';
 	import { asIssue } from '$lib/util/pick-issue';
 	import {
 		ArrowRightIcon,

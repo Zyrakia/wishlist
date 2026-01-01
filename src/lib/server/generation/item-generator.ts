@@ -9,10 +9,11 @@ import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
-import ENV from '../env.server';
 import { reportGenerationUsage } from './usage-stats';
 
 import type { Geolocation } from '../util/geolocation';
+import ENV from '$lib/env';
+
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
 const CandidateSchema = z.object({

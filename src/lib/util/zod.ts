@@ -1,3 +1,4 @@
+import ms from 'ms';
 import z from 'zod';
 
 /**
@@ -22,3 +23,27 @@ export const strBoolean = (trueWords = ['yes', 'true'], falseWords = ['no', 'fal
 			return z.NEVER;
 		});
 };
+
+/**
+ * A zod transformation that wraps the `ms` utility.
+ * 
+ * @param v the string time value or a millisecond number
+ * @param ctx the transformation context
+ * @returns the transformed value, if the input could be transformed
+ */
+export const intoTime = (v: string | number, ctx: z.RefinementCtx) => {
+	const input = String(v);
+
+	try {
+		const milliseconds = ms(input as ms.StringValue);
+		if (isNaN(milliseconds)) {
+			ctx.addIssue({code: 'custom', message: 'Not a valid time string or milliseconds value', input});
+			return z.NEVER;
+		}
+
+		return { milliseconds, seconds: milliseconds / 1000, formatted: ms(milliseconds) }
+	} catch {
+		ctx.addIssue({ code: 'custom', message: 'Encounteted an error while parsing as time value', input });
+		return z.NEVER;
+	}
+}
