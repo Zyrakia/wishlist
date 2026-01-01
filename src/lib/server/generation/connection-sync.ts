@@ -29,7 +29,7 @@ const syncing = new Map<string, Promise<Result<void>>>();
 const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	const connection = await db().query.WishlistConnectionTable.findFirst({
 		where: (t, { eq }) => eq(t.id, connectionId),
-		with: { createdGeolocation: true, items: { columns: { id: true, url: true } } },
+		with: { items: { columns: { id: true, url: true } } },
 	});
 
 	if (!connection) error(400, 'Invalid connection');
@@ -44,7 +44,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		data: candidates,
 		success: generationSuccess,
 		error: generationError,
-	} = await generateItemCandidates(connection.url, connection.createdGeolocation || undefined);
+	} = await generateItemCandidates(connection.url);
 
 	if (!generationSuccess) {
 		await db()

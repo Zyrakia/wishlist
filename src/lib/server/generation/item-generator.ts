@@ -11,7 +11,6 @@ import { createMistral } from '@ai-sdk/mistral';
 
 import { reportGenerationUsage } from './usage-stats';
 
-import type { Geolocation } from '../util/geolocation';
 import ENV from '$lib/env';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
@@ -27,7 +26,6 @@ const CandidateSchema = z.object({
 
 interface RenderOptions {
 	maxScrolls?: number;
-	geolocation?: Geolocation;
 }
 
 interface DistillOptions {
@@ -52,18 +50,15 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	}
 }
 
-async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions = {}) {
+async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
 	const browser = await chromium.launch({ headless: !dev });
 
 	try {
 		const page = await browser.newPage({
 			locale: 'en-US',
-			timezoneId: geolocation?.timezone || 'America/New_York',
+			timezoneId: 'America/New_York',
 			extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
 			...devices['iPhone 15 Pro Max'],
-			geolocation: geolocation
-				? { latitude: geolocation.latitude, longitude: geolocation.longitude }
-				: undefined,
 		});
 
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -194,8 +189,8 @@ const distillUrl = wrapSafeAsync(
 	},
 );
 
-export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Geolocation) => {
-	const { data: page, success, error } = await distillUrl(url, { geolocation: from });
+export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
+	const { data: page, success, error } = await distillUrl(url);
 	if (!success) throw error;
 
 	try {
@@ -225,12 +220,12 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Ge
 	}
 });
 
-export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: Geolocation) => {
+export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
 	const {
 		data: page,
 		success,
 		error,
-	} = await distillUrl(url, { maxScrolls: 5, geolocation: from }, { stripRelativeLinks: false });
+	} = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
 
 	if (!success) throw error;
 
