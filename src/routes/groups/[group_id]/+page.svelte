@@ -7,6 +7,7 @@
 		revokeGroupInvite,
 	} from '$lib/remotes/group.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
+	import { formatDate } from '$lib/util/date';
 	import { asIssue } from '$lib/util/pick-issue.js';
 	import {
 		CircleUserRoundIcon,
@@ -27,10 +28,6 @@
 	const isOwn = $derived(data.isOwn);
 	const members = $derived(data.members);
 	const pendingInvites = $derived(data.pendingInvites);
-
-	const dtf = new Intl.DateTimeFormat(navigator.languages, {
-		dateStyle: 'medium',
-	});
 
 	const isFull = $derived(members.length + pendingInvites.length >= group.memberLimit);
 </script>
@@ -97,7 +94,7 @@
 					</div>
 
 					<p class="text-sm font-light text-text-muted">
-						Member since: {dtf.format(joinedAt)}
+						Member since: {formatDate(joinedAt, 'mediumD')}
 					</p>
 
 					<div
@@ -127,7 +124,7 @@
 			<div
 				class="flex flex-col gap-4 border-b border-border-strong pb-6 lg:sticky lg:top-4 lg:order-2 lg:border-b-0 lg:pb-0"
 			>
-				{#if members.length === 1 && isOwn}
+				{#if members.length === 1}
 					<p class="mt-4 mb-6 text-center font-light text-text-muted italic">
 						Welcome to your new group
 						<br />
@@ -183,43 +180,44 @@
 						</div>
 					</form>
 
-					{#await pendingInvites then invites}
-						{#if invites.length}
-							<hr class="mt-4 mb-3 border-border" />
+					{#if pendingInvites.length}
+						<hr class="mt-4 mb-3 border-border" />
 
-							<ul class="flex flex-col gap-1">
-								{#each invites as invite}
-									{@const revokeHandler = revokeGroupInvite.for(invite.id)}
+						<ul class="flex flex-col gap-1">
+							{#each pendingInvites as invite}
+								{@const revokeHandler = revokeGroupInvite.for(invite.id)}
 
-									<li
-										class="flex items-center gap-2 rounded-sm border border-border p-2"
-										title="Invite Pending since {dtf.format(invite.createdAt)}"
-									>
-										<MailQuestionMarkIcon size={16} />
+								<li
+									class="flex items-center gap-2 rounded-sm border border-border p-2"
+									title="Invite Pending since {formatDate(
+										invite.createdAt,
+										'mediumD',
+									)}"
+								>
+									<MailQuestionMarkIcon size={16} />
 
-										<p>{invite.targetEmail}</p>
+									<p>{invite.targetEmail}</p>
 
-										<form {...revokeHandler} class="ms-auto">
-											<input
-												{...revokeHandler.fields.inviteId.as(
-													'hidden',
-													invite.id,
-												)}
-											/>
+									<form {...revokeHandler} class="ms-auto">
+										<input
+											{...revokeHandler.fields.inviteId.as(
+												'hidden',
+												invite.id,
+											)}
+										/>
 
-											<button
-												title="Revoke Invite"
-												class="flex items-center border-0 p-0 text-danger"
-												{...revokeHandler.buttonProps}
-											>
-												<XIcon />
-											</button>
-										</form>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-					{/await}
+										<button
+											title="Revoke Invite"
+											class="flex items-center border-0 p-0 text-danger"
+											{...revokeHandler.buttonProps}
+										>
+											<XIcon />
+										</button>
+									</form>
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
 			</div>
 

@@ -6,7 +6,7 @@
 		CreateCredentialsSchema,
 		CredentialsSchema,
 	} from '$lib/schemas/auth.js';
-	import { formatRelative } from '$lib/util/date.js';
+	import { formatDateTimeMediumShort, formatRelative } from '$lib/util/date';
 	import { asIssue } from '$lib/util/pick-issue.js';
 	import {
 		ClockIcon,
@@ -22,12 +22,7 @@
 	const me = $derived(data.me);
 	const editMode = $derived(data.change);
 
-	const dtf = new Intl.DateTimeFormat(navigator.languages, {
-		dateStyle: 'medium',
-		timeStyle: 'short',
-	});
-
-	const createdDate = $derived(dtf.format(me.createdAt));
+	const createdDate = $derived(formatDateTimeMediumShort(me.createdAt, "mediumDt"));
 	const accountAge = $derived.by(() => formatRelative(me.createdAt));
 
 	let showPasswords = $state(false);
