@@ -2,10 +2,9 @@ import { form, query } from '$app/server';
 import z from 'zod';
 import { checkRole } from './auth.remote';
 import { error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
-import { UserTable, WishlistConnectionTable } from '$lib/server/db/schema';
-import { count, eq } from 'drizzle-orm';
+import { AdminService } from '$lib/server/services/admin';
+import { unwrap } from '$lib/util/safe-call';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
@@ -23,16 +22,7 @@ export const paginateUsers = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const [data, [{ total }]] = await Promise.all([
-			db().query.UserTable.findMany({
-				limit,
-				offset,
-				columns: { password: false },
-			}),
-			db().select({ total: count() }).from(UserTable),
-		]);
-
-		return { data, total };
+		return unwrap(await AdminService.paginateUsers(limit, offset));
 	},
 );
 
@@ -45,26 +35,7 @@ export const paginateErroredConnections = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const [data, [{ total }]] = await Promise.all([
-			db().query.WishlistConnectionTable.findMany({
-				limit,
-				offset,
-				orderBy: (t, { asc }) => asc(t.lastSyncedAt),
-				where: (t, { eq }) => eq(t.syncError, true),
-				with: {
-					wishlist: {
-						columns: { id: true, name: true, slug: true },
-						with: { user: { columns: { id: true, name: true } } },
-					},
-				},
-			}),
-			db()
-				.select({ total: count() })
-				.from(WishlistConnectionTable)
-				.where(eq(WishlistConnectionTable.syncError, true)),
-		]);
-
-		return { data, total };
+		return unwrap(await AdminService.paginateErroredConnections(limit, offset));
 	},
 );
 
