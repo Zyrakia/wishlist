@@ -10,7 +10,7 @@ const create = () => {
 	return drizzle(client, { schema, casing: 'snake_case' });
 };
 
-let _db: ReturnType<typeof create> | null = null;
+let _db: Omit<ReturnType<typeof create>, '$client' | 'batch'> | null = null;
 export const db = () => {
 	if (_db) return _db;
 	_db = create();
