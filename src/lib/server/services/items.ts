@@ -1,0 +1,141 @@
+import { and, eq, notInArray } from 'drizzle-orm';
+import { db } from '../db';
+import { WishlistItemTable } from '../db/schema';
+import { buildUpsertSet } from '../util/drizzle';
+import { createClientService } from '../util/client-service';
+
+export const ItemsService = createClientService(db(), {
+	/**
+	 * Creates a wishlist item record.
+	 *
+	 * @param data the item data to insert
+	 */
+	createItem: async (client, data: typeof WishlistItemTable.$inferInsert) => {
+		await client.insert(WishlistItemTable).values(data);
+	},
+
+	/**
+	 * Fetches an item by ID within a wishlist.
+	 *
+	 * @param itemId the item ID to lookup
+	 * @param wishlistId the wishlist ID to scope by
+	 */
+	getItemForWishlist: async (client, itemId: string, wishlistId: string) => {
+		return await client.query.WishlistItemTable.findFirst({
+			where: (t, { and, eq }) => and(eq(t.id, itemId), eq(t.wishlistId, wishlistId)),
+		});
+	},
+
+	/**
+	 * Updates an item by ID scoped to a wishlist.
+	 *
+	 * @param itemId the item ID to update
+	 * @param wishlistId the wishlist ID to scope by
+	 * @param data the fields to update
+	 */
+	updateItemForWishlist: async (
+		client,
+		itemId: string,
+		wishlistId: string,
+		data: Partial<typeof WishlistItemTable.$inferInsert>,
+	) => {
+		await client
+			.update(WishlistItemTable)
+			.set({ ...data })
+			.where(
+				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
+			);
+	},
+
+	/**
+	 * Updates the favorited flag for an item scoped to a wishlist.
+	 *
+	 * @param itemId the item ID to update
+	 * @param wishlistId the wishlist ID to scope by
+	 * @param favorited the new favorited flag
+	 */
+	updateFavoritedForWishlist: async (
+		client,
+		itemId: string,
+		wishlistId: string,
+		favorited: boolean,
+	) => {
+		await client
+			.update(WishlistItemTable)
+			.set({ favorited })
+			.where(
+				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
+			);
+	},
+
+	/**
+	 * Reorders items within a wishlist.
+	 *
+	 * @param wishlistId the wishlist ID to scope by
+	 * @param items the items and order values to update
+	 */
+	reorderItems: async (
+		client,
+		wishlistId: string,
+		items: Array<{ id: string; order: number }>,
+	) => {
+		await client.transaction(async (tx) => {
+			await Promise.all(
+				items.map(({ id: itemId, order }) => {
+					ItemsService.$with(tx).updateItemForWishlist(itemId, wishlistId, { order });
+				}),
+			);
+		});
+	},
+
+	/**
+	 * Deletes an item by ID scoped to a wishlist.
+	 *
+	 * @param itemId the item ID to delete
+	 * @param wishlistId the wishlist ID to scope by
+	 */
+	deleteItemForWishlist: async (client, itemId: string, wishlistId: string) => {
+		await client
+			.delete(WishlistItemTable)
+			.where(
+				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
+			);
+	},
+
+	/**
+	 * Deletes items scoped to a connection.
+	 *
+	 * @param connectionId the connection ID to scope by
+	 */
+	deleteItemsByConnection: async (client, connectionId: string, ...exceptIds: string[]) => {
+		const idMatches = eq(WishlistItemTable.connectionId, connectionId);
+		const where =
+			exceptIds.length !== 0
+				? and(idMatches, notInArray(WishlistItemTable.id, exceptIds))
+				: idMatches;
+
+		await client.delete(WishlistItemTable).where(where);
+	},
+
+	/**
+	 * Upserts a collection of items.
+	 *
+	 * @param items the items to insert or update
+	 */
+	upsertItems: async (client, items: Array<typeof WishlistItemTable.$inferInsert>) => {
+		await client
+			.insert(WishlistItemTable)
+			.values(items)
+			.onConflictDoUpdate({
+				target: WishlistItemTable.id,
+				set: buildUpsertSet(
+					WishlistItemTable,
+					'name',
+					'price',
+					'priceCurrency',
+					'imageUrl',
+					'url',
+				),
+			});
+	},
+});
