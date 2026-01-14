@@ -1,4 +1,4 @@
-import type { Result } from '$lib/util/safe-call';
+import { safeCallAsync, wrapSafeAsync, type Result } from '$lib/util/safe-call';
 
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 
@@ -35,16 +35,10 @@ export function createClientService<C extends unknown, A extends Actions<C>>(
 	client: C,
 	actions: A,
 ): CService<C, A> {
-	const wrap = <Args extends any[], R>(fn: (client: C, ...args: Args) => Promise<R> | R) => {
-		return async (...args: Args): Promise<Result<R>> => {
-			try {
-				const data = await fn(client, ...args);
-				return { success: true, data };
-			} catch (err) {
-				return { success: false, error: err };
-			}
-		};
-	};
+	const wrap =
+		<Args extends any[], R>(fn: (client: C, ...args: Args) => Promise<R> | R) =>
+		(...args: Args) =>
+			safeCallAsync(async () => await fn(client, ...args));
 
 	const serviceMethods = Object.fromEntries(
 		Object.entries(actions).map(([key, action]) => [key, wrap(action)]),
