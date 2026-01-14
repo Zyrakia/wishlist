@@ -2,6 +2,8 @@ import { count, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
 import { createClientService } from '../util/client-service';
+import { ItemsService } from './items';
+import { unwrap } from '$lib/util/safe-call';
 
 export const ConnectionsService = createClientService(db(), {
 	/**
@@ -88,9 +90,7 @@ export const ConnectionsService = createClientService(db(), {
 		await client.transaction(async (tx) => {
 			// By default, on connection delete, column on items is set to `null`
 			if (deleteItems) {
-				await tx
-					.delete(WishlistItemTable)
-					.where(eq(WishlistItemTable.connectionId, connectionId));
+				unwrap(await ItemsService.$with(tx).deleteItemsByConnection(connectionId));
 			}
 
 			await tx

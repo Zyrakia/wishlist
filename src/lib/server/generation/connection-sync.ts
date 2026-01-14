@@ -1,18 +1,17 @@
-import { touchList } from '$lib/remotes/wishlist.remote';
 import { ItemSchema } from '$lib/schemas/item';
 import { formatRelative } from '$lib/util/date';
-import { type Result, wrapSafeAsync } from '$lib/util/safe-call';
+import { type Result, unwrap, wrapSafeAsync } from '$lib/util/safe-call';
 import { safePrune } from '$lib/util/safe-prune';
 import { randomUUID } from 'crypto';
-import { and, eq, notInArray } from 'drizzle-orm';
 import ms from 'ms';
 
 import { error } from '@sveltejs/kit';
 
 import { db } from '../db';
-import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
-import { buildUpsertSet } from '../util/drizzle';
+import { ConnectionsService } from '../services/connections';
+import { ItemsService } from '../services/items';
 import { generateItemCandidates } from './item-generator';
+import { WishlistService } from '../services/wishlist';
 
 const SYNC_DELAY = ms('1h');
 
@@ -27,10 +26,7 @@ const normalizeCompareUrl = (raw: string) => {
 
 const syncing = new Map<string, Promise<Result<void>>>();
 const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
-	const connection = await db().query.WishlistConnectionTable.findFirst({
-		where: (t, { eq }) => eq(t.id, connectionId),
-		with: { items: { columns: { id: true, url: true } } },
-	});
+	const connection = unwrap(await ConnectionsService.getWithItems(connectionId));
 
 	if (!connection) error(400, 'Invalid connection');
 
@@ -47,10 +43,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	} = await generateItemCandidates(connection.url);
 
 	if (!generationSuccess) {
-		await db()
-			.update(WishlistConnectionTable)
-			.set({ syncError: true })
-			.where(eq(WishlistConnectionTable.id, connectionId));
+		unwrap(await ConnectionsService.updateSyncStatus(connectionId, { syncError: true }));
 
 		throw generationError;
 	}
@@ -79,52 +72,32 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
-		await db()
-			.update(WishlistConnectionTable)
-			.set({ syncError: true })
-			.where(eq(WishlistConnectionTable.id, connectionId));
+		unwrap(await ConnectionsService.updateSyncStatus(connectionId, { syncError: true }));
 		throw 'Cannot find any items, is the list private?';
 	}
 
 	await db().transaction(async (tx) => {
-		await tx
-			.update(WishlistConnectionTable)
-			.set({ lastSyncedAt: new Date(), syncError: false })
-			.where(eq(WishlistConnectionTable.id, connectionId));
+		const connectionsService = ConnectionsService.$with(tx);
+		const itemsService = ItemsService.$with(tx);
+
+		unwrap(
+			await connectionsService.updateSyncStatus(connectionId, {
+				lastSyncedAt: new Date(),
+				syncError: false,
+			}),
+		);
 
 		if (items.length === 0) {
-			await tx
-				.delete(WishlistItemTable)
-				.where(eq(WishlistItemTable.connectionId, connectionId));
+			unwrap(await itemsService.deleteItemsByConnection(connectionId));
 		} else {
 			const activeIds = items.map((v) => v.id);
-			await tx
-				.delete(WishlistItemTable)
-				.where(
-					and(
-						eq(WishlistItemTable.connectionId, connectionId),
-						notInArray(WishlistItemTable.id, activeIds),
-					),
-				);
+			unwrap(await itemsService.deleteItemsByConnection(connectionId, ...activeIds));
 
-			await tx
-				.insert(WishlistItemTable)
-				.values(items)
-				.onConflictDoUpdate({
-					target: WishlistItemTable.id,
-					set: buildUpsertSet(
-						WishlistItemTable,
-						'name',
-						'price',
-						'priceCurrency',
-						'imageUrl',
-						'url',
-					),
-				});
+			unwrap(await itemsService.upsertItems(items));
 		}
 	});
 
-	await touchList({ id: connection.wishlistId }).catch(() => {});
+	await WishlistService.touchList(connection.wishlistId);
 });
 
 export const syncListConnection = (connectionId: string) => {
