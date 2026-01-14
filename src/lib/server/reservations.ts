@@ -1,33 +1,19 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import { db } from './db';
-import { ReservationTable } from './db/schema';
+import { GroupsService } from './services/groups';
+import { ReservationsService } from './services/reservations';
+import { unwrap } from '$lib/util/safe-call';
 
 export async function cleanReservationsAfterGroupExit(reserverId: string) {
-	const reservations = await db().query.ReservationTable.findMany({
-		where: (t, { eq }) => eq(t.userId, reserverId),
-		with: {
-			item: {
-				columns: { id: true },
-				with: { wishlist: { columns: { userId: true } } },
-			},
-		},
-	});
+	const reservations = unwrap(await ReservationsService.listByUserWithOwners(reserverId));
 
 	if (reservations.length === 0) return;
 
 	const ownerIds = Array.from(new Set(reservations.map((v) => v.item.wishlist.userId)));
 
-	const reserverMemberships = await db().query.GroupMembershipTable.findMany({
-		where: (t, { eq }) => eq(t.userId, reserverId),
-		columns: { groupId: true },
-	});
+	const reserverMemberships = unwrap(await GroupsService.getMembershipsForUser(reserverId));
 
 	const reserverGroups = new Set(reserverMemberships.map((v) => v.groupId));
 
-	const ownerMemberships = await db().query.GroupMembershipTable.findMany({
-		where: (t, { inArray }) => inArray(t.userId, ownerIds),
-		columns: { userId: true, groupId: true },
-	});
+	const ownerMemberships = unwrap(await GroupsService.getMembershipsForUsers(ownerIds));
 
 	const connectedOwners = new Set<string>();
 	for (const membership of ownerMemberships) {
@@ -42,12 +28,5 @@ export async function cleanReservationsAfterGroupExit(reserverId: string) {
 
 	if (invalidReservedItems.length === 0) return;
 
-	await db()
-		.delete(ReservationTable)
-		.where(
-			and(
-				eq(ReservationTable.userId, reserverId),
-				inArray(ReservationTable.itemId, invalidReservedItems),
-			),
-		);
+	unwrap(await ReservationsService.deleteByUserAndItem(reserverId, ...invalidReservedItems));
 }

@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { GroupInviteTable, GroupMembershipTable, GroupTable } from '../db/schema';
 import { createClientService } from '../util/client-service';
+import { unwrap } from '$lib/util/safe-call';
 
 export const GroupsService = createClientService(db(), {
 	/**
@@ -346,5 +347,20 @@ export const GroupsService = createClientService(db(), {
 				},
 			},
 		});
+	},
+
+	doesShareGroup: async (_, userOneId: string, userTwoId: string) => {
+		if (userOneId === userTwoId) return false;
+
+		const [userOneGroupsRes, userTwoGroupsRes] = await Promise.all([
+			GroupsService.getMembershipsForUser(userOneId),
+			GroupsService.getMembershipsForUser(userTwoId),
+		]);
+
+		const userOneGroups = unwrap(userOneGroupsRes);
+		const userTwoGroups = unwrap(userTwoGroupsRes);
+
+		const userOneGroupIds = new Set(userOneGroups.map((v) => v.groupId));
+		return userTwoGroups.some((v) => userOneGroupIds.has(v.groupId));
 	},
 });
