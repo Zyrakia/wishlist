@@ -97,7 +97,7 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		}
 	});
 
-	await WishlistService.touchList(connection.wishlistId);
+	unwrap(await WishlistService.touchList(connection.wishlistId));
 });
 
 export const syncListConnection = (connectionId: string) => {

@@ -42,7 +42,7 @@ export const reserveItem = form(z.object({ itemId: z.string() }), async ({ itemI
 
 export const removeReservation = form(z.object({ itemId: z.string() }), async ({ itemId }) => {
 	const viewer = verifyAuth();
-	unwrap(await ReservationsService.deleteByUserAndItem(viewer.id, itemId));
+	unwrap(await ReservationsService.deleteByUserAndItems(viewer.id, itemId));
 });
 
 export const getReservations = query(async () => {

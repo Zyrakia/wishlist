@@ -58,7 +58,7 @@ export const ReservationsService = createClientService(db(), {
 	 * @param userId the user ID to scope by
 	 * @param itemId the item ID to scope by, can be multiple
 	 */
-	deleteByUserAndItem: async (client, userId: string, ...itemId: string[]) => {
+	deleteByUserAndItems: async (client, userId: string, ...itemId: string[]) => {
 		const itemSelector =
 			itemId.length === 1
 				? eq(ReservationTable.itemId, itemId[0])

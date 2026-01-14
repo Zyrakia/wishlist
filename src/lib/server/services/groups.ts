@@ -25,10 +25,12 @@ export const GroupsService = createClientService(db(), {
 		return await client.transaction(async (tx) => {
 			const group = await tx.insert(GroupTable).values(data).returning().get();
 
-			GroupsService.$with(tx).createMembership({
-				groupId: group.id,
-				userId: group.ownerId,
-			});
+			unwrap(
+				await GroupsService.$with(tx).createMembership({
+					groupId: group.id,
+					userId: group.ownerId,
+				}),
+			);
 
 			return group;
 		});
@@ -216,12 +218,14 @@ export const GroupsService = createClientService(db(), {
 	 */
 	acceptInvite: async (client, groupId: string, userId: string, inviteId: string) => {
 		await client.transaction(async (tx) => {
-			await GroupsService.$with(tx).createMembership({
-				userId,
-				groupId,
-			});
+			unwrap(
+				await GroupsService.$with(tx).createMembership({
+					userId,
+					groupId,
+				}),
+			);
 
-			await GroupsService.$with(tx).deleteInviteById(inviteId);
+			unwrap(await GroupsService.$with(tx).deleteInviteById(inviteId));
 		});
 	},
 

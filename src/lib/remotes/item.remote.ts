@@ -41,7 +41,7 @@ export const createItem = form(
 			}),
 		);
 
-		await WishlistService.touchList(wl.id);
+		unwrap(await WishlistService.touchList(wl.id));
 		redirect(303, redirectUrl);
 	},
 );
@@ -61,8 +61,7 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 
 	unwrap(await ItemsService.updateItemForWishlist(item_id, wl.id, data));
 
-	await WishlistService.touchList(wl.id);
-	await WishlistService.touchList(wl.id);
+	unwrap(await WishlistService.touchList(wl.id));
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
@@ -135,7 +134,7 @@ export const deleteItem = form(
 
 		unwrap(await ItemsService.deleteItemForWishlist(data.itemId, wl.id));
 
-		await WishlistService.touchList(wl.id);
+		unwrap(await WishlistService.touchList(wl.id));
 		redirect(303, `/lists/${data.wishlistSlug}`);
 	},
 );

@@ -28,5 +28,5 @@ export async function cleanReservationsAfterGroupExit(reserverId: string) {
 
 	if (invalidReservedItems.length === 0) return;
 
-	unwrap(await ReservationsService.deleteByUserAndItem(reserverId, ...invalidReservedItems));
+	unwrap(await ReservationsService.deleteByUserAndItems(reserverId, ...invalidReservedItems));
 }

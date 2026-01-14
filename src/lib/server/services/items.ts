@@ -3,6 +3,7 @@ import { db } from '../db';
 import { WishlistItemTable } from '../db/schema';
 import { buildUpsertSet } from '../util/drizzle';
 import { createClientService } from '../util/client-service';
+import { unwrap } from '$lib/util/safe-call';
 
 export const ItemsService = createClientService(db(), {
 	/**
@@ -81,8 +82,12 @@ export const ItemsService = createClientService(db(), {
 	) => {
 		await client.transaction(async (tx) => {
 			await Promise.all(
-				items.map(({ id: itemId, order }) => {
-					ItemsService.$with(tx).updateItemForWishlist(itemId, wishlistId, { order });
+				items.map(async ({ id: itemId, order }) => {
+					unwrap(
+						await ItemsService.$with(tx).updateItemForWishlist(itemId, wishlistId, {
+							order,
+						}),
+					);
 				}),
 			);
 		});

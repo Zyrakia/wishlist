@@ -47,7 +47,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 	);
 
 	if (updated) {
-		await WishlistService.touchList(updated.id);
+		unwrap(await WishlistService.touchList(updated.id));
 		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
 	} else error(400, 'No wishlist can be updated');
 });

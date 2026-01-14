@@ -1,6 +1,6 @@
 import { count, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { WishlistConnectionTable, WishlistItemTable } from '../db/schema';
+import { WishlistConnectionTable } from '../db/schema';
 import { createClientService } from '../util/client-service';
 import { ItemsService } from './items';
 import { unwrap } from '$lib/util/safe-call';
