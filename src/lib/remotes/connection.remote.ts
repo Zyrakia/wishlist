@@ -1,16 +1,12 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { verifyAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-import {
-	WishlistConnectionTable,
-	WishlistItemTable,
-} from '$lib/server/db/schema';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
+import { ConnectionsService } from '$lib/server/services/connections';
+import { unwrap } from '$lib/util/safe-call';
 import { cleanBaseName } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
-import { count, eq, sql } from 'drizzle-orm';
 import ms from 'ms';
 import z from 'zod';
 
@@ -33,36 +29,26 @@ export const createWishlistConnection = form(
 		if (!wishlist || wishlist.userId !== user.id)
 			return error(400, 'Cannot create connection without wishlist');
 
-		const existingQuery = await db().query.WishlistConnectionTable.findFirst({
-			where: (t, { and, eq }) =>
-				and(
-					eq(sql<string>`LOWER(${t.url})`, data.url.toLowerCase()),
-					eq(t.wishlistId, wishlist.id),
-				),
-		});
-
-		const countQuery = await db()
-			.select({ count: count() })
-			.from(WishlistConnectionTable)
-			.where(eq(WishlistConnectionTable.wishlistId, wishlist?.id));
-
-		const [existing, [{ count: activeConnections }]] = await Promise.all([
-			existingQuery,
-			countQuery,
+		const [existing, totalActive] = await Promise.all([
+			ConnectionsService.getByUrlForWishlist(data.url, wishlist.id),
+			ConnectionsService.countForWishlist(wishlist.id),
 		]);
 
-		if (existing) invalid('Connection with specified URL already exists');
-		if (activeConnections >= 5) invalid('Maximum 5 connections allowed');
+		const existingConnection = unwrap(existing);
+		const activeCount = unwrap(totalActive);
+
+		if (existingConnection) invalid('Connection with specified URL already exists');
+		if (activeCount >= 5) invalid('Maximum 5 connections allowed');
 
 		const id = randomUUID();
-		await db()
-			.insert(WishlistConnectionTable)
-			.values({
+		unwrap(
+			await ConnectionsService.createConnection({
 				id: id,
 				wishlistId: wishlist.id,
 				provider: cleanBaseName(data.url),
 				...data,
-			});
+			}),
+		);
 
 		syncListConnection(id);
 	},
@@ -72,24 +58,11 @@ export const deleteWishlistConnection = form(
 	z.object({ connectionId: z.string(), deleteItems: strBoolean() }),
 	async ({ connectionId, deleteItems }) => {
 		const user = verifyAuth();
-		const connection = await db().query.WishlistConnectionTable.findFirst({
-			where: (t, { eq }) => eq(t.id, connectionId),
-			with: { wishlist: { columns: { userId: true, slug: true } } },
-		});
+		const connection = unwrap(await ConnectionsService.getWithWishlist(connectionId));
 
 		if (!connection || connection.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
-		await db().transaction(async (tx) => {
-			if (deleteItems) {
-				await tx
-					.delete(WishlistItemTable)
-					.where(eq(WishlistItemTable.connectionId, connectionId));
-			}
-
-			await tx
-				.delete(WishlistConnectionTable)
-				.where(eq(WishlistConnectionTable.id, connectionId));
-		});
+		unwrap(await ConnectionsService.deleteById(connectionId, deleteItems));
 	},
 );
 
@@ -98,10 +71,7 @@ export const syncWishlistConnection = form(
 	async ({ connectionId }, invalid) => {
 		const user = verifyAuth();
 
-		const connection = await db().query.WishlistConnectionTable.findFirst({
-			where: (t, { eq }) => eq(t.id, connectionId),
-			with: { wishlist: { columns: { userId: true } } },
-		});
+		const connection = unwrap(await ConnectionsService.getWithWishlist(connectionId));
 
 		if (connection?.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
@@ -122,15 +92,6 @@ export const checkSyncStatus = query(
 		if (!connectionIds.length) return [];
 		const recentCutoff = new Date(Date.now() - recentThresholdMs);
 
-		const recentSynced = await db().query.WishlistConnectionTable.findMany({
-			where: (t, { and, inArray, gte, or }) =>
-				and(
-					inArray(t.id, connectionIds),
-					or(gte(t.lastSyncedAt, recentCutoff), eq(t.syncError, true)),
-				),
-			columns: { id: true, lastSyncedAt: true, syncError: true },
-		});
-
-		return recentSynced;
+		return unwrap(await ConnectionsService.getRecentSyncs(connectionIds, recentCutoff));
 	},
 );
