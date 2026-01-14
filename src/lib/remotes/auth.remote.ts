@@ -24,6 +24,7 @@ import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
+import { GroupsService } from '$lib/server/services/groups';
 
 export const resolveMySession = query(async () => {
 	const ev = getRequestEvent();
@@ -172,15 +173,22 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
 
+const isEmailOpenForChange = async (email: string) => {
+	const [existingUser, existingInvites] = await Promise.all([
+		UsersService.getByEmail(email),
+		GroupsService.getInvitesForEmail(email),
+	]);
+
+	return unwrap(existingUser) === undefined && unwrap(existingInvites).length === 0;
+};
+
 export const changeEmailStart = form(
 	CredentialsSchema.pick({ email: true }),
 	async ({ email }, invalid) => {
 		const me = await resolveMe({});
 		const { url } = getRequestEvent();
 
-		const existing = unwrap(await UsersService.getByEmail(email));
-
-		if (existing) return invalid(invalid.email('Email already taken'));
+		if (!isEmailOpenForChange(email)) return invalid(invalid.email('Email already taken'));
 
 		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'), 'change-email', {
 			newEmail: email,
@@ -210,6 +218,7 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	const action = await resolveAccountAction(token, 'change-email');
 	if (!action) error(401);
 
+	if (!isEmailOpenForChange(action.payload.newEmail)) error(400, 'Email already taken');
 	unwrap(await UsersService.updateEmail(action.userId, action.payload.newEmail));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
