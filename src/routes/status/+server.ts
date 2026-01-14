@@ -1,8 +1,9 @@
-import { db } from '$lib/server/db';
+import { AdminService } from '$lib/server/services/admin';
+import { unwrap } from '$lib/util/safe-call';
 
 export const GET = async () => {
 	try {
-		db();
+		unwrap(await AdminService.ping());
 	} catch (err) {
 		console.warn(err);
 		return new Response('ERROR', { status: 500 });

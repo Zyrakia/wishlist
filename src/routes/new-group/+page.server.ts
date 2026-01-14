@@ -1,14 +1,7 @@
-import { verifyAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-
 import type { PageServerLoad } from './$types';
+import { getOwnedGroup } from '$lib/remotes/group.remote';
 
 export const load: PageServerLoad = async () => {
-	const user = verifyAuth();
-
-	const ownedGroup = await db().query.GroupTable.findFirst({
-		where: (t, { eq }) => eq(t.ownerId, user.id),
-	});
-
+	const ownedGroup = await getOwnedGroup();
 	return { ownedGroup };
 };
