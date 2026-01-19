@@ -38,8 +38,8 @@ export const $switchInvalid = <R>(
 
 export const $unwrap = <T>(result: Result<T>) => {
 	if (result.kind === 'success') return result.data;
-	if (result.kind === 'error') throw result.error;
-	throw result;
+	else if (result.kind === 'error') throw result.error;
+	else throw new Error(result.code, { cause: result.details });
 };
 
 export const $unwrapOr = <T>(result: Result<T>, defaultValue: T) => {
