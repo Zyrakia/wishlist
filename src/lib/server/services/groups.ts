@@ -1,19 +1,21 @@
+import { $ok } from '$lib/util/result';
 import { and, eq, sql } from 'drizzle-orm';
+
 import { db } from '../db';
 import { GroupInviteTable, GroupMembershipTable, GroupTable } from '../db/schema';
-import { createClientService } from '../util/client-service';
-import { unwrap } from '$lib/util/safe-call';
+import { createService } from '../util/service';
 
-export const GroupsService = createClientService(db(), {
+export const GroupsService = createService(db(), {
 	/**
 	 * Fetches a group owned by a user.
 	 *
 	 * @param ownerId the owner ID to lookup
 	 */
 	getGroupByOwner: async (client, ownerId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.ownerId, ownerId),
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -22,18 +24,17 @@ export const GroupsService = createClientService(db(), {
 	 * @param data the group data to insert
 	 */
 	createGroup: async (client, data: typeof GroupTable.$inferInsert) => {
-		return await client.transaction(async (tx) => {
-			const group = await tx.insert(GroupTable).values(data).returning().get();
+		const group = await client.transaction(async (tx) => {
+			const created = await tx.insert(GroupTable).values(data).returning().get();
 
-			unwrap(
-				await GroupsService.$with(tx).createMembership({
-					groupId: group.id,
-					userId: group.ownerId,
-				}),
-			);
+			await tx.insert(GroupMembershipTable).values({
+				groupId: created.id,
+				userId: created.ownerId,
+			});
 
-			return group;
+			return created;
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -43,9 +44,10 @@ export const GroupsService = createClientService(db(), {
 	 * @param ownerId the owner ID to scope by
 	 */
 	getOwnedGroupById: async (client, groupId: string, ownerId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, groupId), eq(t.ownerId, ownerId)),
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -54,10 +56,11 @@ export const GroupsService = createClientService(db(), {
 	 * @param groupId the group ID to lookup
 	 */
 	getGroupWithOwner: async (client, groupId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 			with: { owner: { columns: { id: true, name: true } } },
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -68,6 +71,7 @@ export const GroupsService = createClientService(db(), {
 	 */
 	updateGroup: async (client, groupId: string, data: Partial<typeof GroupTable.$inferInsert>) => {
 		await client.update(GroupTable).set(data).where(eq(GroupTable.id, groupId));
+		return $ok();
 	},
 
 	/**
@@ -77,6 +81,7 @@ export const GroupsService = createClientService(db(), {
 	 */
 	deleteGroup: async (client, groupId: string) => {
 		await client.delete(GroupTable).where(eq(GroupTable.id, groupId));
+		return $ok();
 	},
 
 	/**
@@ -86,7 +91,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param ownerId the owner ID to scope by
 	 */
 	getGroupWithInviteCounts: async (client, groupId: string, ownerId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, groupId), eq(t.ownerId, ownerId)),
 			with: { owner: { columns: { name: true } } },
 			extras: (t) => ({
@@ -100,6 +105,7 @@ export const GroupsService = createClientService(db(), {
 					),
 			}),
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -108,9 +114,10 @@ export const GroupsService = createClientService(db(), {
 	 * @param groupId the group ID to lookup
 	 */
 	getGroupById: async (client, groupId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -119,7 +126,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param groupId the group ID to lookup
 	 */
 	getGroupWithMemberCount: async (client, groupId: string) => {
-		return await client.query.GroupTable.findFirst({
+		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 			extras: {
 				memberCount:
@@ -128,6 +135,7 @@ export const GroupsService = createClientService(db(), {
 					),
 			},
 		});
+		return $ok(group);
 	},
 
 	/**
@@ -136,9 +144,10 @@ export const GroupsService = createClientService(db(), {
 	 * @param inviteId the invite ID to lookup
 	 */
 	getInviteById: async (client, inviteId: string) => {
-		return await client.query.GroupInviteTable.findFirst({
+		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { eq }) => eq(t.id, inviteId),
 		});
+		return $ok(invite);
 	},
 
 	/**
@@ -147,7 +156,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param inviteId the invite ID to lookup
 	 */
 	getInviteWithGroup: async (client, inviteId: string) => {
-		return await client.query.GroupInviteTable.findFirst({
+		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { eq }) => eq(t.id, inviteId),
 			with: {
 				group: {
@@ -156,6 +165,7 @@ export const GroupsService = createClientService(db(), {
 				},
 			},
 		});
+		return $ok(invite);
 	},
 
 	/**
@@ -165,9 +175,10 @@ export const GroupsService = createClientService(db(), {
 	 * @param targetEmail the invitee email to lookup
 	 */
 	getInviteByGroupAndEmail: async (client, groupId: string, targetEmail: string) => {
-		return await client.query.GroupInviteTable.findFirst({
+		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.groupId, groupId), eq(t.targetEmail, targetEmail)),
 		});
+		return $ok(invite);
 	},
 
 	/**
@@ -176,7 +187,8 @@ export const GroupsService = createClientService(db(), {
 	 * @param data the invite data to insert
 	 */
 	createInvite: async (client, data: typeof GroupInviteTable.$inferInsert) => {
-		return await client.insert(GroupInviteTable).values(data).returning();
+		const invites = await client.insert(GroupInviteTable).values(data).returning();
+		return $ok(invites);
 	},
 
 	/**
@@ -186,6 +198,7 @@ export const GroupsService = createClientService(db(), {
 	 */
 	deleteInviteById: async (client, inviteId: string) => {
 		await client.delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
+		return $ok();
 	},
 
 	/**
@@ -195,9 +208,10 @@ export const GroupsService = createClientService(db(), {
 	 * @param userId the user ID to scope by
 	 */
 	getMembershipByGroupAndUser: async (client, groupId: string, userId: string) => {
-		return await client.query.GroupMembershipTable.findFirst({
+		const membership = await client.query.GroupMembershipTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.groupId, groupId), eq(t.userId, userId)),
 		});
+		return $ok(membership);
 	},
 
 	/**
@@ -207,6 +221,7 @@ export const GroupsService = createClientService(db(), {
 	 */
 	createMembership: async (client, data: typeof GroupMembershipTable.$inferInsert) => {
 		await client.insert(GroupMembershipTable).values(data);
+		return $ok();
 	},
 
 	/**
@@ -218,15 +233,14 @@ export const GroupsService = createClientService(db(), {
 	 */
 	acceptInvite: async (client, groupId: string, userId: string, inviteId: string) => {
 		await client.transaction(async (tx) => {
-			unwrap(
-				await GroupsService.$with(tx).createMembership({
-					userId,
-					groupId,
-				}),
-			);
+			await tx.insert(GroupMembershipTable).values({
+				userId,
+				groupId,
+			});
 
-			unwrap(await GroupsService.$with(tx).deleteInviteById(inviteId));
+			await tx.delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
 		});
+		return $ok();
 	},
 
 	/**
@@ -244,6 +258,7 @@ export const GroupsService = createClientService(db(), {
 					eq(GroupMembershipTable.userId, userId),
 				),
 			);
+		return $ok();
 	},
 
 	/**
@@ -252,7 +267,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param targetEmail the email address to lookup
 	 */
 	getInvitesForEmail: async (client, targetEmail: string) => {
-		return await client.query.GroupInviteTable.findMany({
+		const invites = await client.query.GroupInviteTable.findMany({
 			where: (t, { eq }) => eq(t.targetEmail, targetEmail),
 			with: {
 				group: {
@@ -261,6 +276,7 @@ export const GroupsService = createClientService(db(), {
 				},
 			},
 		});
+		return $ok(invites);
 	},
 
 	/**
@@ -269,7 +285,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param groupId the group ID to lookup
 	 */
 	getMembersWithLists: async (client, groupId: string, listLimit = 4) => {
-		return await client.query.GroupMembershipTable.findMany({
+		const members = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.groupId, groupId),
 			orderBy: (t, { asc }) => asc(t.joinedAt),
 			with: {
@@ -284,6 +300,7 @@ export const GroupsService = createClientService(db(), {
 				},
 			},
 		});
+		return $ok(members);
 	},
 
 	/**
@@ -292,10 +309,11 @@ export const GroupsService = createClientService(db(), {
 	 * @param groupId the group ID to lookup
 	 */
 	getInvitesByGroup: async (client, groupId: string) => {
-		return await client.query.GroupInviteTable.findMany({
+		const invites = await client.query.GroupInviteTable.findMany({
 			where: (t, { eq }) => eq(t.groupId, groupId),
 			orderBy: (t, { desc }) => desc(t.createdAt),
 		});
+		return $ok(invites);
 	},
 
 	/**
@@ -304,10 +322,11 @@ export const GroupsService = createClientService(db(), {
 	 * @param userId the user ID to lookup
 	 */
 	getMembershipsForUser: async (client, userId: string) => {
-		return await client.query.GroupMembershipTable.findMany({
+		const memberships = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			columns: { groupId: true },
 		});
+		return $ok(memberships);
 	},
 
 	/**
@@ -316,10 +335,11 @@ export const GroupsService = createClientService(db(), {
 	 * @param userIds the user IDs to lookup
 	 */
 	getMembershipsForUsers: async (client, userIds: string[]) => {
-		return await client.query.GroupMembershipTable.findMany({
+		const memberships = await client.query.GroupMembershipTable.findMany({
 			where: (t, { inArray }) => inArray(t.userId, userIds),
 			columns: { userId: true, groupId: true },
 		});
+		return $ok(memberships);
 	},
 
 	/**
@@ -328,7 +348,7 @@ export const GroupsService = createClientService(db(), {
 	 * @param userId the user ID to lookup
 	 */
 	getGroupActivity: async (client, userId: string) => {
-		return await client.query.GroupMembershipTable.findMany({
+		const activity = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			with: {
 				group: {
@@ -351,20 +371,24 @@ export const GroupsService = createClientService(db(), {
 				},
 			},
 		});
+		return $ok(activity);
 	},
 
-	doesShareGroup: async (_, userOneId: string, userTwoId: string) => {
-		if (userOneId === userTwoId) return false;
+	doesShareGroup: async (client, userOneId: string, userTwoId: string) => {
+		if (userOneId === userTwoId) return $ok(false);
 
-		const [userOneGroupsRes, userTwoGroupsRes] = await Promise.all([
-			GroupsService.getMembershipsForUser(userOneId),
-			GroupsService.getMembershipsForUser(userTwoId),
+		const [userOneGroups, userTwoGroups] = await Promise.all([
+			client.query.GroupMembershipTable.findMany({
+				where: (t, { eq }) => eq(t.userId, userOneId),
+				columns: { groupId: true },
+			}),
+			client.query.GroupMembershipTable.findMany({
+				where: (t, { eq }) => eq(t.userId, userTwoId),
+				columns: { groupId: true },
+			}),
 		]);
 
-		const userOneGroups = unwrap(userOneGroupsRes);
-		const userTwoGroups = unwrap(userTwoGroupsRes);
-
-		const userOneGroupIds = new Set(userOneGroups.map((v) => v.groupId));
-		return userTwoGroups.some((v) => userOneGroupIds.has(v.groupId));
+		const userOneGroupIds = new Set(userOneGroups.map((v: { groupId: string }) => v.groupId));
+		return $ok(userTwoGroups.some((v: { groupId: string }) => userOneGroupIds.has(v.groupId)));
 	},
 });

@@ -1,9 +1,11 @@
+import { $ok } from '$lib/util/result';
 import { asc, count, eq, sql } from 'drizzle-orm';
+
 import { db } from '../db';
 import { UserTable, WishlistConnectionTable } from '../db/schema';
-import { createClientService } from '../util/client-service';
+import { createService } from '../util/service';
 
-export const AdminService = createClientService(db(), {
+export const AdminService = createService(db(), {
 	/**
 	 * Paginates user records with totals.
 	 *
@@ -20,7 +22,7 @@ export const AdminService = createClientService(db(), {
 			client.select({ total: count() }).from(UserTable),
 		]);
 
-		return { data, total };
+		return $ok({ data, total });
 	},
 
 	/**
@@ -49,7 +51,7 @@ export const AdminService = createClientService(db(), {
 				.where(eq(WishlistConnectionTable.syncError, true)),
 		]);
 
-		return { data, total };
+		return $ok({ data, total });
 	},
 
 	/**
@@ -62,6 +64,6 @@ export const AdminService = createClientService(db(), {
 			.select({ ok: sql<number>`1` })
 			.from(UserTable)
 			.limit(1);
-		return true;
+		return $ok(true);
 	},
 });

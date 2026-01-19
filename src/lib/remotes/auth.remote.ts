@@ -17,7 +17,7 @@ import {
 } from '$lib/server/auth';
 import { sendEmail } from '$lib/server/email';
 import { UsersService } from '$lib/server/services/users';
-import { unwrap } from '$lib/util/safe-call';
+import { $unwrap } from '$lib/util/result';
 import { formatRelative } from '$lib/util/date';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
@@ -32,7 +32,7 @@ export const resolveMySession = query(async () => {
 	const session = await readSession(ev.cookies);
 	if (!session) return;
 
-	return unwrap(await UsersService.getById(session.sub));
+	return $unwrap(await UsersService.getById(session.sub));
 });
 
 const failStratSchema = z.enum(['login', 'register', 'error']).optional();
@@ -48,7 +48,7 @@ export const resolveMe = query(
 	async ({ failStrategy }) => {
 		const me = verifyAuth({ failStrategy });
 
-		const user = unwrap(await UsersService.getById(me.id));
+		const user = $unwrap(await UsersService.getById(me.id));
 
 		return user!;
 	},
@@ -63,13 +63,13 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const existing = unwrap(await UsersService.getByEmail(email));
+	const existing = $unwrap(await UsersService.getByEmail(email));
 	if (existing) invalid(invalid.email('Email is already registered'));
 
 	const passwordHash = await hashPassword(password);
 	const id = uuid4();
 
-	unwrap(
+	$unwrap(
 		await UsersService.createUser({
 			id,
 			email,
@@ -91,7 +91,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const user = unwrap(await UsersService.getByEmail(email));
+	const user = $unwrap(await UsersService.getByEmail(email));
 
 	if (!user) return invalid('Invalid credentials');
 
@@ -108,7 +108,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 export const resetPasswordStart = form(
 	z.object({ email: CredentialsSchema.shape.email }),
 	async ({ email }) => {
-		const user = unwrap(await UsersService.getByEmail(email));
+		const user = $unwrap(await UsersService.getByEmail(email));
 
 		if (user) {
 			const { token, expiresAt } = await createAccountAction(
@@ -144,7 +144,7 @@ export const resetPassword = form(
 		if (!action) return invalid('Password reset link have expired');
 
 		const passwordHash = await hashPassword(password);
-		unwrap(await UsersService.updatePassword(action.userId, passwordHash));
+		$unwrap(await UsersService.updatePassword(action.userId, passwordHash));
 
 		redirect(303, `/login?updated=password`);
 	},
@@ -154,7 +154,7 @@ export const changeName = form(
 	CreateCredentialsSchema.pick({ username: true }),
 	async ({ username }) => {
 		const me = await resolveMe({});
-		unwrap(await UsersService.updateName(me.id, username));
+		$unwrap(await UsersService.updateName(me.id, username));
 
 		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
 	},
@@ -168,7 +168,7 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	if (!isOldPasswordValid) return invalid(invalid.oldPassword('Current password is invalid'));
 
 	const newPasswordHash = await hashPassword(newPassword);
-	unwrap(await UsersService.updatePassword(me.id, newPasswordHash));
+	$unwrap(await UsersService.updatePassword(me.id, newPasswordHash));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
@@ -179,7 +179,7 @@ const isEmailOpenForChange = async (email: string) => {
 		GroupsService.getInvitesForEmail(email),
 	]);
 
-	return unwrap(existingUser) === undefined && unwrap(existingInvites).length === 0;
+	return $unwrap(existingUser) === undefined && $unwrap(existingInvites).length === 0;
 };
 
 export const changeEmailStart = form(
@@ -219,7 +219,7 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	if (!action) error(401);
 
 	if (!isEmailOpenForChange(action.payload.newEmail)) error(400, 'Email already taken');
-	unwrap(await UsersService.updateEmail(action.userId, action.payload.newEmail));
+	$unwrap(await UsersService.updateEmail(action.userId, action.payload.newEmail));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
 });

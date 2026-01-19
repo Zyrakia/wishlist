@@ -1,20 +1,22 @@
+import { $ok, $unwrap } from '$lib/util/result';
 import { count, eq, sql } from 'drizzle-orm';
+
 import { db } from '../db';
 import { WishlistConnectionTable } from '../db/schema';
-import { createClientService } from '../util/client-service';
+import { createService } from '../util/service';
 import { ItemsService } from './items';
-import { unwrap } from '$lib/util/safe-call';
 
-export const ConnectionsService = createClientService(db(), {
+export const ConnectionsService = createService(db(), {
 	/**
 	 * Fetches a connection by ID.
 	 *
 	 * @param connectionId the connection ID to lookup
 	 */
 	getById: async (client, connectionId: string) => {
-		return await client.query.WishlistConnectionTable.findFirst({
+		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 		});
+		return $ok(connection);
 	},
 
 	/**
@@ -23,10 +25,11 @@ export const ConnectionsService = createClientService(db(), {
 	 * @param connectionId the connection ID to lookup
 	 */
 	getWithItems: async (client, connectionId: string) => {
-		return await client.query.WishlistConnectionTable.findFirst({
+		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 			with: { items: { columns: { id: true, url: true } } },
 		});
+		return $ok(connection);
 	},
 
 	/**
@@ -35,10 +38,11 @@ export const ConnectionsService = createClientService(db(), {
 	 * @param connectionId the connection ID to lookup
 	 */
 	getWithWishlist: async (client, connectionId: string) => {
-		return await client.query.WishlistConnectionTable.findFirst({
+		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 			with: { wishlist: { columns: { userId: true, id: true, slug: true } } },
 		});
+		return $ok(connection);
 	},
 
 	/**
@@ -48,13 +52,14 @@ export const ConnectionsService = createClientService(db(), {
 	 * @param wishlistId the wishlist ID to scope by
 	 */
 	getByUrlForWishlist: async (client, url: string, wishlistId: string) => {
-		return await client.query.WishlistConnectionTable.findFirst({
+		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(
 					eq(sql<string>`LOWER(${t.url})`, url.toLowerCase()),
 					eq(t.wishlistId, wishlistId),
 				),
 		});
+		return $ok(connection);
 	},
 
 	/**
@@ -68,7 +73,7 @@ export const ConnectionsService = createClientService(db(), {
 			.from(WishlistConnectionTable)
 			.where(eq(WishlistConnectionTable.wishlistId, wishlistId));
 
-		return connectionCount;
+		return $ok(connectionCount);
 	},
 
 	/**
@@ -78,6 +83,7 @@ export const ConnectionsService = createClientService(db(), {
 	 */
 	createConnection: async (client, data: typeof WishlistConnectionTable.$inferInsert) => {
 		await client.insert(WishlistConnectionTable).values(data);
+		return $ok();
 	},
 
 	/**
@@ -90,13 +96,14 @@ export const ConnectionsService = createClientService(db(), {
 		await client.transaction(async (tx) => {
 			// By default, on connection delete, column on items is set to `null`
 			if (deleteItems) {
-				unwrap(await ItemsService.$with(tx).deleteItemsByConnection(connectionId));
+				$unwrap(await ItemsService.$with(tx).deleteItemsByConnection(connectionId));
 			}
 
 			await tx
 				.delete(WishlistConnectionTable)
 				.where(eq(WishlistConnectionTable.id, connectionId));
 		});
+		return $ok();
 	},
 
 	/**
@@ -116,6 +123,7 @@ export const ConnectionsService = createClientService(db(), {
 			.update(WishlistConnectionTable)
 			.set({ ...data })
 			.where(eq(WishlistConnectionTable.id, connectionId));
+		return $ok();
 	},
 
 	/**
@@ -125,7 +133,7 @@ export const ConnectionsService = createClientService(db(), {
 	 * @param recentCutoff the cutoff timestamp for recent syncs
 	 */
 	getRecentSyncs: async (client, connectionIds: string[], recentCutoff: Date) => {
-		return await client.query.WishlistConnectionTable.findMany({
+		const recent = await client.query.WishlistConnectionTable.findMany({
 			where: (t, { and, eq, gte, inArray, or }) =>
 				and(
 					inArray(t.id, connectionIds),
@@ -133,5 +141,6 @@ export const ConnectionsService = createClientService(db(), {
 				),
 			columns: { id: true, lastSyncedAt: true, syncError: true },
 		});
+		return $ok(recent);
 	},
 });

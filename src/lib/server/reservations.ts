@@ -1,19 +1,19 @@
 import { GroupsService } from './services/groups';
 import { ReservationsService } from './services/reservations';
-import { unwrap } from '$lib/util/safe-call';
+import { $unwrap } from '$lib/util/result';
 
 export async function cleanReservationsAfterGroupExit(reserverId: string) {
-	const reservations = unwrap(await ReservationsService.listByUserWithOwners(reserverId));
+	const reservations = $unwrap(await ReservationsService.listByUserWithOwners(reserverId));
 
 	if (reservations.length === 0) return;
 
 	const ownerIds = Array.from(new Set(reservations.map((v) => v.item.wishlist.userId)));
 
-	const reserverMemberships = unwrap(await GroupsService.getMembershipsForUser(reserverId));
+	const reserverMemberships = $unwrap(await GroupsService.getMembershipsForUser(reserverId));
 
 	const reserverGroups = new Set(reserverMemberships.map((v) => v.groupId));
 
-	const ownerMemberships = unwrap(await GroupsService.getMembershipsForUsers(ownerIds));
+	const ownerMemberships = $unwrap(await GroupsService.getMembershipsForUsers(ownerIds));
 
 	const connectedOwners = new Set<string>();
 	for (const membership of ownerMemberships) {
@@ -28,5 +28,5 @@ export async function cleanReservationsAfterGroupExit(reserverId: string) {
 
 	if (invalidReservedItems.length === 0) return;
 
-	unwrap(await ReservationsService.deleteByUserAndItems(reserverId, ...invalidReservedItems));
+	$unwrap(await ReservationsService.deleteByUserAndItems(reserverId, ...invalidReservedItems));
 }

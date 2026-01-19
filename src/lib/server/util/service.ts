@@ -1,12 +1,15 @@
-import { safeCallAsync, wrapSafeAsync, type Result } from '$lib/util/safe-call';
+import { $fail, type Result } from '$lib/util/result';
 
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 
-type Actions<C> = Record<string, (client: C, ...args: any[]) => any>;
+type Actions<C> = Record<
+	string,
+	(client: C, ...args: any[]) => Result<unknown> | Promise<Result<unknown>>
+>;
 
 type MappedActions<C, A extends Actions<C>> = {
 	[K in keyof A]: A[K] extends (c: C, ...args: infer P) => infer R
-		? (...args: P) => Promise<Result<UnwrapPromise<R>>>
+		? (...args: P) => Promise<UnwrapPromise<R>>
 		: never;
 };
 
@@ -18,10 +21,10 @@ type Helpers<C, A extends Actions<C>> = {
 	 * @param client the new client of the service
 	 * @return the mirroring service with a new client
 	 */
-	$with: <C2 extends C>(client: C2) => CService<C2, A>;
+	$with: <C2 extends C>(client: C2) => Service<C2, A>;
 };
 
-export type CService<C extends unknown, A extends Actions<C>> = Readonly<MappedActions<C, A>> &
+export type Service<C extends unknown, A extends Actions<C>> = Readonly<MappedActions<C, A>> &
 	Helpers<C, A>;
 
 /**
@@ -31,14 +34,19 @@ export type CService<C extends unknown, A extends Actions<C>> = Readonly<MappedA
  * @param actions the actions that the service exposes
  * @return the created service with mapped actions
  */
-export function createClientService<C extends unknown, A extends Actions<C>>(
+export function createService<C extends unknown, A extends Actions<C>>(
 	client: C,
 	actions: A,
-): CService<C, A> {
+): Service<C, A> {
 	const wrap =
-		<Args extends any[], R>(fn: (client: C, ...args: Args) => Promise<R> | R) =>
-		(...args: Args) =>
-			safeCallAsync(async () => await fn(client, ...args));
+		<Args extends any[], R>(fn: (client: C, ...args: Args) => Result<R> | Promise<Result<R>>) =>
+		async (...args: Args): Promise<Result<R>> => {
+			try {
+				return await fn(client, ...args);
+			} catch (error) {
+				return $fail(error);
+			}
+		};
 
 	const serviceMethods = Object.fromEntries(
 		Object.entries(actions).map(([key, action]) => [key, wrap(action)]),
@@ -47,7 +55,7 @@ export function createClientService<C extends unknown, A extends Actions<C>>(
 	return {
 		...Object.freeze(serviceMethods),
 		$with: <C2 extends C>(newClient: C2) => {
-			return createClientService(newClient, actions);
+			return createService(newClient, actions);
 		},
 	};
 }

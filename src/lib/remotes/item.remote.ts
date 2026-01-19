@@ -10,7 +10,7 @@ import { error, redirect } from '@sveltejs/kit';
 
 import { ItemsService } from '../server/services/items';
 import { WishlistService } from '../server/services/wishlist';
-import { unwrap } from '$lib/util/safe-call';
+import { $switchInvalid, $unwrap } from '$lib/util/result';
 
 export const createItem = form(
 	ItemSchema.safeExtend({
@@ -25,7 +25,7 @@ export const createItem = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
-		const wl = unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
+		const wl = $unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
 		data.continue ??= false;
@@ -33,7 +33,7 @@ export const createItem = form(
 			? `${url.pathname}?continue=true`
 			: `/lists/${wishlist_slug}`;
 
-		unwrap(
+		$unwrap(
 			await ItemsService.createItem({
 				id: randomUUID(),
 				wishlistId: wl.id,
@@ -41,7 +41,7 @@ export const createItem = form(
 			}),
 		);
 
-		unwrap(await WishlistService.touchList(wl.id));
+		$unwrap(await WishlistService.touchList(wl.id));
 		redirect(303, redirectUrl);
 	},
 );
@@ -56,12 +56,12 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
-	const wl = unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
+	const wl = $unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
 	if (!wl) error(400, 'Invalid wishlist slug provided');
 
-	unwrap(await ItemsService.updateItemForWishlist(item_id, wl.id, data));
+	$unwrap(await ItemsService.updateItemForWishlist(item_id, wl.id, data));
 
-	unwrap(await WishlistService.touchList(wl.id));
+	$unwrap(await WishlistService.touchList(wl.id));
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
@@ -75,11 +75,11 @@ export const setItemFavorited = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while favoriting an item');
 
-		const wl = unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
+		const wl = $unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
 
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
-		unwrap(await ItemsService.updateFavoritedForWishlist(itemId, wl.id, favorited));
+		$unwrap(await ItemsService.updateFavoritedForWishlist(itemId, wl.id, favorited));
 	},
 );
 
@@ -100,10 +100,10 @@ export const reorderItems = query(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while updating item ordering');
 
-		const wl = unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
+		const wl = $unwrap(await WishlistService.getBySlugForUser(wishlist_slug, user.id));
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
-		unwrap(await ItemsService.reorderItems(wl.id, items));
+		$unwrap(await ItemsService.reorderItems(wl.id, items));
 	},
 );
 
@@ -129,12 +129,12 @@ export const deleteItem = form(
 		if (!data.confirm)
 			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
-		const wl = unwrap(await WishlistService.getBySlugForUser(data.wishlistSlug, user.id));
+		const wl = $unwrap(await WishlistService.getBySlugForUser(data.wishlistSlug, user.id));
 		if (!wl) error(400, 'Invalid wishlist slug provided');
 
-		unwrap(await ItemsService.deleteItemForWishlist(data.itemId, wl.id));
+		$unwrap(await ItemsService.deleteItemForWishlist(data.itemId, wl.id));
 
-		unwrap(await WishlistService.touchList(wl.id));
+		$unwrap(await WishlistService.touchList(wl.id));
 		redirect(303, `/lists/${data.wishlistSlug}`);
 	},
 );
@@ -142,17 +142,23 @@ export const deleteItem = form(
 export const getItemForWishlist = query(
 	z.object({ wishlistId: z.string(), itemId: z.string() }),
 	async ({ wishlistId, itemId }) => {
-		return unwrap(await ItemsService.getItemForWishlist(itemId, wishlistId));
+		return $unwrap(await ItemsService.getItemForWishlist(itemId, wishlistId));
 	},
 );
 
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
 
-	const { data: candidate, error } = await generateItemCandidate(data.url);
-	if (candidate) {
-		if (!candidate.name || !candidate.valid) {
-			invalid('No product found');
-		} else return { ...candidate, url: data.url };
-	} else if (typeof error === 'string') invalid(error);
+	const genResult = await generateItemCandidate(data.url);
+	if (genResult.kind === 'success') return genResult.data;
+	else if (genResult.kind === 'error') throw genResult.error;
+
+	return $switchInvalid(genResult, {
+		GENERATION_BAD_URL: () => invalid('Invalid URL'),
+		GENERATION_BAD_RENDER: () => invalid('Cannot render page'),
+		GENERATION_BAD_DISTILL: () => invalid('Cannot read page'),
+		GENERATION_NO_RESULT: () => invalid('No product found'),
+		GENERATION_RATE_LIMIT: () => invalid('Generation temporarily disabled'),
+		GENERATION_UNKNOWN: () => invalid('Generation failed'),
+	});
 });

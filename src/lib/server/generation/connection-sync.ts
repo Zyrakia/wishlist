@@ -1,11 +1,8 @@
 import { ItemSchema } from '$lib/schemas/item';
-import { formatRelative } from '$lib/util/date';
-import { type Result, unwrap, wrapSafeAsync } from '$lib/util/safe-call';
+import { $fail, $invalid, $ok, $unwrap, type Result } from '$lib/util/result';
 import { safePrune } from '$lib/util/safe-prune';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
-
-import { error } from '@sveltejs/kit';
 
 import { db } from '../db';
 import { ConnectionsService } from '../services/connections';
@@ -25,35 +22,33 @@ const normalizeCompareUrl = (raw: string) => {
 };
 
 const syncing = new Map<string, Promise<Result<void>>>();
-const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
-	const connection = unwrap(await ConnectionsService.getWithItems(connectionId));
+const _syncListConnection = async (connectionId: string): Promise<Result<void>> => {
+	const connectionResult = await ConnectionsService.getWithItems(connectionId);
+	if (connectionResult.kind !== 'success') return connectionResult;
 
-	if (!connection) error(400, 'Invalid connection');
+	const connection = connectionResult.data;
+	if (!connection) return $invalid('GENERIC', 'Cannot retrieve connection');
 
 	const now = new Date();
 	if (connection.lastSyncedAt && now.getTime() - connection.lastSyncedAt.getTime() < SYNC_DELAY) {
 		const nextSync = new Date(connection.lastSyncedAt.getTime() + SYNC_DELAY);
-		throw `Next sync ${formatRelative(nextSync)}`;
+		return $invalid('CONNECTION_SYNC_DELAY', { nextSync });
 	}
 
-	const {
-		data: candidates,
-		success: generationSuccess,
-		error: generationError,
-	} = await generateItemCandidates(connection.url);
-
-	if (!generationSuccess) {
-		unwrap(await ConnectionsService.updateSyncStatus(connectionId, { syncError: true }));
-
-		throw generationError;
+	const candidatesResult = await generateItemCandidates(connection.url);
+	if (candidatesResult.kind !== 'success') {
+		await ConnectionsService.updateSyncStatus(connectionId, { syncError: true });
+		return candidatesResult;
 	}
+
+	const candidates = candidatesResult.data;
 
 	const existingItems = connection.items;
 	const urlToId = new Map(
 		existingItems.map((v) => [v.url ? normalizeCompareUrl(v.url) : null, v.id]),
 	);
 
-	const items = (candidates || []).flatMap((candidate) => {
+	const items = candidates.flatMap((candidate) => {
 		if (!candidate.name || !candidate.valid) return [];
 
 		const data = safePrune(ItemSchema, candidate);
@@ -72,15 +67,15 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
-		unwrap(await ConnectionsService.updateSyncStatus(connectionId, { syncError: true }));
-		throw 'Cannot find any items, is the list private?';
+		await ConnectionsService.updateSyncStatus(connectionId, { syncError: true });
+		return $invalid('CONNECTION_EMPTY', undefined);
 	}
 
 	await db().transaction(async (tx) => {
 		const connectionsService = ConnectionsService.$with(tx);
 		const itemsService = ItemsService.$with(tx);
 
-		unwrap(
+		$unwrap(
 			await connectionsService.updateSyncStatus(connectionId, {
 				lastSyncedAt: new Date(),
 				syncError: false,
@@ -88,26 +83,31 @@ const _syncListConnection = wrapSafeAsync(async (connectionId: string) => {
 		);
 
 		if (items.length === 0) {
-			unwrap(await itemsService.deleteItemsByConnection(connectionId));
+			$unwrap(await itemsService.deleteItemsByConnection(connectionId));
 		} else {
 			const activeIds = items.map((v) => v.id);
-			unwrap(await itemsService.deleteItemsByConnection(connectionId, ...activeIds));
+			$unwrap(await itemsService.deleteItemsByConnection(connectionId, ...activeIds));
 
-			unwrap(await itemsService.upsertItems(items));
+			$unwrap(await itemsService.upsertItems(items));
 		}
 	});
 
-	unwrap(await WishlistService.touchList(connection.wishlistId));
-});
+	await WishlistService.touchList(connection.wishlistId);
+	return $ok();
+};
 
 export const syncListConnection = (connectionId: string) => {
 	const runningSync = syncing.get(connectionId);
 	if (runningSync) return runningSync;
 
-	const sync = _syncListConnection(connectionId).finally(() => {
-		syncing.delete(connectionId);
-	});
+	try {
+		const sync = _syncListConnection(connectionId).finally(() => {
+			syncing.delete(connectionId);
+		});
 
-	syncing.set(connectionId, sync);
-	return sync;
+		syncing.set(connectionId, sync);
+		return sync;
+	} catch (err) {
+		return Promise.resolve($fail(err));
+	}
 };

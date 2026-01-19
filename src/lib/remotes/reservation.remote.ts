@@ -4,7 +4,7 @@ import { GroupsService } from '$lib/server/services/groups';
 import { ItemsService } from '$lib/server/services/items';
 import { ReservationsService } from '$lib/server/services/reservations';
 import { WishlistService } from '$lib/server/services/wishlist';
-import { unwrap } from '$lib/util/safe-call';
+import { $unwrap } from '$lib/util/result';
 import { error } from '@sveltejs/kit';
 import z from 'zod';
 import { resolveMe } from './auth.remote';
@@ -16,22 +16,22 @@ export const reserveItem = form(z.object({ itemId: z.string() }), async ({ itemI
 	if (!wishlist_slug) error(400, 'A wishlist slug is required while reserving an item');
 
 	const viewer = await resolveMe({});
-	const wl = unwrap(await WishlistService.getBySlugNotOwned(wishlist_slug, viewer.id));
+	const wl = $unwrap(await WishlistService.getBySlugNotOwned(wishlist_slug, viewer.id));
 
 	if (!wl) error(400, 'Invalid wishlist slug provided');
 
-	const item = unwrap(await ItemsService.getItemForWishlist(itemId, wl.id));
+	const item = $unwrap(await ItemsService.getItemForWishlist(itemId, wl.id));
 
 	if (!item) error(400, 'Invalid item ID provided');
 
-	const existingReservation = unwrap(await ReservationsService.getByItemId(itemId));
+	const existingReservation = $unwrap(await ReservationsService.getByItemId(itemId));
 
 	if (existingReservation) error(400, 'This item is already reserved');
 
-	const sharesGroup = unwrap(await GroupsService.doesShareGroup(viewer.id, wl.userId));
+	const sharesGroup = $unwrap(await GroupsService.doesShareGroup(viewer.id, wl.userId));
 	if (!sharesGroup) error(401, 'You cannot reserve items on this list');
 
-	unwrap(
+	$unwrap(
 		await ReservationsService.createReservation({
 			itemId: itemId,
 			userId: viewer.id,
@@ -42,7 +42,7 @@ export const reserveItem = form(z.object({ itemId: z.string() }), async ({ itemI
 
 export const removeReservation = form(z.object({ itemId: z.string() }), async ({ itemId }) => {
 	const viewer = verifyAuth();
-	unwrap(await ReservationsService.deleteByUserAndItems(viewer.id, itemId));
+	$unwrap(await ReservationsService.deleteByUserAndItems(viewer.id, itemId));
 });
 
 export const getReservations = query(async () => {
@@ -55,12 +55,12 @@ export const getReservations = query(async () => {
 	const viewer = locals.user;
 	if (!viewer) return;
 
-	const wl = unwrap(await WishlistService.getBySlugNotOwned(wishlist_slug, viewer.id));
+	const wl = $unwrap(await WishlistService.getBySlugNotOwned(wishlist_slug, viewer.id));
 
 	if (!wl) return;
 
-	const sharesGroup = unwrap(await GroupsService.doesShareGroup(viewer.id, wl.userId));
+	const sharesGroup = $unwrap(await GroupsService.doesShareGroup(viewer.id, wl.userId));
 	if (!sharesGroup) return;
 
-	return unwrap(await ReservationsService.listByWishlistId(wl.id));
+	return $unwrap(await ReservationsService.listByWishlistId(wl.id));
 });

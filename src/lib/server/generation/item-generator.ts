@@ -1,6 +1,6 @@
 import { dev } from '$app/environment';
 import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
-import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
+import { $invalid, $ok, $safeCall, type Result } from '$lib/util/result';
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
@@ -126,8 +126,9 @@ function distillPage(
 		const alt = img.attr('alt');
 
 		if (src && alt) {
-			const { data: absoluteSrc } = safeCall(() => new URL(src, baseUrl).href);
-			if (absoluteSrc) {
+			const absoluteSrcResult = $safeCall(() => new URL(src, baseUrl).href);
+			if (absoluteSrcResult.kind === 'success') {
+				const absoluteSrc = absoluteSrcResult.data;
 				img.attr('src', absoluteSrc);
 				return;
 			}
@@ -145,8 +146,9 @@ function distillPage(
 			if (href.startsWith('https')) return;
 			if (stripRelativeLinks) return void link.remove();
 
-			const { data: absoluteHref } = safeCall(() => new URL(href, baseUrl).href);
-			if (absoluteHref) {
+			const absoluteHrefResult = $safeCall(() => new URL(href, baseUrl).href);
+			if (absoluteHrefResult.kind === 'success') {
+				const absoluteHref = absoluteHrefResult.data;
 				link.attr('href', absoluteHref);
 				return;
 			}
@@ -174,24 +176,31 @@ ${Object.entries(meta)
 ${markdownContent.replace(/\n{2,}/g, '\n').trim()}`;
 }
 
-const distillUrl = wrapSafeAsync(
-	async (url: string, renderOptions?: RenderOptions, distillOptions?: DistillOptions) => {
-		const { data: parsedUrl, success: isValidUrl } = safeCall(() => new URL(url));
-		if (!isValidUrl) throw 'Invalid URL';
+const distillUrl = async (
+	url: string,
+	renderOptions?: RenderOptions,
+	distillOptions?: DistillOptions,
+): Promise<Result<string>> => {
+	const parsedUrlResult = $safeCall(() => new URL(url));
+	if (parsedUrlResult.kind !== 'success') return $invalid('GENERATION_BAD_URL', { url });
 
-		const html = await renderUrl(parsedUrl.href, renderOptions);
-		if (!html) throw 'Cannot load page';
+	const parsedUrl = parsedUrlResult.data;
+	const html = await renderUrl(parsedUrl.href, renderOptions);
+	if (!html) return $invalid('GENERATION_BAD_RENDER', { url: parsedUrl.href });
 
-		const distilled = distillPage(html, parsedUrl.origin, distillOptions);
-		if (!distilled) throw 'Cannot read page';
+	const distilled = distillPage(html, parsedUrl.origin, distillOptions);
+	if (!distilled) return $invalid('GENERATION_BAD_DISTILL', { url: parsedUrl.href });
 
-		return distilled;
-	},
-);
+	return $ok(distilled);
+};
 
-export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
-	const { data: page, success, error } = await distillUrl(url);
-	if (!success) throw error;
+export const generateItemCandidate = async (
+	url: string,
+): Promise<Result<z.infer<typeof CandidateSchema>>> => {
+	const pageResult = await distillUrl(url);
+	if (pageResult.kind !== 'success') return pageResult;
+
+	const page = pageResult.data;
 
 	try {
 		const { object: candidate, usage } = await generateObject({
@@ -208,26 +217,24 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string) => {
 
 		reportGenerationUsage(url, usage);
 
-		if (!candidate?.valid) throw 'No product found';
-		return candidate;
+		if (!candidate?.valid) return $invalid('GENERATION_NO_RESULT', undefined);
+		return $ok(candidate);
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			throw 'Generation temporarily unavailable';
-		} else if (typeof err === 'string') throw err;
-		else throw 'Generation failed';
+			return $invalid('GENERATION_RATE_LIMIT', undefined);
+		} else return $invalid('GENERATION_UNKNOWN', undefined);
 	}
-});
+};
 
-export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
-	const {
-		data: page,
-		success,
-		error,
-	} = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
+export const generateItemCandidates = async (
+	url: string,
+): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>>> => {
+	const pageResult = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
+	if (pageResult.kind !== 'success') return pageResult;
 
-	if (!success) throw error;
+	const page = pageResult.data;
 
 	try {
 		const {
@@ -251,13 +258,12 @@ export const generateItemCandidates = wrapSafeAsync(async (url: string) => {
 
 		reportGenerationUsage(url, usage);
 
-		return candidates.filter((v) => v.valid);
+		return $ok(candidates.filter((v) => v.valid));
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			throw 'Generation temporarily unavailable';
-		} else if (typeof err === 'string') throw err;
-		else throw 'Generation failed';
+			return $invalid('GENERATION_RATE_LIMIT', undefined);
+		} else return $invalid('GENERATION_UNKNOWN', undefined);
 	}
-});
+};

@@ -4,7 +4,7 @@ import { checkRole } from './auth.remote';
 import { error } from '@sveltejs/kit';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { AdminService } from '$lib/server/services/admin';
-import { unwrap } from '$lib/util/safe-call';
+import { $unwrap } from '$lib/util/result';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
@@ -22,7 +22,7 @@ export const paginateUsers = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		return unwrap(await AdminService.paginateUsers(limit, offset));
+		return $unwrap(await AdminService.paginateUsers(limit, offset));
 	},
 );
 
@@ -35,7 +35,7 @@ export const paginateErroredConnections = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		return unwrap(await AdminService.paginateErroredConnections(limit, offset));
+		return $unwrap(await AdminService.paginateErroredConnections(limit, offset));
 	},
 );
 

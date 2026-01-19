@@ -2,7 +2,7 @@ import { form, getRequestEvent, query } from '$app/server';
 import { WishlistSchema } from '$lib/schemas/wishlist';
 import { verifyAuth } from '$lib/server/auth';
 import { WishlistService } from '$lib/server/services/wishlist';
-import { unwrap } from '$lib/util/safe-call';
+import { $unwrap } from '$lib/util/result';
 import { randomUUID } from 'crypto';
 import z from 'zod';
 
@@ -18,7 +18,7 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 
 	if (!(await isWishlistSlugOpen({ slug: data.slug }))) invalid(invalid.slug('Already taken'));
 
-	unwrap(
+	$unwrap(
 		await WishlistService.createWishlist({
 			id: randomUUID(),
 			userId: user.id,
@@ -42,18 +42,18 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 		if (!isOpen) invalid(invalid.slug('Already taken'));
 	}
 
-	const [updated] = unwrap(
+	const [updated] = $unwrap(
 		await WishlistService.updateBySlugForUser(wishlist_slug, user.id, data),
 	);
 
 	if (updated) {
-		unwrap(await WishlistService.touchList(updated.id));
+		$unwrap(await WishlistService.touchList(updated.id));
 		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
 	} else error(400, 'No wishlist can be updated');
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
-	return unwrap(await WishlistService.getBySlug(slug));
+	return $unwrap(await WishlistService.getBySlug(slug));
 });
 
 const ItemSortSchema = z.enum(['alphabetical', 'created', 'price', 'user']);
@@ -62,7 +62,7 @@ const ItemDirectionSchema = z.enum(['asc', 'desc']);
 export const getWishlistWithItems = query(
 	z.object({ slug: z.string(), sort: ItemSortSchema, direction: ItemDirectionSchema }),
 	async ({ slug, sort, direction }) => {
-		return unwrap(await WishlistService.getWithItems(slug, sort, direction));
+		return $unwrap(await WishlistService.getWithItems(slug, sort, direction));
 	},
 );
 
@@ -87,11 +87,13 @@ export const deleteWishlist = form(
 
 		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
 
-		const wl = unwrap(await WishlistService.getBySlugAndIdForUser(data.slug, data.id, user.id));
+		const wl = $unwrap(
+			await WishlistService.getBySlugAndIdForUser(data.slug, data.id, user.id),
+		);
 
 		if (!wl) error(400, 'Invalid wishlist slug and ID provided');
 
-		unwrap(await WishlistService.deleteById(wl.id));
+		$unwrap(await WishlistService.deleteById(wl.id));
 		redirect(303, '/');
 	},
 );
@@ -99,5 +101,5 @@ export const deleteWishlist = form(
 export const getWishlists = query(async () => {
 	const user = verifyAuth({ failStrategy: 'login' });
 
-	return unwrap(await WishlistService.listByUserId(user.id));
+	return $unwrap(await WishlistService.listByUserId(user.id));
 });

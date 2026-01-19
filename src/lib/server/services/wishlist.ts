@@ -1,12 +1,14 @@
-import { and, asc, desc, eq, ne } from 'drizzle-orm';
+import { $ok } from '$lib/util/result';
+import { and, eq } from 'drizzle-orm';
+
 import { db } from '../db';
 import { WishlistTable } from '../db/schema';
-import { createClientService } from '../util/client-service';
+import { createService } from '../util/service';
 
 type ItemSort = 'alphabetical' | 'created' | 'price' | 'user';
 type SortDirection = 'asc' | 'desc';
 
-export const WishlistService = createClientService(db(), {
+export const WishlistService = createService(db(), {
 	/**
 	 * Marks a list as having been updated at the current timestamp.
 	 *
@@ -17,6 +19,8 @@ export const WishlistService = createClientService(db(), {
 			.update(WishlistTable)
 			.set({ activityAt: new Date() })
 			.where(eq(WishlistTable.id, listId));
+
+		return $ok();
 	},
 
 	/**
@@ -25,9 +29,10 @@ export const WishlistService = createClientService(db(), {
 	 * @param slug the wishlist slug to lookup
 	 */
 	getBySlug: async (client, slug: string) => {
-		return await client.query.WishlistTable.findFirst({
+		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { eq }) => eq(t.slug, slug),
 		});
+		return $ok(wishlist);
 	},
 
 	/**
@@ -37,9 +42,10 @@ export const WishlistService = createClientService(db(), {
 	 * @param userId the ID of the list owner
 	 */
 	getBySlugForUser: async (client, slug: string, userId: string) => {
-		return await client.query.WishlistTable.findFirst({
+		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, userId), eq(t.slug, slug)),
 		});
+		return $ok(wishlist);
 	},
 
 	/**
@@ -49,10 +55,11 @@ export const WishlistService = createClientService(db(), {
 	 * @param userId the ID to exclude from ownership
 	 */
 	getBySlugNotOwned: async (client, slug: string, userId: string) => {
-		return await client.query.WishlistTable.findFirst({
+		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq, ne }) => and(eq(t.slug, slug), ne(t.userId, userId)),
 			columns: { id: true, userId: true },
 		});
+		return $ok(wishlist);
 	},
 
 	/**
@@ -63,10 +70,11 @@ export const WishlistService = createClientService(db(), {
 	 * @param userId the ID of the list owner
 	 */
 	getBySlugAndIdForUser: async (client, slug: string, listId: string, userId: string) => {
-		return await client.query.WishlistTable.findFirst({
+		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(eq(t.userId, userId), eq(t.id, listId), eq(t.slug, slug)),
 		});
+		return $ok(wishlist);
 	},
 
 	/**
@@ -77,7 +85,7 @@ export const WishlistService = createClientService(db(), {
 	 * @param direction the item sorting direction
 	 */
 	getWithItems: async (client, slug: string, sort: ItemSort, direction: SortDirection) => {
-		return await client.query.WishlistTable.findFirst({
+		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { eq }) => eq(t.slug, slug),
 			with: {
 				items: {
@@ -102,6 +110,8 @@ export const WishlistService = createClientService(db(), {
 				user: { columns: { name: true } },
 			},
 		});
+
+		return $ok(wishlist);
 	},
 
 	/**
@@ -111,6 +121,7 @@ export const WishlistService = createClientService(db(), {
 	 */
 	createWishlist: async (client, data: typeof WishlistTable.$inferInsert) => {
 		await client.insert(WishlistTable).values(data);
+		return $ok();
 	},
 
 	/**
@@ -126,11 +137,13 @@ export const WishlistService = createClientService(db(), {
 		userId: string,
 		data: Partial<typeof WishlistTable.$inferInsert>,
 	) => {
-		return await client
+		const rows = await client
 			.update(WishlistTable)
 			.set({ ...data })
 			.where(and(eq(WishlistTable.slug, slug), eq(WishlistTable.userId, userId)))
 			.returning();
+
+		return $ok(rows);
 	},
 
 	/**
@@ -140,6 +153,7 @@ export const WishlistService = createClientService(db(), {
 	 */
 	deleteById: async (client, listId: string) => {
 		await client.delete(WishlistTable).where(eq(WishlistTable.id, listId));
+		return $ok();
 	},
 
 	/**
@@ -148,9 +162,11 @@ export const WishlistService = createClientService(db(), {
 	 * @param userId the ID of the user to lookup
 	 */
 	listByUserId: async (client, userId: string) => {
-		return await client.query.WishlistTable.findMany({
+		const wishlists = await client.query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			orderBy: (t, { desc }) => desc(t.activityAt),
 		});
+
+		return $ok(wishlists);
 	},
 });

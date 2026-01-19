@@ -1,18 +1,21 @@
+import { $ok } from '$lib/util/result';
 import { eq } from 'drizzle-orm';
+
 import { db } from '../db';
 import { UserTable } from '../db/schema';
-import { createClientService } from '../util/client-service';
+import { createService } from '../util/service';
 
-export const UsersService = createClientService(db(), {
+export const UsersService = createService(db(), {
 	/**
 	 * Fetches a user by ID.
 	 *
 	 * @param userId the ID of the user to fetch
 	 */
 	getById: async (client, userId: string) => {
-		return await client.query.UserTable.findFirst({
+		const user = await client.query.UserTable.findFirst({
 			where: (t, { eq }) => eq(t.id, userId),
 		});
+		return $ok(user);
 	},
 
 	/**
@@ -21,9 +24,10 @@ export const UsersService = createClientService(db(), {
 	 * @param email the email address to lookup
 	 */
 	getByEmail: async (client, email: string) => {
-		return await client.query.UserTable.findFirst({
+		const user = await client.query.UserTable.findFirst({
 			where: (t, { eq }) => eq(t.email, email),
 		});
+		return $ok(user);
 	},
 
 	/**
@@ -33,6 +37,7 @@ export const UsersService = createClientService(db(), {
 	 */
 	createUser: async (client, data: typeof UserTable.$inferInsert) => {
 		await client.insert(UserTable).values(data);
+		return $ok();
 	},
 
 	/**
@@ -43,6 +48,7 @@ export const UsersService = createClientService(db(), {
 	 */
 	updateName: async (client, userId: string, name: string) => {
 		await client.update(UserTable).set({ name }).where(eq(UserTable.id, userId));
+		return $ok();
 	},
 
 	/**
@@ -56,6 +62,7 @@ export const UsersService = createClientService(db(), {
 			.update(UserTable)
 			.set({ password: passwordHash })
 			.where(eq(UserTable.id, userId));
+		return $ok();
 	},
 
 	/**
@@ -66,5 +73,6 @@ export const UsersService = createClientService(db(), {
 	 */
 	updateEmail: async (client, userId: string, email: string) => {
 		await client.update(UserTable).set({ email }).where(eq(UserTable.id, userId));
+		return $ok();
 	},
 });

@@ -1,11 +1,12 @@
+import { $ok, $unwrap } from '$lib/util/result';
 import { and, eq, notInArray } from 'drizzle-orm';
+
 import { db } from '../db';
 import { WishlistItemTable } from '../db/schema';
 import { buildUpsertSet } from '../util/drizzle';
-import { createClientService } from '../util/client-service';
-import { unwrap } from '$lib/util/safe-call';
+import { createService } from '../util/service';
 
-export const ItemsService = createClientService(db(), {
+export const ItemsService = createService(db(), {
 	/**
 	 * Creates a wishlist item record.
 	 *
@@ -13,6 +14,7 @@ export const ItemsService = createClientService(db(), {
 	 */
 	createItem: async (client, data: typeof WishlistItemTable.$inferInsert) => {
 		await client.insert(WishlistItemTable).values(data);
+		return $ok();
 	},
 
 	/**
@@ -22,9 +24,11 @@ export const ItemsService = createClientService(db(), {
 	 * @param wishlistId the wishlist ID to scope by
 	 */
 	getItemForWishlist: async (client, itemId: string, wishlistId: string) => {
-		return await client.query.WishlistItemTable.findFirst({
+		const item = await client.query.WishlistItemTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, itemId), eq(t.wishlistId, wishlistId)),
 		});
+
+		return $ok(item);
 	},
 
 	/**
@@ -46,6 +50,8 @@ export const ItemsService = createClientService(db(), {
 			.where(
 				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
 			);
+
+		return $ok();
 	},
 
 	/**
@@ -67,6 +73,7 @@ export const ItemsService = createClientService(db(), {
 			.where(
 				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
 			);
+		return $ok();
 	},
 
 	/**
@@ -83,7 +90,7 @@ export const ItemsService = createClientService(db(), {
 		await client.transaction(async (tx) => {
 			await Promise.all(
 				items.map(async ({ id: itemId, order }) => {
-					unwrap(
+					$unwrap(
 						await ItemsService.$with(tx).updateItemForWishlist(itemId, wishlistId, {
 							order,
 						}),
@@ -91,6 +98,7 @@ export const ItemsService = createClientService(db(), {
 				}),
 			);
 		});
+		return $ok();
 	},
 
 	/**
@@ -105,6 +113,7 @@ export const ItemsService = createClientService(db(), {
 			.where(
 				and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wishlistId)),
 			);
+		return $ok();
 	},
 
 	/**
@@ -120,6 +129,7 @@ export const ItemsService = createClientService(db(), {
 				: idMatches;
 
 		await client.delete(WishlistItemTable).where(where);
+		return $ok();
 	},
 
 	/**
@@ -142,5 +152,6 @@ export const ItemsService = createClientService(db(), {
 					'url',
 				),
 			});
+		return $ok();
 	},
 });
