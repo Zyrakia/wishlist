@@ -1,9 +1,9 @@
-import { $ok, $unwrap } from '$lib/util/result';
 import { count, eq, sql } from 'drizzle-orm';
+import { Err, Ok } from 'ts-results';
 
 import { db } from '../db';
 import { WishlistConnectionTable } from '../db/schema';
-import { createService } from '../util/service';
+import { createService, DomainError } from '../util/service';
 import { ItemsService } from './items';
 
 export const ConnectionsService = createService(db(), {
@@ -16,7 +16,7 @@ export const ConnectionsService = createService(db(), {
 		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 		});
-		return $ok(connection);
+		return Ok(connection);
 	},
 
 	/**
@@ -24,12 +24,12 @@ export const ConnectionsService = createService(db(), {
 	 *
 	 * @param connectionId the connection ID to lookup
 	 */
-	getWithItems: async (client, connectionId: string) => {
+	getByIdWithItems: async (client, connectionId: string) => {
 		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 			with: { items: { columns: { id: true, url: true } } },
 		});
-		return $ok(connection);
+		return Ok(connection);
 	},
 
 	/**
@@ -37,12 +37,12 @@ export const ConnectionsService = createService(db(), {
 	 *
 	 * @param connectionId the connection ID to lookup
 	 */
-	getWithWishlist: async (client, connectionId: string) => {
+	getByIdWithWishlist: async (client, connectionId: string) => {
 		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
 			with: { wishlist: { columns: { userId: true, id: true, slug: true } } },
 		});
-		return $ok(connection);
+		return Ok(connection);
 	},
 
 	/**
@@ -51,7 +51,7 @@ export const ConnectionsService = createService(db(), {
 	 * @param url the connection URL to lookup
 	 * @param wishlistId the wishlist ID to scope by
 	 */
-	getByUrlForWishlist: async (client, url: string, wishlistId: string) => {
+	getByUrl: async (client, url: string, wishlistId: string) => {
 		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(
@@ -59,7 +59,7 @@ export const ConnectionsService = createService(db(), {
 					eq(t.wishlistId, wishlistId),
 				),
 		});
-		return $ok(connection);
+		return Ok(connection);
 	},
 
 	/**
@@ -67,13 +67,13 @@ export const ConnectionsService = createService(db(), {
 	 *
 	 * @param wishlistId the wishlist ID to scope by
 	 */
-	countForWishlist: async (client, wishlistId: string) => {
+	countByWishlistId: async (client, wishlistId: string) => {
 		const [{ count: connectionCount = 0 }] = await client
 			.select({ count: count() })
 			.from(WishlistConnectionTable)
 			.where(eq(WishlistConnectionTable.wishlistId, wishlistId));
 
-		return $ok(connectionCount);
+		return Ok(connectionCount);
 	},
 
 	/**
@@ -81,9 +81,9 @@ export const ConnectionsService = createService(db(), {
 	 *
 	 * @param data the connection data to insert
 	 */
-	createConnection: async (client, data: typeof WishlistConnectionTable.$inferInsert) => {
+	create: async (client, data: typeof WishlistConnectionTable.$inferInsert) => {
 		await client.insert(WishlistConnectionTable).values(data);
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -96,14 +96,14 @@ export const ConnectionsService = createService(db(), {
 		await client.transaction(async (tx) => {
 			// By default, on connection delete, column on items is set to `null`
 			if (deleteItems) {
-				$unwrap(await ItemsService.$with(tx).deleteItemsByConnection(connectionId));
+				(await ItemsService.$with(tx).deleteByConnectionId(connectionId)).unwrap();
 			}
 
 			await tx
 				.delete(WishlistConnectionTable)
 				.where(eq(WishlistConnectionTable.id, connectionId));
 		});
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -112,7 +112,7 @@ export const ConnectionsService = createService(db(), {
 	 * @param connectionId the connection ID to update
 	 * @param data the sync status fields to update
 	 */
-	updateSyncStatus: async (
+	updateSyncStatusById: async (
 		client,
 		connectionId: string,
 		data: Partial<
@@ -123,7 +123,7 @@ export const ConnectionsService = createService(db(), {
 			.update(WishlistConnectionTable)
 			.set({ ...data })
 			.where(eq(WishlistConnectionTable.id, connectionId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -132,7 +132,7 @@ export const ConnectionsService = createService(db(), {
 	 * @param connectionIds the connection IDs to lookup
 	 * @param recentCutoff the cutoff timestamp for recent syncs
 	 */
-	getRecentSyncs: async (client, connectionIds: string[], recentCutoff: Date) => {
+	getRecentSyncsById: async (client, connectionIds: string[], recentCutoff: Date) => {
 		const recent = await client.query.WishlistConnectionTable.findMany({
 			where: (t, { and, eq, gte, inArray, or }) =>
 				and(
@@ -141,6 +141,6 @@ export const ConnectionsService = createService(db(), {
 				),
 			columns: { id: true, lastSyncedAt: true, syncError: true },
 		});
-		return $ok(recent);
+		return Ok(recent);
 	},
 });

@@ -5,7 +5,6 @@ import { verifyAuth } from '$lib/server/auth';
 import { sendEmail } from '$lib/server/email';
 import { GroupsService } from '$lib/server/services/groups';
 import { UsersService } from '$lib/server/services/users';
-import { $unwrap } from '$lib/util/result';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
 import z from 'zod';
@@ -18,17 +17,19 @@ import { cleanReservationsAfterGroupExit } from '$lib/server/reservations';
 export const createGroup = form(GroupSchema, async (data, invalid) => {
 	const user = verifyAuth();
 
-	const existing = $unwrap(await GroupsService.getGroupByOwner(user.id));
+	const existingResult = await GroupsService.getByOwnerId(user.id);
+	if (existingResult.err) throw existingResult.val;
+	const existing = existingResult.val;
 	if (existing) invalid('You can only own one group');
 
-	const group = $unwrap(
-		await GroupsService.createGroup({
-			id: randomUUID(),
-			ownerId: user.id,
-			memberLimit: 25,
-			...data,
-		}),
-	);
+	const createResult = await GroupsService.create({
+		id: randomUUID(),
+		ownerId: user.id,
+		memberLimit: 25,
+		...data,
+	});
+	if (createResult.err) throw createResult.val;
+	const group = createResult.val;
 
 	redirect(303, `/groups/${group.id}`);
 });
@@ -41,11 +42,14 @@ export const updateGroup = form(GroupSchema.partial(), async (data) => {
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = $unwrap(await GroupsService.getOwnedGroupById(group_id, user.id));
+	const groupResult = await GroupsService.getByIdForOwner(group_id, user.id);
+	if (groupResult.err) throw groupResult.val;
+	const group = groupResult.val;
 
 	if (!group) error(400, 'Invalid group ID provided');
 
-	$unwrap(await GroupsService.updateGroup(group_id, data));
+	const updateResult = await GroupsService.updateById(group_id, data);
+	if (updateResult.err) throw updateResult.val;
 	redirect(303, `/groups/${group.id}`);
 });
 
@@ -60,11 +64,14 @@ export const deleteGroup = form(
 		if (!group_id) error(400, 'A group ID is required');
 		if (!confirm) redirect(303, `/groups/${group_id}/delete-confirm`);
 
-		const group = $unwrap(await GroupsService.getOwnedGroupById(group_id, user.id));
+		const groupResult = await GroupsService.getByIdForOwner(group_id, user.id);
+		if (groupResult.err) throw groupResult.val;
+		const group = groupResult.val;
 
 		if (!group) error(400, 'Invalid group ID provided');
 
-		$unwrap(await GroupsService.deleteGroup(group.id));
+		const deleteResult = await GroupsService.deleteById(group.id);
+		if (deleteResult.err) throw deleteResult.val;
 		redirect(303, '/');
 	},
 );
@@ -80,33 +87,50 @@ export const issueGroupInvite = form(
 		const user = verifyAuth();
 		if (!group_id) error(400, 'A group ID is required');
 
-		const group = $unwrap(await GroupsService.getGroupWithInviteCounts(group_id, user.id));
+		const groupResult = await GroupsService.getByIdWithInviteCountsForOwner(
+			group_id,
+			user.id,
+		);
+		if (groupResult.err) throw groupResult.val;
+		const group = groupResult.val;
 
 		if (!group) error(400, 'Invalid group ID provided');
 		if (group.memberCount >= group.memberLimit) invalid('The group is alrady full');
 		else if (group.memberCount + group.inviteCount >= group.memberLimit)
 			invalid('Too many pending invites');
 
-		const existingUser = $unwrap(await UsersService.getByEmail(targetEmail));
+		const existingUserResult = await UsersService.getByEmail(targetEmail);
+		if (existingUserResult.err) throw existingUserResult.val;
+		const existingUser = existingUserResult.val;
 
 		if (existingUser) {
-			const existingMembership = $unwrap(
-				await GroupsService.getMembershipByGroupAndUser(group.id, existingUser.id),
+			const existingMembershipResult = await GroupsService.getMembershipByGroupIdAndUserId(
+				group.id,
+				existingUser.id,
 			);
+			if (existingMembershipResult.err) throw existingMembershipResult.val;
+			const existingMembership = existingMembershipResult.val;
 
 			if (existingMembership) invalid('User is already a member');
 		}
 
-		const existingInvite = $unwrap(
-			await GroupsService.getInviteByGroupAndEmail(group.id, targetEmail),
+		const existingInviteResult = await GroupsService.getInviteByGroupIdAndEmail(
+			group.id,
+			targetEmail,
 		);
+		if (existingInviteResult.err) throw existingInviteResult.val;
+		const existingInvite = existingInviteResult.val;
 
 		if (existingInvite) invalid('User is already invited');
 
 		const secret = randomUUID();
-		const [createdInvite] = $unwrap(
-			await GroupsService.createInvite({ groupId: group.id, targetEmail, id: secret }),
-		);
+		const inviteResult = await GroupsService.createInvite({
+			groupId: group.id,
+			targetEmail,
+			id: secret,
+		});
+		if (inviteResult.err) throw inviteResult.val;
+		const [createdInvite] = inviteResult.val;
 
 		await sendEmail(targetEmail, {
 			template: {
@@ -131,11 +155,14 @@ export const revokeGroupInvite = form(z.object({ inviteId: z.string() }), async 
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = $unwrap(await GroupsService.getOwnedGroupById(group_id, user.id));
+	const groupResult = await GroupsService.getByIdForOwner(group_id, user.id);
+	if (groupResult.err) throw groupResult.val;
+	const group = groupResult.val;
 
 	if (!group) error(400, 'Invalid group ID provided');
 
-	$unwrap(await GroupsService.deleteInviteById(inviteId));
+	const deleteResult = await GroupsService.deleteInviteById(inviteId);
+	if (deleteResult.err) throw deleteResult.val;
 	redirect(303, `/groups/${group.id}`);
 });
 
@@ -145,23 +172,33 @@ export const resolveGroupInvite = form(
 		const user = await resolveMe({});
 		if (!user) error(401);
 
-		const invite = $unwrap(await GroupsService.getInviteById(inviteId));
+		const inviteResult = await GroupsService.getInviteById(inviteId);
+		if (inviteResult.err) throw inviteResult.val;
+		const invite = inviteResult.val;
 
 		if (!invite) return invalid(invalid.inviteId('Invite invalid or expired'));
 		if (invite.targetEmail !== user.email) invalid(invalid.inviteId('This is not your invite'));
 
 		if (decision === 'decline') {
-			$unwrap(await GroupsService.deleteInviteById(invite.id));
+			const deleteResult = await GroupsService.deleteInviteById(invite.id);
+			if (deleteResult.err) throw deleteResult.val;
 			redirect(303, `/`);
 		}
 
-		const group = $unwrap(await GroupsService.getGroupWithMemberCount(invite.groupId));
+		const groupResult = await GroupsService.getByIdWithMemberCount(invite.groupId);
+		if (groupResult.err) throw groupResult.val;
+		const group = groupResult.val;
 
 		if (!group) return invalid(invalid.inviteId('Group does not exist'));
 		if (group.memberCount >= group.memberLimit)
 			return invalid(invalid.inviteId('Group is full'));
 
-		$unwrap(await GroupsService.acceptInvite(invite.groupId, user.id, invite.id));
+		const acceptResult = await GroupsService.acceptInvite(
+			invite.groupId,
+			user.id,
+			invite.id,
+		);
+		if (acceptResult.err) throw acceptResult.val;
 
 		redirect(303, `/`);
 	},
@@ -175,7 +212,9 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = $unwrap(await GroupsService.getGroupById(group_id));
+	const groupResult = await GroupsService.getById(group_id);
+	if (groupResult.err) throw groupResult.val;
+	const group = groupResult.val;
 
 	if (!group) error(400, 'Invalid group ID provided');
 
@@ -183,11 +222,20 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	if (group.ownerId !== user.id && user.id !== targetId)
 		error(401, 'Cannot modify other members of this group');
 
-	const membership = $unwrap(await GroupsService.getMembershipByGroupAndUser(group.id, targetId));
+	const membershipResult = await GroupsService.getMembershipByGroupIdAndUserId(
+		group.id,
+		targetId,
+	);
+	if (membershipResult.err) throw membershipResult.val;
+	const membership = membershipResult.val;
 
 	if (!membership) error(400, 'User is not an active member');
 
-	$unwrap(await GroupsService.deleteMembership(group.id, targetId));
+	const deleteResult = await GroupsService.deleteMembershipByGroupIdAndUserId(
+		group.id,
+		targetId,
+	);
+	if (deleteResult.err) throw deleteResult.val;
 
 	await cleanReservationsAfterGroupExit(targetId);
 
@@ -198,13 +246,17 @@ export const getMyInvites = query(async () => {
 	const user = await resolveMe({});
 	if (!user) return [];
 
-	return $unwrap(await GroupsService.getInvitesForEmail(user.email));
+	const invitesResult = await GroupsService.listInvitesByEmail(user.email);
+	if (invitesResult.err) throw invitesResult.val;
+	return invitesResult.val;
 });
 
 export const getGroupActivity = query(async () => {
 	const user = verifyAuth();
 
-	const memberships = $unwrap(await GroupsService.getGroupActivity(user.id));
+	const membershipsResult = await GroupsService.listActivityByUserId(user.id);
+	if (membershipsResult.err) throw membershipsResult.val;
+	const memberships = membershipsResult.val;
 
 	return memberships.map(({ group }) => {
 		const wishlists = group.members.flatMap((member) => {
@@ -228,21 +280,31 @@ export const getGroupActivity = query(async () => {
 
 export const getOwnedGroup = query(async () => {
 	const user = verifyAuth();
-	return $unwrap(await GroupsService.getGroupByOwner(user.id));
+	const groupResult = await GroupsService.getByOwnerId(user.id);
+	if (groupResult.err) throw groupResult.val;
+	return groupResult.val;
 });
 
 export const getGroupById = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
-	return $unwrap(await GroupsService.getGroupWithOwner(groupId));
+	const groupResult = await GroupsService.getByIdWithOwner(groupId);
+	if (groupResult.err) throw groupResult.val;
+	return groupResult.val;
 });
 
 export const getGroupMembers = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
-	return $unwrap(await GroupsService.getMembersWithLists(groupId));
+	const membersResult = await GroupsService.listMembersWithListsByGroupId(groupId);
+	if (membersResult.err) throw membersResult.val;
+	return membersResult.val;
 });
 
 export const getGroupInvites = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
-	return $unwrap(await GroupsService.getInvitesByGroup(groupId));
+	const invitesResult = await GroupsService.listInvitesByGroupId(groupId);
+	if (invitesResult.err) throw invitesResult.val;
+	return invitesResult.val;
 });
 
 export const getGroupInvite = query(z.object({ inviteId: z.string() }), async ({ inviteId }) => {
-	return $unwrap(await GroupsService.getInviteWithGroup(inviteId));
+	const inviteResult = await GroupsService.getInviteByIdWithGroup(inviteId);
+	if (inviteResult.err) throw inviteResult.val;
+	return inviteResult.val;
 });

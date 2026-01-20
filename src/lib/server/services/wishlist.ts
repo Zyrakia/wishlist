@@ -1,9 +1,9 @@
-import { $ok } from '$lib/util/result';
 import { and, eq } from 'drizzle-orm';
+import { Err, Ok } from 'ts-results';
 
 import { db } from '../db';
 import { WishlistTable } from '../db/schema';
-import { createService } from '../util/service';
+import { createService, DomainError } from '../util/service';
 
 type ItemSort = 'alphabetical' | 'created' | 'price' | 'user';
 type SortDirection = 'asc' | 'desc';
@@ -14,13 +14,13 @@ export const WishlistService = createService(db(), {
 	 *
 	 * @param listId the ID of the list to update
 	 */
-	touchList: async (client, listId: string) => {
+	touchById: async (client, listId: string) => {
 		await client
 			.update(WishlistTable)
 			.set({ activityAt: new Date() })
 			.where(eq(WishlistTable.id, listId));
 
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -32,7 +32,15 @@ export const WishlistService = createService(db(), {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { eq }) => eq(t.slug, slug),
 		});
-		return $ok(wishlist);
+		return Ok(wishlist);
+	},
+
+	getBySlugOrErr: async (client, slug: string) => {
+		const wishlist = await client.query.WishlistTable.findFirst({
+			where: (t, { eq }) => eq(t.slug, slug),
+		});
+		if (!wishlist) return Err(DomainError.of('Wishlist not found'));
+		return Ok(wishlist);
 	},
 
 	/**
@@ -41,11 +49,19 @@ export const WishlistService = createService(db(), {
 	 * @param slug the wishlist slug to lookup
 	 * @param userId the ID of the list owner
 	 */
-	getBySlugForUser: async (client, slug: string, userId: string) => {
+	getBySlugForOwner: async (client, slug: string, userId: string) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.userId, userId), eq(t.slug, slug)),
 		});
-		return $ok(wishlist);
+		return Ok(wishlist);
+	},
+
+	getBySlugForOwnerOrErr: async (client, slug: string, userId: string) => {
+		const wishlist = await client.query.WishlistTable.findFirst({
+			where: (t, { and, eq }) => and(eq(t.userId, userId), eq(t.slug, slug)),
+		});
+		if (!wishlist) return Err(DomainError.of('Wishlist not found for owner'));
+		return Ok(wishlist);
 	},
 
 	/**
@@ -54,12 +70,21 @@ export const WishlistService = createService(db(), {
 	 * @param slug the wishlist slug to lookup
 	 * @param userId the ID to exclude from ownership
 	 */
-	getBySlugNotOwned: async (client, slug: string, userId: string) => {
+	getBySlugForNonOwner: async (client, slug: string, userId: string) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq, ne }) => and(eq(t.slug, slug), ne(t.userId, userId)),
 			columns: { id: true, userId: true },
 		});
-		return $ok(wishlist);
+		return Ok(wishlist);
+	},
+
+	getBySlugForNonOwnerOrErr: async (client, slug: string, userId: string) => {
+		const wishlist = await client.query.WishlistTable.findFirst({
+			where: (t, { and, eq, ne }) => and(eq(t.slug, slug), ne(t.userId, userId)),
+			columns: { id: true, userId: true },
+		});
+		if (!wishlist) return Err(DomainError.of('Wishlist not found'));
+		return Ok(wishlist);
 	},
 
 	/**
@@ -69,12 +94,26 @@ export const WishlistService = createService(db(), {
 	 * @param listId the wishlist ID to lookup
 	 * @param userId the ID of the list owner
 	 */
-	getBySlugAndIdForUser: async (client, slug: string, listId: string, userId: string) => {
+	getBySlugAndIdForOwner: async (client, slug: string, listId: string, userId: string) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(eq(t.userId, userId), eq(t.id, listId), eq(t.slug, slug)),
 		});
-		return $ok(wishlist);
+		return Ok(wishlist);
+	},
+
+	getBySlugAndIdForOwnerOrErr: async (
+		client,
+		slug: string,
+		listId: string,
+		userId: string,
+	) => {
+		const wishlist = await client.query.WishlistTable.findFirst({
+			where: (t, { and, eq }) =>
+				and(eq(t.userId, userId), eq(t.id, listId), eq(t.slug, slug)),
+		});
+		if (!wishlist) return Err(DomainError.of('Wishlist ID invalid'));
+		return Ok(wishlist);
 	},
 
 	/**
@@ -84,7 +123,12 @@ export const WishlistService = createService(db(), {
 	 * @param sort the item sorting mode
 	 * @param direction the item sorting direction
 	 */
-	getWithItems: async (client, slug: string, sort: ItemSort, direction: SortDirection) => {
+	getBySlugWithItems: async (
+		client,
+		slug: string,
+		sort: ItemSort,
+		direction: SortDirection,
+	) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { eq }) => eq(t.slug, slug),
 			with: {
@@ -110,8 +154,42 @@ export const WishlistService = createService(db(), {
 				user: { columns: { name: true } },
 			},
 		});
+		return Ok(wishlist);
+	},
 
-		return $ok(wishlist);
+	getBySlugWithItemsOrErr: async (
+		client,
+		slug: string,
+		sort: ItemSort,
+		direction: SortDirection,
+	) => {
+		const wishlist = await client.query.WishlistTable.findFirst({
+			where: (t, { eq }) => eq(t.slug, slug),
+			with: {
+				items: {
+					orderBy: (t, { asc, desc }) => {
+						const sortBy = (col: keyof typeof t) =>
+							direction === 'asc' ? asc(t[col]) : desc(t[col]);
+
+						switch (sort) {
+							case 'alphabetical':
+								return sortBy('name');
+							case 'created':
+								return sortBy('createdAt');
+							case 'price':
+								return sortBy('price');
+							case 'user':
+							default:
+								return asc(t.order);
+						}
+					},
+				},
+				connections: true,
+				user: { columns: { name: true } },
+			},
+		});
+		if (!wishlist) return Err(DomainError.of('Wishlist not found'));
+		return Ok(wishlist);
 	},
 
 	/**
@@ -119,9 +197,19 @@ export const WishlistService = createService(db(), {
 	 *
 	 * @param data the wishlist data to insert
 	 */
-	createWishlist: async (client, data: typeof WishlistTable.$inferInsert) => {
+	create: async (client, data: typeof WishlistTable.$inferInsert) => {
 		await client.insert(WishlistTable).values(data);
-		return $ok();
+		return Ok(undefined);
+	},
+
+	createWithSlugCheck: async (client, data: typeof WishlistTable.$inferInsert) => {
+		const existing = await client.query.WishlistTable.findFirst({
+			where: (t, { eq }) => eq(t.slug, data.slug),
+		});
+		if (existing) return Err(DomainError.of('Slug is taken'));
+
+		await client.insert(WishlistTable).values(data);
+		return Ok(undefined);
 	},
 
 	/**
@@ -131,7 +219,7 @@ export const WishlistService = createService(db(), {
 	 * @param userId the ID of the list owner
 	 * @param data the fields to update
 	 */
-	updateBySlugForUser: async (
+	updateBySlugForOwner: async (
 		client,
 		slug: string,
 		userId: string,
@@ -143,7 +231,29 @@ export const WishlistService = createService(db(), {
 			.where(and(eq(WishlistTable.slug, slug), eq(WishlistTable.userId, userId)))
 			.returning();
 
-		return $ok(rows);
+		return Ok(rows);
+	},
+
+	updateBySlugForOwnerChecked: async (
+		client,
+		slug: string,
+		userId: string,
+		data: Partial<typeof WishlistTable.$inferInsert>,
+	) => {
+		if (data.slug !== undefined && data.slug !== slug) {
+			const existing = await client.query.WishlistTable.findFirst({
+				where: (t, { eq }) => eq(t.slug, data.slug!),
+			});
+			if (existing) return Err(DomainError.of('Slug is taken'));
+		}
+
+		const rows = await client
+			.update(WishlistTable)
+			.set({ ...data })
+			.where(and(eq(WishlistTable.slug, slug), eq(WishlistTable.userId, userId)))
+			.returning();
+
+		return Ok(rows);
 	},
 
 	/**
@@ -153,7 +263,7 @@ export const WishlistService = createService(db(), {
 	 */
 	deleteById: async (client, listId: string) => {
 		await client.delete(WishlistTable).where(eq(WishlistTable.id, listId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -161,12 +271,12 @@ export const WishlistService = createService(db(), {
 	 *
 	 * @param userId the ID of the user to lookup
 	 */
-	listByUserId: async (client, userId: string) => {
+	listForOwner: async (client, userId: string) => {
 		const wishlists = await client.query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			orderBy: (t, { desc }) => desc(t.activityAt),
 		});
 
-		return $ok(wishlists);
+		return Ok(wishlists);
 	},
 });

@@ -1,19 +1,24 @@
 import { GroupsService } from './services/groups';
 import { ReservationsService } from './services/reservations';
-import { $unwrap } from '$lib/util/result';
 
 export async function cleanReservationsAfterGroupExit(reserverId: string) {
-	const reservations = $unwrap(await ReservationsService.listByUserWithOwners(reserverId));
+	const reservationsResult = await ReservationsService.listByUserIdWithOwners(reserverId);
+	if (reservationsResult.err) throw reservationsResult.val;
+	const reservations = reservationsResult.val;
 
 	if (reservations.length === 0) return;
 
 	const ownerIds = Array.from(new Set(reservations.map((v) => v.item.wishlist.userId)));
 
-	const reserverMemberships = $unwrap(await GroupsService.getMembershipsForUser(reserverId));
+	const reserverMembershipsResult = await GroupsService.listMembershipsByUserId(reserverId);
+	if (reserverMembershipsResult.err) throw reserverMembershipsResult.val;
+	const reserverMemberships = reserverMembershipsResult.val;
 
 	const reserverGroups = new Set(reserverMemberships.map((v) => v.groupId));
 
-	const ownerMemberships = $unwrap(await GroupsService.getMembershipsForUsers(ownerIds));
+	const ownerMembershipsResult = await GroupsService.listMembershipsByUserIds(ownerIds);
+	if (ownerMembershipsResult.err) throw ownerMembershipsResult.val;
+	const ownerMemberships = ownerMembershipsResult.val;
 
 	const connectedOwners = new Set<string>();
 	for (const membership of ownerMemberships) {
@@ -28,5 +33,9 @@ export async function cleanReservationsAfterGroupExit(reserverId: string) {
 
 	if (invalidReservedItems.length === 0) return;
 
-	$unwrap(await ReservationsService.deleteByUserAndItems(reserverId, ...invalidReservedItems));
+	const deleteResult = await ReservationsService.deleteByUserAndItemIds(
+		reserverId,
+		...invalidReservedItems,
+	);
+	if (deleteResult.err) throw deleteResult.val;
 }

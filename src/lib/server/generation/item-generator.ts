@@ -1,10 +1,10 @@
 import { dev } from '$app/environment';
 import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
-import { $invalid, $ok, $safeCall, type Result } from '$lib/util/result';
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
 import TurndownService from 'turndown';
+import { Err, Ok, Result } from 'ts-results';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
@@ -12,6 +12,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { reportGenerationUsage } from './usage-stats';
 
 import ENV from '$lib/env';
+import { DomainError } from '../util/service';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
@@ -23,6 +24,8 @@ const CandidateSchema = z.object({
 	priceCurrency: z.string().length(3).toUpperCase().optional().nullish(),
 	url: z.url().optional().nullish(),
 });
+
+export type ItemCandidate = z.infer<typeof CandidateSchema>;
 
 interface RenderOptions {
 	maxScrolls?: number;
@@ -126,9 +129,9 @@ function distillPage(
 		const alt = img.attr('alt');
 
 		if (src && alt) {
-			const absoluteSrcResult = $safeCall(() => new URL(src, baseUrl).href);
-			if (absoluteSrcResult.kind === 'success') {
-				const absoluteSrc = absoluteSrcResult.data;
+			const absoluteSrcResult = Result.wrap(() => new URL(src, baseUrl).href);
+			if (absoluteSrcResult.ok) {
+				const absoluteSrc = absoluteSrcResult.val;
 				img.attr('src', absoluteSrc);
 				return;
 			}
@@ -146,9 +149,9 @@ function distillPage(
 			if (href.startsWith('https')) return;
 			if (stripRelativeLinks) return void link.remove();
 
-			const absoluteHrefResult = $safeCall(() => new URL(href, baseUrl).href);
-			if (absoluteHrefResult.kind === 'success') {
-				const absoluteHref = absoluteHrefResult.data;
+			const absoluteHrefResult = Result.wrap(() => new URL(href, baseUrl).href);
+			if (absoluteHrefResult.ok) {
+				const absoluteHref = absoluteHrefResult.val;
 				link.attr('href', absoluteHref);
 				return;
 			}
@@ -180,27 +183,27 @@ const distillUrl = async (
 	url: string,
 	renderOptions?: RenderOptions,
 	distillOptions?: DistillOptions,
-): Promise<Result<string>> => {
-	const parsedUrlResult = $safeCall(() => new URL(url));
-	if (parsedUrlResult.kind !== 'success') return $invalid('GENERATION_BAD_URL', { url });
+): Promise<Result<string, DomainError>> => {
+	const parsedUrlResult = Result.wrap(() => new URL(url));
+	if (parsedUrlResult.err) return Err(DomainError.of('Invalid URL'));
 
-	const parsedUrl = parsedUrlResult.data;
+	const parsedUrl = parsedUrlResult.val;
 	const html = await renderUrl(parsedUrl.href, renderOptions);
-	if (!html) return $invalid('GENERATION_BAD_RENDER', { url: parsedUrl.href });
+	if (!html) return Err(DomainError.of('Cannot render page'));
 
 	const distilled = distillPage(html, parsedUrl.origin, distillOptions);
-	if (!distilled) return $invalid('GENERATION_BAD_DISTILL', { url: parsedUrl.href });
+	if (!distilled) return Err(DomainError.of('Cannot read page'));
 
-	return $ok(distilled);
+	return Ok(distilled);
 };
 
 export const generateItemCandidate = async (
 	url: string,
-): Promise<Result<z.infer<typeof CandidateSchema>>> => {
+): Promise<Result<z.infer<typeof CandidateSchema>, DomainError>> => {
 	const pageResult = await distillUrl(url);
-	if (pageResult.kind !== 'success') return pageResult;
+	if (pageResult.err) return pageResult;
 
-	const page = pageResult.data;
+	const page = pageResult.val;
 
 	try {
 		const { object: candidate, usage } = await generateObject({
@@ -217,24 +220,25 @@ export const generateItemCandidate = async (
 
 		reportGenerationUsage(url, usage);
 
-		if (!candidate?.valid) return $invalid('GENERATION_NO_RESULT', undefined);
-		return $ok(candidate);
+		if (!candidate?.valid) return Err(DomainError.of('No product found'));
+		return Ok(candidate);
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			return $invalid('GENERATION_RATE_LIMIT', undefined);
-		} else return $invalid('GENERATION_UNKNOWN', undefined);
+			return Err(DomainError.of('Generation temporarily disabled'));
+		}
+		return Err(DomainError.of('Generation failed'));
 	}
 };
 
 export const generateItemCandidates = async (
 	url: string,
-): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>>> => {
+): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>, DomainError>> => {
 	const pageResult = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
-	if (pageResult.kind !== 'success') return pageResult;
+	if (pageResult.err) return pageResult;
 
-	const page = pageResult.data;
+	const page = pageResult.val;
 
 	try {
 		const {
@@ -258,12 +262,14 @@ export const generateItemCandidates = async (
 
 		reportGenerationUsage(url, usage);
 
-		return $ok(candidates.filter((v) => v.valid));
+		return Ok(candidates.filter((v) => v.valid));
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			return $invalid('GENERATION_RATE_LIMIT', undefined);
-		} else return $invalid('GENERATION_UNKNOWN', undefined);
+			return Err(DomainError.of('Generation temporarily disabled'));
+		}
+
+		return Err(DomainError.of('Generation failed'));
 	}
 };

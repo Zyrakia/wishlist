@@ -1,9 +1,9 @@
-import { $ok } from '$lib/util/result';
 import { and, eq, inArray } from 'drizzle-orm';
+import { Err, Ok } from 'ts-results';
 
 import { db } from '../db';
 import { ReservationTable } from '../db/schema';
-import { createService } from '../util/service';
+import { createService, DomainError } from '../util/service';
 
 export const ReservationsService = createService(db(), {
 	/**
@@ -11,7 +11,7 @@ export const ReservationsService = createService(db(), {
 	 *
 	 * @param userId the user ID to lookup
 	 */
-	listByUserWithOwners: async (client, userId: string) => {
+	listByUserIdWithOwners: async (client, userId: string) => {
 		const reservations = await client.query.ReservationTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			with: {
@@ -21,7 +21,7 @@ export const ReservationsService = createService(db(), {
 				},
 			},
 		});
-		return $ok(reservations);
+		return Ok(reservations);
 	},
 
 	/**
@@ -33,7 +33,7 @@ export const ReservationsService = createService(db(), {
 		const reservations = await client.query.ReservationTable.findMany({
 			where: (t, { eq }) => eq(t.wishlistId, wishlistId),
 		});
-		return $ok(reservations);
+		return Ok(reservations);
 	},
 
 	/**
@@ -45,7 +45,15 @@ export const ReservationsService = createService(db(), {
 		const reservation = await client.query.ReservationTable.findFirst({
 			where: (t, { eq }) => eq(t.itemId, itemId),
 		});
-		return $ok(reservation);
+		return Ok(reservation);
+	},
+
+	getByItemIdOrErr: async (client, itemId: string) => {
+		const reservation = await client.query.ReservationTable.findFirst({
+			where: (t, { eq }) => eq(t.itemId, itemId),
+		});
+		if (reservation) return Err(DomainError.of('Item already reserved'));
+		return Ok(reservation);
 	},
 
 	/**
@@ -53,9 +61,9 @@ export const ReservationsService = createService(db(), {
 	 *
 	 * @param data the reservation data to insert
 	 */
-	createReservation: async (client, data: typeof ReservationTable.$inferInsert) => {
+	create: async (client, data: typeof ReservationTable.$inferInsert) => {
 		await client.insert(ReservationTable).values(data);
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -64,7 +72,7 @@ export const ReservationsService = createService(db(), {
 	 * @param userId the user ID to scope by
 	 * @param itemId the item ID to scope by, can be multiple
 	 */
-	deleteByUserAndItems: async (client, userId: string, ...itemId: string[]) => {
+	deleteByUserAndItemIds: async (client, userId: string, ...itemId: string[]) => {
 		const itemSelector =
 			itemId.length === 1
 				? eq(ReservationTable.itemId, itemId[0])
@@ -73,6 +81,6 @@ export const ReservationsService = createService(db(), {
 		await client
 			.delete(ReservationTable)
 			.where(and(eq(ReservationTable.userId, userId), itemSelector));
-		return $ok();
+		return Ok(undefined);
 	},
 });

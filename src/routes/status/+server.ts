@@ -1,9 +1,9 @@
 import { AdminService } from '$lib/server/services/admin';
-import { $unwrap } from '$lib/util/result';
 
 export const GET = async () => {
 	try {
-		$unwrap(await AdminService.ping());
+		const result = await AdminService.checkPing();
+		if (result.err) throw result.val;
 	} catch (err) {
 		console.warn(err);
 		return new Response('ERROR', { status: 500 });

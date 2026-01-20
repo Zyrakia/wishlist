@@ -3,7 +3,6 @@ import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { verifyAuth } from '$lib/server/auth';
 import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { ConnectionsService } from '$lib/server/services/connections';
-import { $switchInvalid, $unwrap } from '$lib/util/result';
 import { cleanBaseName } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
@@ -13,7 +12,7 @@ import z from 'zod';
 import { error } from '@sveltejs/kit';
 
 import { getWishlist } from './wishlist.remote';
-import { formatRelative } from '$lib/util/date';
+import { DomainError } from '$lib/server/util/service';
 
 export const createWishlistConnection = form(
 	WishlistConnectionSchema.extend({
@@ -31,25 +30,26 @@ export const createWishlistConnection = form(
 			return error(400, 'Cannot create connection without wishlist');
 
 		const [existing, totalActive] = await Promise.all([
-			ConnectionsService.getByUrlForWishlist(data.url, wishlist.id),
-			ConnectionsService.countForWishlist(wishlist.id),
+			ConnectionsService.getByUrl(data.url, wishlist.id),
+			ConnectionsService.countByWishlistId(wishlist.id),
 		]);
 
-		const existingConnection = $unwrap(existing);
-		const activeCount = $unwrap(totalActive);
+		if (existing.err) throw existing.val;
+		if (totalActive.err) throw totalActive.val;
+		const existingConnection = existing.val;
+		const activeCount = totalActive.val;
 
 		if (existingConnection) invalid('Connection with specified URL already exists');
 		if (activeCount >= 5) invalid('Maximum 5 connections allowed');
 
 		const id = randomUUID();
-		$unwrap(
-			await ConnectionsService.createConnection({
-				id: id,
-				wishlistId: wishlist.id,
-				provider: cleanBaseName(data.url),
-				...data,
-			}),
-		);
+		const createResult = await ConnectionsService.create({
+			id: id,
+			wishlistId: wishlist.id,
+			provider: cleanBaseName(data.url),
+			...data,
+		});
+		if (createResult.err) throw createResult.val;
 
 		syncListConnection(id);
 	},
@@ -59,11 +59,14 @@ export const deleteWishlistConnection = form(
 	z.object({ connectionId: z.string(), deleteItems: strBoolean() }),
 	async ({ connectionId, deleteItems }) => {
 		const user = verifyAuth();
-		const connection = $unwrap(await ConnectionsService.getWithWishlist(connectionId));
+		const connection = await ConnectionsService.getByIdWithWishlist(connectionId);
+		if (connection.err) throw connection.val;
 
-		if (!connection || connection.wishlist.userId !== user.id) error(400, 'Invalid connection');
+		if (!connection.val || connection.val.wishlist.userId !== user.id)
+			error(400, 'Invalid connection');
 
-		$unwrap(await ConnectionsService.deleteById(connectionId, deleteItems));
+		const deleteResult = await ConnectionsService.deleteById(connectionId, deleteItems);
+		if (deleteResult.err) throw deleteResult.val;
 	},
 );
 
@@ -72,25 +75,16 @@ export const syncWishlistConnection = form(
 	async ({ connectionId }, invalid) => {
 		const user = verifyAuth();
 
-		const connection = $unwrap(await ConnectionsService.getWithWishlist(connectionId));
-
+		const connectionResult = await ConnectionsService.getByIdWithWishlist(connectionId);
+		if (connectionResult.err) throw connectionResult.val;
+		const connection = connectionResult.val;
 		if (connection?.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
 		const result = await syncListConnection(connection.id);
-		if (result.kind === 'success') return;
-		if (result.kind === 'error') throw result.error;
+		if (result.ok) return;
 
-		return $switchInvalid(result, {
-			CONNECTION_EMPTY: () => invalid('Cannot find any items, is the list private?'),
-			CONNECTION_SYNC_DELAY: ({ nextSync }) =>
-				invalid(`Next sync ${formatRelative(nextSync)}`),
-			GENERATION_BAD_URL: () => invalid('Invalid URL'),
-			GENERATION_BAD_RENDER: () => invalid('Cannot render page'),
-			GENERATION_BAD_DISTILL: () => invalid('Cannot read page'),
-			GENERATION_NO_RESULT: () => invalid('No product found'),
-			GENERATION_UNKNOWN: () => invalid('Generation failed'),
-			GENERATION_RATE_LIMIT: () => invalid('Generation temporarily disabled'),
-		});
+		if (DomainError.is(result.val)) invalid(result.val.message);
+		else throw result.val;
 	},
 );
 
@@ -103,6 +97,11 @@ export const checkSyncStatus = query(
 		if (!connectionIds.length) return [];
 		const recentCutoff = new Date(Date.now() - recentThresholdMs);
 
-		return $unwrap(await ConnectionsService.getRecentSyncs(connectionIds, recentCutoff));
+		const recentResult = await ConnectionsService.getRecentSyncsById(
+			connectionIds,
+			recentCutoff,
+		);
+		if (recentResult.err) throw recentResult.val;
+		return recentResult.val;
 	},
 );

@@ -1,5 +1,5 @@
-import { $ok } from '$lib/util/result';
 import { eq } from 'drizzle-orm';
+import { Ok } from 'ts-results';
 
 import { db } from '../db';
 import { UserTable } from '../db/schema';
@@ -15,7 +15,7 @@ export const UsersService = createService(db(), {
 		const user = await client.query.UserTable.findFirst({
 			where: (t, { eq }) => eq(t.id, userId),
 		});
-		return $ok(user);
+		return Ok(user);
 	},
 
 	/**
@@ -27,7 +27,7 @@ export const UsersService = createService(db(), {
 		const user = await client.query.UserTable.findFirst({
 			where: (t, { eq }) => eq(t.email, email),
 		});
-		return $ok(user);
+		return Ok(user);
 	},
 
 	/**
@@ -35,9 +35,9 @@ export const UsersService = createService(db(), {
 	 *
 	 * @param data the user data to insert
 	 */
-	createUser: async (client, data: typeof UserTable.$inferInsert) => {
+	create: async (client, data: typeof UserTable.$inferInsert) => {
 		await client.insert(UserTable).values(data);
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -46,9 +46,9 @@ export const UsersService = createService(db(), {
 	 * @param userId the ID of the user to update
 	 * @param name the new display name
 	 */
-	updateName: async (client, userId: string, name: string) => {
+	updateNameById: async (client, userId: string, name: string) => {
 		await client.update(UserTable).set({ name }).where(eq(UserTable.id, userId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -57,12 +57,12 @@ export const UsersService = createService(db(), {
 	 * @param userId the ID of the user to update
 	 * @param passwordHash the new hashed password
 	 */
-	updatePassword: async (client, userId: string, passwordHash: string) => {
+	updatePasswordById: async (client, userId: string, passwordHash: string) => {
 		await client
 			.update(UserTable)
 			.set({ password: passwordHash })
 			.where(eq(UserTable.id, userId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -71,8 +71,8 @@ export const UsersService = createService(db(), {
 	 * @param userId the ID of the user to update
 	 * @param email the new email address
 	 */
-	updateEmail: async (client, userId: string, email: string) => {
+	updateEmailById: async (client, userId: string, email: string) => {
 		await client.update(UserTable).set({ email }).where(eq(UserTable.id, userId));
-		return $ok();
+		return Ok(undefined);
 	},
 });

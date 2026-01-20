@@ -1,9 +1,9 @@
-import { $ok } from '$lib/util/result';
 import { and, eq, sql } from 'drizzle-orm';
+import { Err, Ok } from 'ts-results';
 
 import { db } from '../db';
 import { GroupInviteTable, GroupMembershipTable, GroupTable } from '../db/schema';
-import { createService } from '../util/service';
+import { createService, DomainError } from '../util/service';
 
 export const GroupsService = createService(db(), {
 	/**
@@ -11,11 +11,11 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param ownerId the owner ID to lookup
 	 */
-	getGroupByOwner: async (client, ownerId: string) => {
+	getByOwnerId: async (client, ownerId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.ownerId, ownerId),
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -23,7 +23,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param data the group data to insert
 	 */
-	createGroup: async (client, data: typeof GroupTable.$inferInsert) => {
+	create: async (client, data: typeof GroupTable.$inferInsert) => {
 		const group = await client.transaction(async (tx) => {
 			const created = await tx.insert(GroupTable).values(data).returning().get();
 
@@ -34,7 +34,7 @@ export const GroupsService = createService(db(), {
 
 			return created;
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -43,11 +43,11 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to lookup
 	 * @param ownerId the owner ID to scope by
 	 */
-	getOwnedGroupById: async (client, groupId: string, ownerId: string) => {
+	getByIdForOwner: async (client, groupId: string, ownerId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, groupId), eq(t.ownerId, ownerId)),
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -55,12 +55,12 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to lookup
 	 */
-	getGroupWithOwner: async (client, groupId: string) => {
+	getByIdWithOwner: async (client, groupId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 			with: { owner: { columns: { id: true, name: true } } },
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -69,9 +69,13 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to update
 	 * @param data the fields to update
 	 */
-	updateGroup: async (client, groupId: string, data: Partial<typeof GroupTable.$inferInsert>) => {
+	updateById: async (
+		client,
+		groupId: string,
+		data: Partial<typeof GroupTable.$inferInsert>,
+	) => {
 		await client.update(GroupTable).set(data).where(eq(GroupTable.id, groupId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -79,9 +83,9 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to delete
 	 */
-	deleteGroup: async (client, groupId: string) => {
+	deleteById: async (client, groupId: string) => {
 		await client.delete(GroupTable).where(eq(GroupTable.id, groupId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -90,7 +94,7 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to lookup
 	 * @param ownerId the owner ID to scope by
 	 */
-	getGroupWithInviteCounts: async (client, groupId: string, ownerId: string) => {
+	getByIdWithInviteCountsForOwner: async (client, groupId: string, ownerId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.id, groupId), eq(t.ownerId, ownerId)),
 			with: { owner: { columns: { name: true } } },
@@ -105,7 +109,7 @@ export const GroupsService = createService(db(), {
 					),
 			}),
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -113,11 +117,11 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to lookup
 	 */
-	getGroupById: async (client, groupId: string) => {
+	getById: async (client, groupId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -125,7 +129,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to lookup
 	 */
-	getGroupWithMemberCount: async (client, groupId: string) => {
+	getByIdWithMemberCount: async (client, groupId: string) => {
 		const group = await client.query.GroupTable.findFirst({
 			where: (t, { eq }) => eq(t.id, groupId),
 			extras: {
@@ -135,7 +139,7 @@ export const GroupsService = createService(db(), {
 					),
 			},
 		});
-		return $ok(group);
+		return Ok(group);
 	},
 
 	/**
@@ -147,7 +151,7 @@ export const GroupsService = createService(db(), {
 		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { eq }) => eq(t.id, inviteId),
 		});
-		return $ok(invite);
+		return Ok(invite);
 	},
 
 	/**
@@ -155,7 +159,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param inviteId the invite ID to lookup
 	 */
-	getInviteWithGroup: async (client, inviteId: string) => {
+	getInviteByIdWithGroup: async (client, inviteId: string) => {
 		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { eq }) => eq(t.id, inviteId),
 			with: {
@@ -165,7 +169,7 @@ export const GroupsService = createService(db(), {
 				},
 			},
 		});
-		return $ok(invite);
+		return Ok(invite);
 	},
 
 	/**
@@ -174,11 +178,11 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to scope by
 	 * @param targetEmail the invitee email to lookup
 	 */
-	getInviteByGroupAndEmail: async (client, groupId: string, targetEmail: string) => {
+	getInviteByGroupIdAndEmail: async (client, groupId: string, targetEmail: string) => {
 		const invite = await client.query.GroupInviteTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.groupId, groupId), eq(t.targetEmail, targetEmail)),
 		});
-		return $ok(invite);
+		return Ok(invite);
 	},
 
 	/**
@@ -188,7 +192,7 @@ export const GroupsService = createService(db(), {
 	 */
 	createInvite: async (client, data: typeof GroupInviteTable.$inferInsert) => {
 		const invites = await client.insert(GroupInviteTable).values(data).returning();
-		return $ok(invites);
+		return Ok(invites);
 	},
 
 	/**
@@ -198,7 +202,7 @@ export const GroupsService = createService(db(), {
 	 */
 	deleteInviteById: async (client, inviteId: string) => {
 		await client.delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -207,11 +211,11 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to scope by
 	 * @param userId the user ID to scope by
 	 */
-	getMembershipByGroupAndUser: async (client, groupId: string, userId: string) => {
+	getMembershipByGroupIdAndUserId: async (client, groupId: string, userId: string) => {
 		const membership = await client.query.GroupMembershipTable.findFirst({
 			where: (t, { and, eq }) => and(eq(t.groupId, groupId), eq(t.userId, userId)),
 		});
-		return $ok(membership);
+		return Ok(membership);
 	},
 
 	/**
@@ -221,7 +225,7 @@ export const GroupsService = createService(db(), {
 	 */
 	createMembership: async (client, data: typeof GroupMembershipTable.$inferInsert) => {
 		await client.insert(GroupMembershipTable).values(data);
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -231,7 +235,12 @@ export const GroupsService = createService(db(), {
 	 * @param userId the user ID to add
 	 * @param inviteId the invite ID to remove
 	 */
-	acceptInvite: async (client, groupId: string, userId: string, inviteId: string) => {
+	acceptInvite: async (
+		client,
+		groupId: string,
+		userId: string,
+		inviteId: string,
+	) => {
 		await client.transaction(async (tx) => {
 			await tx.insert(GroupMembershipTable).values({
 				userId,
@@ -240,7 +249,7 @@ export const GroupsService = createService(db(), {
 
 			await tx.delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
 		});
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -249,7 +258,7 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to scope by
 	 * @param userId the user ID to scope by
 	 */
-	deleteMembership: async (client, groupId: string, userId: string) => {
+	deleteMembershipByGroupIdAndUserId: async (client, groupId: string, userId: string) => {
 		await client
 			.delete(GroupMembershipTable)
 			.where(
@@ -258,7 +267,7 @@ export const GroupsService = createService(db(), {
 					eq(GroupMembershipTable.userId, userId),
 				),
 			);
-		return $ok();
+		return Ok(undefined);
 	},
 
 	/**
@@ -266,7 +275,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param targetEmail the email address to lookup
 	 */
-	getInvitesForEmail: async (client, targetEmail: string) => {
+	listInvitesByEmail: async (client, targetEmail: string) => {
 		const invites = await client.query.GroupInviteTable.findMany({
 			where: (t, { eq }) => eq(t.targetEmail, targetEmail),
 			with: {
@@ -276,7 +285,7 @@ export const GroupsService = createService(db(), {
 				},
 			},
 		});
-		return $ok(invites);
+		return Ok(invites);
 	},
 
 	/**
@@ -284,7 +293,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to lookup
 	 */
-	getMembersWithLists: async (client, groupId: string, listLimit = 4) => {
+	listMembersWithListsByGroupId: async (client, groupId: string, listLimit = 4) => {
 		const members = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.groupId, groupId),
 			orderBy: (t, { asc }) => asc(t.joinedAt),
@@ -300,7 +309,7 @@ export const GroupsService = createService(db(), {
 				},
 			},
 		});
-		return $ok(members);
+		return Ok(members);
 	},
 
 	/**
@@ -308,12 +317,12 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param groupId the group ID to lookup
 	 */
-	getInvitesByGroup: async (client, groupId: string) => {
+	listInvitesByGroupId: async (client, groupId: string) => {
 		const invites = await client.query.GroupInviteTable.findMany({
 			where: (t, { eq }) => eq(t.groupId, groupId),
 			orderBy: (t, { desc }) => desc(t.createdAt),
 		});
-		return $ok(invites);
+		return Ok(invites);
 	},
 
 	/**
@@ -321,12 +330,12 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param userId the user ID to lookup
 	 */
-	getMembershipsForUser: async (client, userId: string) => {
+	listMembershipsByUserId: async (client, userId: string) => {
 		const memberships = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			columns: { groupId: true },
 		});
-		return $ok(memberships);
+		return Ok(memberships);
 	},
 
 	/**
@@ -334,12 +343,12 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param userIds the user IDs to lookup
 	 */
-	getMembershipsForUsers: async (client, userIds: string[]) => {
+	listMembershipsByUserIds: async (client, userIds: string[]) => {
 		const memberships = await client.query.GroupMembershipTable.findMany({
 			where: (t, { inArray }) => inArray(t.userId, userIds),
 			columns: { userId: true, groupId: true },
 		});
-		return $ok(memberships);
+		return Ok(memberships);
 	},
 
 	/**
@@ -347,7 +356,7 @@ export const GroupsService = createService(db(), {
 	 *
 	 * @param userId the user ID to lookup
 	 */
-	getGroupActivity: async (client, userId: string) => {
+	listActivityByUserId: async (client, userId: string) => {
 		const activity = await client.query.GroupMembershipTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			with: {
@@ -371,11 +380,11 @@ export const GroupsService = createService(db(), {
 				},
 			},
 		});
-		return $ok(activity);
+		return Ok(activity);
 	},
 
-	doesShareGroup: async (client, userOneId: string, userTwoId: string) => {
-		if (userOneId === userTwoId) return $ok(false);
+	sharesByUserIds: async (client, userOneId: string, userTwoId: string) => {
+		if (userOneId === userTwoId) return Ok(false);
 
 		const [userOneGroups, userTwoGroups] = await Promise.all([
 			client.query.GroupMembershipTable.findMany({
@@ -389,6 +398,29 @@ export const GroupsService = createService(db(), {
 		]);
 
 		const userOneGroupIds = new Set(userOneGroups.map((v: { groupId: string }) => v.groupId));
-		return $ok(userTwoGroups.some((v: { groupId: string }) => userOneGroupIds.has(v.groupId)));
+		return Ok(userTwoGroups.some((v: { groupId: string }) => userOneGroupIds.has(v.groupId)));
+	},
+
+	sharesByUserIdsOrErr: async (client, userOneId: string, userTwoId: string) => {
+		if (userOneId === userTwoId) return Err(DomainError.of('Reservation not allowed'));
+
+		const [userOneGroups, userTwoGroups] = await Promise.all([
+			client.query.GroupMembershipTable.findMany({
+				where: (t, { eq }) => eq(t.userId, userOneId),
+				columns: { groupId: true },
+			}),
+			client.query.GroupMembershipTable.findMany({
+				where: (t, { eq }) => eq(t.userId, userTwoId),
+				columns: { groupId: true },
+			}),
+		]);
+
+		const userOneGroupIds = new Set(userOneGroups.map((v: { groupId: string }) => v.groupId));
+		const sharesGroup = userTwoGroups.some((v: { groupId: string }) =>
+			userOneGroupIds.has(v.groupId),
+		);
+
+		if (!sharesGroup) return Err(DomainError.of('Reservation not allowed'));
+		return Ok(true);
 	},
 });

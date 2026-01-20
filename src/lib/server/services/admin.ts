@@ -1,5 +1,5 @@
-import { $ok } from '$lib/util/result';
 import { asc, count, eq, sql } from 'drizzle-orm';
+import { Ok } from 'ts-results';
 
 import { db } from '../db';
 import { UserTable, WishlistConnectionTable } from '../db/schema';
@@ -12,7 +12,7 @@ export const AdminService = createService(db(), {
 	 * @param limit the page size to fetch
 	 * @param offset the row offset to fetch
 	 */
-	paginateUsers: async (client, limit: number, offset: number) => {
+	listUsersPage: async (client, limit: number, offset: number) => {
 		const [data, [{ total }]] = await Promise.all([
 			client.query.UserTable.findMany({
 				limit,
@@ -22,7 +22,7 @@ export const AdminService = createService(db(), {
 			client.select({ total: count() }).from(UserTable),
 		]);
 
-		return $ok({ data, total });
+		return Ok({ data, total });
 	},
 
 	/**
@@ -31,7 +31,11 @@ export const AdminService = createService(db(), {
 	 * @param limit the page size to fetch
 	 * @param offset the row offset to fetch
 	 */
-	paginateErroredConnections: async (client, limit: number, offset: number) => {
+	listErroredConnectionsPage: async (
+		client,
+		limit: number,
+		offset: number,
+	) => {
 		const [data, [{ total }]] = await Promise.all([
 			client.query.WishlistConnectionTable.findMany({
 				limit,
@@ -51,7 +55,7 @@ export const AdminService = createService(db(), {
 				.where(eq(WishlistConnectionTable.syncError, true)),
 		]);
 
-		return $ok({ data, total });
+		return Ok({ data, total });
 	},
 
 	/**
@@ -59,11 +63,11 @@ export const AdminService = createService(db(), {
 	 *
 	 * @return true when the database responds
 	 */
-	ping: async (client) => {
+	checkPing: async (client) => {
 		await client
 			.select({ ok: sql<number>`1` })
 			.from(UserTable)
 			.limit(1);
-		return $ok(true);
+		return Ok(true);
 	},
 });

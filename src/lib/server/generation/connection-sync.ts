@@ -1,14 +1,16 @@
 import { ItemSchema } from '$lib/schemas/item';
-import { $fail, $invalid, $ok, $unwrap, type Result } from '$lib/util/result';
 import { safePrune } from '$lib/util/safe-prune';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
+import { Err, Ok, type Result } from 'ts-results';
 
 import { db } from '../db';
 import { ConnectionsService } from '../services/connections';
 import { ItemsService } from '../services/items';
-import { generateItemCandidates } from './item-generator';
+import { generateItemCandidates, type ItemCandidate } from './item-generator';
+import { DomainError } from '../util/service';
 import { WishlistService } from '../services/wishlist';
+import { formatRelative } from '$lib/util/date';
 
 const SYNC_DELAY = ms('1h');
 
@@ -21,27 +23,32 @@ const normalizeCompareUrl = (raw: string) => {
 	}
 };
 
-const syncing = new Map<string, Promise<Result<void>>>();
-const _syncListConnection = async (connectionId: string): Promise<Result<void>> => {
-	const connectionResult = await ConnectionsService.getWithItems(connectionId);
-	if (connectionResult.kind !== 'success') return connectionResult;
+const syncing = new Map<string, Promise<Result<void, unknown>>>();
+const _syncListConnection = async (connectionId: string): Promise<Result<void, unknown>> => {
+	const connectionResult = await ConnectionsService.getByIdWithItems(connectionId);
+	if (connectionResult.err) return connectionResult;
 
-	const connection = connectionResult.data;
-	if (!connection) return $invalid('GENERIC', 'Cannot retrieve connection');
+	const connection = connectionResult.val;
+	if (!connection) return Err(DomainError.of('Cannot retrieve connection'));
 
 	const now = new Date();
 	if (connection.lastSyncedAt && now.getTime() - connection.lastSyncedAt.getTime() < SYNC_DELAY) {
 		const nextSync = new Date(connection.lastSyncedAt.getTime() + SYNC_DELAY);
-		return $invalid('CONNECTION_SYNC_DELAY', { nextSync });
+		return Err(DomainError.of(`Next sync ${formatRelative(nextSync)}`));
 	}
 
 	const candidatesResult = await generateItemCandidates(connection.url);
-	if (candidatesResult.kind !== 'success') {
-		await ConnectionsService.updateSyncStatus(connectionId, { syncError: true });
+	if (candidatesResult.err) {
+		(
+			await ConnectionsService.updateSyncStatusById(connectionId, {
+				syncError: true,
+			})
+		).unwrap();
+
 		return candidatesResult;
 	}
 
-	const candidates = candidatesResult.data;
+	const candidates: ItemCandidate[] = candidatesResult.val;
 
 	const existingItems = connection.items;
 	const urlToId = new Map(
@@ -67,33 +74,40 @@ const _syncListConnection = async (connectionId: string): Promise<Result<void>> 
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
-		await ConnectionsService.updateSyncStatus(connectionId, { syncError: true });
-		return $invalid('CONNECTION_EMPTY', undefined);
+		(
+			await ConnectionsService.updateSyncStatusById(connectionId, {
+				syncError: true,
+			})
+		).unwrap();
+
+		return Err(DomainError.of('No products found, is the list private?'));
 	}
 
 	await db().transaction(async (tx) => {
 		const connectionsService = ConnectionsService.$with(tx);
 		const itemsService = ItemsService.$with(tx);
 
-		$unwrap(
-			await connectionsService.updateSyncStatus(connectionId, {
+		(
+			await connectionsService.updateSyncStatusById(connectionId, {
 				lastSyncedAt: new Date(),
 				syncError: false,
-			}),
-		);
+			})
+		).unwrap();
 
 		if (items.length === 0) {
-			$unwrap(await itemsService.deleteItemsByConnection(connectionId));
+			(await itemsService.deleteByConnectionId(connectionId)).unwrap();
 		} else {
-			const activeIds = items.map((v) => v.id);
-			$unwrap(await itemsService.deleteItemsByConnection(connectionId, ...activeIds));
+			const activeIds = items.map((item) => item.id);
+			(
+				await itemsService.deleteByConnectionId(connectionId, ...activeIds)
+			).unwrap();
 
-			$unwrap(await itemsService.upsertItems(items));
+			(await itemsService.upsert(items)).unwrap();
 		}
 	});
 
-	await WishlistService.touchList(connection.wishlistId);
-	return $ok();
+	(await WishlistService.touchById(connection.wishlistId)).unwrap();
+	return Ok(undefined);
 };
 
 export const syncListConnection = (connectionId: string) => {
@@ -108,6 +122,8 @@ export const syncListConnection = (connectionId: string) => {
 		syncing.set(connectionId, sync);
 		return sync;
 	} catch (err) {
-		return Promise.resolve($fail(err));
+		return Promise.resolve(
+			Err(err instanceof DomainError ? err : DomainError.of('Connection sync failed')),
+		);
 	}
 };

@@ -17,7 +17,6 @@ import {
 } from '$lib/server/auth';
 import { sendEmail } from '$lib/server/email';
 import { UsersService } from '$lib/server/services/users';
-import { $unwrap } from '$lib/util/result';
 import { formatRelative } from '$lib/util/date';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
@@ -32,7 +31,9 @@ export const resolveMySession = query(async () => {
 	const session = await readSession(ev.cookies);
 	if (!session) return;
 
-	return $unwrap(await UsersService.getById(session.sub));
+	const result = await UsersService.getById(session.sub);
+	if (result.err) throw result.val;
+	return result.val;
 });
 
 const failStratSchema = z.enum(['login', 'register', 'error']).optional();
@@ -48,7 +49,9 @@ export const resolveMe = query(
 	async ({ failStrategy }) => {
 		const me = verifyAuth({ failStrategy });
 
-		const user = $unwrap(await UsersService.getById(me.id));
+		const userResult = await UsersService.getById(me.id);
+		if (userResult.err) throw userResult.val;
+		const user = userResult.val;
 
 		return user!;
 	},
@@ -63,20 +66,21 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const existing = $unwrap(await UsersService.getByEmail(email));
+	const existingResult = await UsersService.getByEmail(email);
+	if (existingResult.err) throw existingResult.val;
+	const existing = existingResult.val;
 	if (existing) invalid(invalid.email('Email is already registered'));
 
 	const passwordHash = await hashPassword(password);
 	const id = uuid4();
 
-	$unwrap(
-		await UsersService.createUser({
-			id,
-			email,
-			name: username,
-			password: passwordHash,
-		}),
-	);
+	const createResult = await UsersService.create({
+		id,
+		email,
+		name: username,
+		password: passwordHash,
+	});
+	if (createResult.err) throw createResult.val;
 
 	const token = await issueToken({ sub: id, name: username, rollingStartMs: Date.now() });
 	setSession(cookies, token);
@@ -91,7 +95,9 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const user = $unwrap(await UsersService.getByEmail(email));
+	const userResult = await UsersService.getByEmail(email);
+	if (userResult.err) throw userResult.val;
+	const user = userResult.val;
 
 	if (!user) return invalid('Invalid credentials');
 
@@ -108,7 +114,9 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 export const resetPasswordStart = form(
 	z.object({ email: CredentialsSchema.shape.email }),
 	async ({ email }) => {
-		const user = $unwrap(await UsersService.getByEmail(email));
+		const userResult = await UsersService.getByEmail(email);
+		if (userResult.err) throw userResult.val;
+		const user = userResult.val;
 
 		if (user) {
 			const { token, expiresAt } = await createAccountAction(
@@ -144,7 +152,8 @@ export const resetPassword = form(
 		if (!action) return invalid('Password reset link have expired');
 
 		const passwordHash = await hashPassword(password);
-		$unwrap(await UsersService.updatePassword(action.userId, passwordHash));
+		const updateResult = await UsersService.updatePasswordById(action.userId, passwordHash);
+		if (updateResult.err) throw updateResult.val;
 
 		redirect(303, `/login?updated=password`);
 	},
@@ -154,7 +163,8 @@ export const changeName = form(
 	CreateCredentialsSchema.pick({ username: true }),
 	async ({ username }) => {
 		const me = await resolveMe({});
-		$unwrap(await UsersService.updateName(me.id, username));
+		const updateResult = await UsersService.updateNameById(me.id, username);
+		if (updateResult.err) throw updateResult.val;
 
 		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
 	},
@@ -168,18 +178,21 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	if (!isOldPasswordValid) return invalid(invalid.oldPassword('Current password is invalid'));
 
 	const newPasswordHash = await hashPassword(newPassword);
-	$unwrap(await UsersService.updatePassword(me.id, newPasswordHash));
+	const updateResult = await UsersService.updatePasswordById(me.id, newPasswordHash);
+	if (updateResult.err) throw updateResult.val;
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
 
 const isEmailOpenForChange = async (email: string) => {
-	const [existingUser, existingInvites] = await Promise.all([
+	const [existingUserResult, existingInvitesResult] = await Promise.all([
 		UsersService.getByEmail(email),
-		GroupsService.getInvitesForEmail(email),
+		GroupsService.listInvitesByEmail(email),
 	]);
 
-	return $unwrap(existingUser) === undefined && $unwrap(existingInvites).length === 0;
+	if (existingUserResult.err) throw existingUserResult.val;
+	if (existingInvitesResult.err) throw existingInvitesResult.val;
+	return existingUserResult.val === undefined && existingInvitesResult.val.length === 0;
 };
 
 export const changeEmailStart = form(
@@ -188,7 +201,8 @@ export const changeEmailStart = form(
 		const me = await resolveMe({});
 		const { url } = getRequestEvent();
 
-		if (!isEmailOpenForChange(email)) return invalid(invalid.email('Email already taken'));
+		if (!(await isEmailOpenForChange(email)))
+			return invalid(invalid.email('Email already taken'));
 
 		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'), 'change-email', {
 			newEmail: email,
@@ -218,8 +232,9 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	const action = await resolveAccountAction(token, 'change-email');
 	if (!action) error(401);
 
-	if (!isEmailOpenForChange(action.payload.newEmail)) error(400, 'Email already taken');
-	$unwrap(await UsersService.updateEmail(action.userId, action.payload.newEmail));
+	if (!(await isEmailOpenForChange(action.payload.newEmail))) error(400, 'Email already taken');
+	const updateResult = await UsersService.updateEmailById(action.userId, action.payload.newEmail);
+	if (updateResult.err) throw updateResult.val;
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
 });
