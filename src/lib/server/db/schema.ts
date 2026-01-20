@@ -1,7 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
-	blob,
 	customType,
+	index,
 	integer,
 	primaryKey,
 	real,
@@ -26,7 +26,7 @@ export const libsqlVector = customType<{
 	data: number[];
 	config: { dimensions: number };
 	configRequired: true;
-	driverData: Buffer; // <--- The secret sauce. We speak in binary now.
+	driverData: Buffer;
 }>({
 	dataType(config) {
 		return `F32_BLOB(${config.dimensions})`;
@@ -169,13 +169,19 @@ export const AccountActionTable = sqliteTable('account_action', {
 	payload: text({ mode: 'json' }).notNull(),
 });
 
-export const DocumentationTable = sqliteTable('doc_embeddings', {
-	id: text().primaryKey(),
-	content: text().notNull(),
-	contentHash: text().notNull().unique(),
-	// Embedding vectors stored as blobs (specifically for Mistral)
-	vector: libsqlVector({ dimensions: 1024 }),
-});
+export const DocumentationTable = sqliteTable(
+	'doc_embeddings',
+	{
+		id: text().primaryKey(),
+		content: text().notNull(),
+		contentHash: text().notNull().unique(),
+		// Embedding vectors stored as blobs (specifically for Mistral)
+		vector: libsqlVector({ dimensions: 1024 }),
+	},
+	(table) => ({
+		vectorIndex: index('docs_vector_idx').on(sql`libsql_vector_idx(${table.vector})`),
+	}),
+);
 
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	wishlists: many(WishlistTable),
