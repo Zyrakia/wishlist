@@ -1,3 +1,4 @@
+## Accounts
 Your Wishii account is your gateway to sharing all your biggest wishes with those who you love.
 
 Without an account, you will be able to view the lists of others, but creating reservations or your own lists will be unavailable.

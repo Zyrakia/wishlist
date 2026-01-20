@@ -1,3 +1,4 @@
+## Reservations
 When you share a group with a user, you are able to mark items as reserved on their lists.
 
 The reservation status of an item will be displayed to other users who share a group with the list owner.

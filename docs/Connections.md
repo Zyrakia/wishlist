@@ -1,3 +1,4 @@
+## Connections
 Connections allow you to link external wishlists from other websites to your Wishii list. Items from these external lists are automatically synced and kept up to date, allowing you to centralize all your wishes in one easily shareable place.
 
 ## How Connections Work

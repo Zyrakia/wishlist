@@ -1,3 +1,4 @@
+## Items
 Wishii uses AI to automatically extract product information from links you provide. Instead of manually entering item details, you can simply paste a product URL and let Wishii do the work.
 
 ## How Generation Works

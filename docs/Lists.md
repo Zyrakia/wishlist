@@ -1,3 +1,4 @@
+## Wishlists
 Lists, or "wishlists", are the core feature of Wishii. You can have an unlimited amount of lists, each an have an unlimited amount of items on it.
 
 On your list, you can prioritize items, reorder them in any way and delete items that you have received or no longer want.

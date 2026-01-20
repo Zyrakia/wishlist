@@ -1,3 +1,4 @@
+## Groups
 Groups allow you to gather all your family members and friends, and view all of their lists in one place at the same time. No more scattered group chats, and definitely no more texting back and forth about who bought who which present.
 
 While in a group with another user, you will be able to reserve items on their wishlist, marking it as reserved for every other person.
