@@ -1,10 +1,47 @@
 import { relations, sql } from 'drizzle-orm';
-import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import {
+	blob,
+	customType,
+	integer,
+	primaryKey,
+	real,
+	sqliteTable,
+	text,
+	unique,
+} from 'drizzle-orm/sqlite-core';
 
 const autoTimestampColumn = () =>
 	integer({ mode: 'timestamp' })
 		.notNull()
 		.default(sql`(unixepoch())`);
+
+/**
+ * LibSQL F32_BLOB implementation.
+ *
+ * Sources:
+ * - Turso Docs: "Storing embeddings as raw bytes"
+ * - Drizzle Issue #3899 (Discussion on driverData types)
+ */
+export const libsqlVector = customType<{
+	data: number[];
+	config: { dimensions: number };
+	configRequired: true;
+	driverData: Buffer; // <--- The secret sauce. We speak in binary now.
+}>({
+	dataType(config) {
+		return `F32_BLOB(${config.dimensions})`;
+	},
+	fromDriver(value: Buffer) {
+		// Convert binary blob back to numbers for your code to use
+		// Note: Use the byteOffset/byteLength to ensure we read the view correctly
+		return Array.from(new Float32Array(value.buffer, value.byteOffset, value.byteLength / 4));
+	},
+	toDriver(value: number[]) {
+		// Convert numbers to raw binary before sending to DB.
+		// This bypasses the need for the `vector32()` SQL function parsing.
+		return Buffer.from(new Float32Array(value).buffer);
+	},
+});
 
 export const UserTable = sqliteTable('user', {
 	id: text().primaryKey(),
@@ -130,6 +167,14 @@ export const AccountActionTable = sqliteTable('account_action', {
 	expiresAt: integer({ mode: 'timestamp' }).notNull(),
 	type: text().notNull(),
 	payload: text({ mode: 'json' }).notNull(),
+});
+
+export const DocumentationTable = sqliteTable('doc_embeddings', {
+	id: text().primaryKey(),
+	content: text().notNull(),
+	contentHash: text().notNull().unique(),
+	// Embedding vectors stored as blobs (specifically for Mistral)
+	vector: libsqlVector({ dimensions: 1024 }),
 });
 
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
