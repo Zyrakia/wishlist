@@ -236,16 +236,16 @@
 				onblur={() => (resultsFocused = false)}
 				onmouseenter={() => (resultsHovered = true)}
 				onmouseleave={() => (resultsHovered = false)}
-				class="absolute bottom-full left-0 max-h-85 min-h-0 w-full transition-[opacity,translate] md:top-full md:bottom-[unset] {searching
+				class="scrollbar-thin absolute bottom-full left-0 mb-2 max-h-85 min-h-0 w-full overflow-y-auto rounded-md border bg-surface transition-[opacity,translate] md:top-full md:bottom-[unset] md:mt-2 md:mb-0 {searching
 					? 'pointer-events-auto translate-y-0 opacity-100'
-					: 'pointer-events-none -translate-y-8 opacity-0'}"
+					: 'pointer-events-none -translate-y-8 opacity-0'} {resultsFocused
+					? 'border-primary'
+					: 'border-accent'}"
 			>
 				<div
 					role="group"
 					aria-label="Search Results"
-					class="mb-2 flex flex-col gap-3 rounded-md border bg-surface p-3 md:mt-2 md:mb-0 {resultsFocused
-						? 'border-primary'
-						: 'border-accent'}"
+					class="flex flex-col gap-3 p-3"
 				>
 					<ul class="flex-1 overflow-y-auto" role="listbox">
 						<p class="text-text-muted italic">No results...</p>
