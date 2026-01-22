@@ -105,8 +105,8 @@
 			aria-haspopup="dialog"
 			aria-controls="search-panel"
 			class="w-full max-w-full px-3 transition-all duration-300 sm:relative {searching
-				? 'md:w-full'
-				: 'md:w-2/3'}"
+				? 'md:w-2/3'
+				: 'md:w-1/3'}"
 		>
 			<div class="relative flex w-full items-center">
 				<input
