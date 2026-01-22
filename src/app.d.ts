@@ -1,3 +1,5 @@
+import type { AppError } from '$lib/schemas/error';
+
 type CommonMetaKeys =
 	| 'title'
 	| 'description'
@@ -25,9 +27,7 @@ declare global {
 			listHeaderBadge?: string[];
 		}
 
-		interface Error {
-			userMessage?: string;
-		}
+		interface Error extends AppError {}
 		// interface PageState {}
 		// interface Platform {}
 	}
