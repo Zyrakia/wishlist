@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import {
-		CircleQuestionMarkIcon,
-		CornerDownLeftIcon,
-		SearchIcon,
-		SparklesIcon,
-	} from '@lucide/svelte';
+	import { ArrowDownRight, CornerDownLeftIcon, SearchIcon, SparklesIcon } from '@lucide/svelte';
 	import Loader from './loader.svelte';
-	import { slide } from 'svelte/transition';
+	import { fade, fly, slide } from 'svelte/transition';
+	import { isHttpError } from '@sveltejs/kit';
+	import { onMount } from 'svelte';
 
 	const hasJs = useHasJs();
 	const questionWords = new Set([
@@ -23,6 +20,20 @@
 		'are',
 		'do',
 	]);
+
+	const placeholderRotation = [
+		'How do I create a list?',
+		'How can I link my Amazon list?',
+		'How do I create a group for my family?',
+		'How many items can I have on my wishlist?',
+	];
+
+	const getRandomPlaceholder = () => {
+		const index = Math.floor(Math.random() * placeholderRotation.length);
+		return placeholderRotation[index] || '✨ Search people, items or ask questions...';
+	};
+
+	let currentPlaceholder = $state(getRandomPlaceholder());
 
 	let query = $state('');
 	const cleanQuery = $derived(
@@ -45,11 +56,10 @@
 		return questionWords.has(startingWord);
 	});
 
-	let isAsking = $state(false);
+	let isQuestionInProgress = $state(false);
 	let questionResponse = $state('');
 	let questionError = $state('');
-	const question = $derived(isQueryQuestion ? cleanQuery : '');
-	const shouldPromptToAsk = $derived(question && !isAsking);
+	const shouldPromptToAsk = $derived(isQueryQuestion && !isQuestionInProgress);
 
 	let searchFocused = $state(false);
 	let searchHovered = $state(false);
@@ -73,22 +83,43 @@
 	};
 
 	const askQuestion = async () => {
-		if (isAsking) return;
+		if (isQuestionInProgress) return;
 
-		const prompt = question || cleanQuery;
-		if (!prompt) return;
+		const question = cleanQuery;
+		if (!question) return;
 
-		isAsking = true;
+		isQuestionInProgress = true;
 
 		questionResponse = '';
 		questionError = '';
 		query = '';
 
-		console.log(`Asking "${prompt}"`);
+		try {
+			const res = await fetch('/search', {
+				method: 'POST',
+				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
+				body: JSON.stringify({ question }),
+			});
 
-		setTimeout(() => {
-			isAsking = false;
-		}, 2000);
+			const reader = res.body?.getReader();
+			if (!reader) throw new Error('No reader obtained from search response stream');
+
+			const decoder = new TextDecoder();
+
+			let chunck: ReadableStreamReadResult<Uint8Array<ArrayBuffer>>;
+			while ((chunck = await reader.read()) && !chunck.done) {
+				const rawValue = chunck.value;
+				questionResponse += decoder.decode(rawValue, { stream: true });
+			}
+		} catch (err) {
+			console.warn(err);
+
+			if (isHttpError(err) && err.body.userMessage) {
+				questionError = err.body.userMessage;
+			} else questionError = 'An unknown error occurred during generation.';
+		} finally {
+			isQuestionInProgress = false;
+		}
 	};
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
@@ -107,6 +138,14 @@
 		if (searchFocused) searchRef?.focus();
 		else searchRef.blur();
 	});
+
+	onMount(() => {
+		const changePlaceholderTick = setInterval(() => {
+			currentPlaceholder = getRandomPlaceholder();
+		}, 5000);
+
+		return () => clearInterval(changePlaceholderTick);
+	});
 </script>
 
 <svelte:window onkeyup={handleKeyUp} />
@@ -115,7 +154,7 @@
 	<button
 		title="Ask Wishii AI"
 		class="flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
-		disabled={isAsking || !cleanQuery}
+		disabled={isQuestionInProgress || !cleanQuery}
 		onclick={askQuestion}
 		type="button"
 	>
@@ -143,20 +182,31 @@
 				? 'md:w-full'
 				: 'md:w-2/3'}"
 		>
-			<input
-				name="Global Search"
-				aria-autocomplete="none"
-				aria-expanded={searching}
-				aria-controls="search-panel"
-				bind:this={searchRef}
-				bind:value={query}
-				onfocus={() => (searchFocused = true)}
-				onblur={() => (searchFocused = false)}
-				onmouseenter={() => (searchHovered = true)}
-				onmouseleave={() => (searchHovered = false)}
-				class="w-full"
-				placeholder="✨ Search people, items or ask questions..."
-			/>
+			<div class="relative flex w-full items-center">
+				<input
+					name="Global Search"
+					aria-autocomplete="none"
+					aria-expanded={searching}
+					aria-controls="search-panel"
+					bind:this={searchRef}
+					bind:value={query}
+					onfocus={() => (searchFocused = true)}
+					onblur={() => (searchFocused = false)}
+					onmouseenter={() => (searchHovered = true)}
+					onmouseleave={() => (searchHovered = false)}
+					class="w-full"
+				/>
+
+				{#if !query}
+					{#key currentPlaceholder}
+						<span
+							transition:fade
+							class="pointer-events-none absolute left-2 text-text-muted/50"
+							>{currentPlaceholder}</span
+						>
+					{/key}
+				{/if}
+			</div>
 
 			<div
 				id="search-panel"
@@ -185,12 +235,14 @@
 					<hr class="border-border-strong" />
 
 					<div role="group" aria-label="AI Assistant">
-						<div class="flex items-center gap-2 text-accent">
+						<div
+							class={`flex items-center gap-2 text-accent ${isQuestionInProgress || shouldPromptToAsk ? 'animate-[color-shift_2s_ease-in-out_infinite]' : ''}`}
+						>
 							<SparklesIcon size={18} />
 
 							<span class="me-auto">Wishii AI</span>
 
-							{#if !shouldPromptToAsk && !isAsking}
+							{#if !shouldPromptToAsk && !isQuestionInProgress}
 								{@render askButton()}
 							{/if}
 						</div>
@@ -201,15 +253,21 @@
 								out:slide={{ duration: 150 }}
 								class="flex items-center gap-2"
 							>
-								<CircleQuestionMarkIcon class="shrink-0" size={14} />
+								<ArrowDownRight
+									class="shrink-0 animate-pulse text-accent"
+									size={14}
+								/>
 
-								<p class="me-auto truncate text-text-muted italic">{question}</p>
+								<p class="me-auto truncate text-text-muted italic">
+									<span class="text-accent">Ask: </span>
+									{cleanQuery}
+								</p>
 
 								{@render askButton()}
 							</div>
 						{/if}
 
-						{#if isAsking}
+						{#if isQuestionInProgress && !questionResponse}
 							<div class="h-12 w-12 pt-2">
 								<Loader
 									thickness="2px"
@@ -234,3 +292,15 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	@keyframes color-shift {
+		0%,
+		100% {
+			color: var(--color-accent);
+		}
+		50% {
+			color: var(--color-shimmer);
+		}
+	}
+</style>

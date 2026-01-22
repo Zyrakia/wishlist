@@ -25,7 +25,9 @@ declare global {
 			listHeaderBadge?: string[];
 		}
 
-		// interface Error {}
+		interface Error {
+			userMessage?: string;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}
