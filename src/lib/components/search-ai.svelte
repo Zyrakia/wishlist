@@ -4,6 +4,7 @@
 	import Markdown from './markdown.svelte';
 	import { slide } from 'svelte/transition';
 	import { AppErrorSchema } from '$lib/schemas/error';
+	import { page } from '$app/state';
 
 	interface Props {
 		query: string;
@@ -59,7 +60,7 @@
 			const res = await fetch('/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
-				body: JSON.stringify({ question }),
+				body: JSON.stringify({ question, currentPath: page.url.pathname }),
 			});
 
 			if (!res.ok) {
@@ -92,7 +93,7 @@
 {#snippet askButton()}
 	<button
 		title="Ask Wishii AI"
-		class="flex items-center gap-2 border-accent p-2 py-1 mb-1 text-xs text-text"
+		class="mb-1 flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
 		disabled={isQuestionInProgress || !query}
 		onclick={ask}
 		type="button"

@@ -8,7 +8,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const user = verifyAuth();
 
 	const { success, data: body } = z
-		.object({ question: QuestionSchema })
+		.object({
+			question: QuestionSchema,
+			currentPath: z.string().trim().startsWith('/').min(1).max(255).optional(),
+		})
 		.safeParse(await request.json());
 
 	if (!success) {
@@ -20,6 +23,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const addonContext: string[] = [];
+	addonContext.push(`Logged in: ${locals.user !== undefined ? 'Yes' : 'No'}`);
+	if (body.currentPath) addonContext.push(`Asking from page: ${body.currentPath}`);
 	if (locals.user?.name) addonContext.push(`My name: ${user.name}`);
 
 	const stream = await streamDocumentationAnswer(body.question, addonContext);
