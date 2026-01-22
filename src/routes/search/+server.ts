@@ -1,12 +1,16 @@
 import { QuestionSchema } from '$lib/schemas/search';
+import { verifyAuth } from '$lib/server/auth';
 import { streamDocumentationAnswer } from '$lib/server/docs-search';
 import { error, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
+	const user = verifyAuth();
+
 	const { success, data: body } = z
 		.object({ question: QuestionSchema })
 		.safeParse(await request.json());
+
 	if (!success) {
 		error(400, {
 			message: 'Invalid question provided',
@@ -16,7 +20,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const addonContext: string[] = [];
-	if (locals.user?.name) addonContext.push(`User name: ${locals.user.name}`);
+	if (locals.user?.name) addonContext.push(`My name: ${user.name}`);
 
 	const stream = await streamDocumentationAnswer(body.question, addonContext);
 	if (!stream) {
