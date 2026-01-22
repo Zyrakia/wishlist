@@ -26,6 +26,18 @@
 		'How can I link my Amazon list?',
 		'How do I create a group for my family?',
 		'How many items can I have on my wishlist?',
+		'How do I invite someone to my group?',
+		'How do I share my wishlist?',
+		'How do I add an item from a link?',
+		'What happens when I reserve an item?',
+		'How do I prioritize items on my list?',
+		'Can I reorganize items on my list?',
+		'How do I sync my external wishlist?',
+		'How many connections can I have?',
+		'How do I change my password?',
+		'Can others see my reservations?',
+		'How do I leave a group?',
+		'What is a list connection?',
 	];
 
 	const getRandomPlaceholder = () => {
@@ -201,9 +213,16 @@
 					{#key currentPlaceholder}
 						<span
 							transition:fade
-							class="pointer-events-none absolute left-2 text-text-muted/50"
-							>{currentPlaceholder}</span
+							class="pointer-events-none absolute left-3 flex items-center gap-2 {searching
+								? 'text-text-muted/50'
+								: 'text-text-muted'}"
 						>
+							<SparklesIcon size={18} />
+
+							<span class={searching ? '' : 'placeholder-glow'}>
+								{currentPlaceholder}
+							</span>
+						</span>
 					{/key}
 				{/if}
 			</div>
@@ -249,8 +268,7 @@
 
 						{#if shouldPromptToAsk}
 							<div
-								in:slide={{ duration: 150 }}
-								out:slide={{ duration: 150 }}
+								transition:slide={{ duration: 150 }}
 								class="flex items-center gap-2"
 							>
 								<ArrowDownRight
@@ -279,7 +297,7 @@
 						{:else if questionResponse}
 							<div
 								aria-live="polite"
-								class="mt-2 font-mono wrap-break-word whitespace-pre-wrap"
+								class="mt-2 font-mono tracking-tight wrap-break-word whitespace-pre-wrap"
 							>
 								{questionResponse}
 							</div>
@@ -301,6 +319,41 @@
 		}
 		50% {
 			color: var(--color-shimmer);
+		}
+	}
+
+	.placeholder-glow {
+		background: linear-gradient(
+			90deg,
+			var(--color-text-muted) 0%,
+			var(--color-text-muted) 35%,
+			var(--color-accent) 45%,
+			var(--color-shimmer) 50%,
+			var(--color-accent) 55%,
+			var(--color-text-muted) 65%,
+			var(--color-text-muted) 100%
+		);
+		background-size: 200% 100%;
+		background-clip: text;
+		-webkit-background-clip: text;
+		color: transparent;
+		animation: slide-glow 3s ease-in-out infinite;
+	}
+
+	@keyframes slide-glow {
+		0% {
+			background-position: 100% 0;
+			text-shadow: none;
+		}
+		45% {
+			text-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+		}
+		55% {
+			text-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+		}
+		100% {
+			background-position: -100% 0;
+			text-shadow: none;
 		}
 	}
 </style>

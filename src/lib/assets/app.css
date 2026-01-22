@@ -19,6 +19,8 @@
 	--color-warning: #f59e0b;
 	--color-danger: #ef4444;
 	--color-shimmer: #f5c542;
+
+	--font-mono: 'Space Mono', monospace;
 }
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
