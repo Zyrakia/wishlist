@@ -1,25 +1,11 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import { ArrowDownRight, CornerDownLeftIcon, SearchIcon, SparklesIcon } from '@lucide/svelte';
-	import Loader from './loader.svelte';
-	import { fade, fly, slide } from 'svelte/transition';
-	import { isHttpError } from '@sveltejs/kit';
+	import { SearchIcon, SparklesIcon } from '@lucide/svelte';
+	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import SearchAi from './search-ai.svelte';
 
 	const hasJs = useHasJs();
-	const questionWords = new Set([
-		'who',
-		'what',
-		'when',
-		'where',
-		'why',
-		'how',
-		'is',
-		'can',
-		'does',
-		'are',
-		'do',
-	]);
 
 	const placeholderRotation = [
 		'How do I create a list?',
@@ -42,7 +28,7 @@
 
 	const getRandomPlaceholder = () => {
 		const index = Math.floor(Math.random() * placeholderRotation.length);
-		return placeholderRotation[index] || '✨ Search people, items or ask questions...';
+		return placeholderRotation[index] || 'Search people, items or ask questions...';
 	};
 
 	let currentPlaceholder = $state(getRandomPlaceholder());
@@ -56,22 +42,6 @@
 			.filter((v) => v !== '')
 			.join(' '),
 	);
-
-	const queryWords = $derived(cleanQuery.toLowerCase().split(' '));
-	const isQueryQuestion = $derived.by(() => {
-		if (cleanQuery.endsWith('?')) return true;
-		if (queryWords.length < 2) return false;
-
-		const startingWord = queryWords[0];
-		if (!startingWord) return false;
-
-		return questionWords.has(startingWord);
-	});
-
-	let isQuestionInProgress = $state(false);
-	let questionResponse = $state('');
-	let questionError = $state('');
-	const shouldPromptToAsk = $derived(isQueryQuestion && !isQuestionInProgress);
 
 	let searchFocused = $state(false);
 	let searchHovered = $state(false);
@@ -94,50 +64,12 @@
 		searchFocused = true;
 	};
 
-	const askQuestion = async () => {
-		if (isQuestionInProgress) return;
-
-		const question = cleanQuery;
-		if (!question) return;
-
-		isQuestionInProgress = true;
-
-		questionResponse = '';
-		questionError = '';
-		query = '';
-
-		try {
-			const res = await fetch('/search', {
-				method: 'POST',
-				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
-				body: JSON.stringify({ question }),
-			});
-
-			const reader = res.body?.getReader();
-			if (!reader) throw new Error('No reader obtained from search response stream');
-
-			const decoder = new TextDecoder();
-
-			let chunck: ReadableStreamReadResult<Uint8Array<ArrayBuffer>>;
-			while ((chunck = await reader.read()) && !chunck.done) {
-				const rawValue = chunck.value;
-				questionResponse += decoder.decode(rawValue, { stream: true });
-			}
-		} catch (err) {
-			console.warn(err);
-
-			if (isHttpError(err) && err.body.userMessage) {
-				questionError = err.body.userMessage;
-			} else questionError = 'An unknown error occurred during generation.';
-		} finally {
-			isQuestionInProgress = false;
-		}
-	};
+	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
 		if (searching) {
 			if (ev.key === 'Escape') closeSearch();
-			else if (ev.key === 'Enter') askQuestion();
+			else if (ev.key === 'Enter') aiRef?.ask();
 		} else {
 			if (ev.key === '/') openSearch();
 		}
@@ -161,22 +93,6 @@
 </script>
 
 <svelte:window onkeyup={handleKeyUp} />
-
-{#snippet askButton()}
-	<button
-		title="Ask Wishii AI"
-		class="flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
-		disabled={isQuestionInProgress || !cleanQuery}
-		onclick={askQuestion}
-		type="button"
-	>
-		<span>Ask</span>
-
-		{#if searchFocused}
-			<CornerDownLeftIcon size={12} />
-		{/if}
-	</button>
-{/snippet}
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
@@ -253,58 +169,12 @@
 
 					<hr class="border-border-strong" />
 
-					<div role="group" aria-label="AI Assistant">
-						<div
-							class={`flex items-center gap-2 text-accent ${isQuestionInProgress || shouldPromptToAsk ? 'animate-[color-shift_2s_ease-in-out_infinite]' : ''}`}
-						>
-							<SparklesIcon size={18} />
-
-							<span class="me-auto">Wishii AI</span>
-
-							{#if !shouldPromptToAsk && !isQuestionInProgress}
-								{@render askButton()}
-							{/if}
-						</div>
-
-						{#if shouldPromptToAsk}
-							<div
-								transition:slide={{ duration: 150 }}
-								class="flex items-center gap-2"
-							>
-								<ArrowDownRight
-									class="shrink-0 animate-pulse text-accent"
-									size={14}
-								/>
-
-								<p class="me-auto truncate text-text-muted italic">
-									<span class="text-accent">Ask: </span>
-									{cleanQuery}
-								</p>
-
-								{@render askButton()}
-							</div>
-						{/if}
-
-						{#if isQuestionInProgress && !questionResponse}
-							<div class="h-12 w-12 pt-2">
-								<Loader
-									thickness="2px"
-									pulseDur="1.25s"
-									pulseStaggerDur="250ms"
-									pulseCount={2}
-								/>
-							</div>
-						{:else if questionResponse}
-							<div
-								aria-live="polite"
-								class="mt-2 font-mono tracking-tight wrap-break-word whitespace-pre-wrap"
-							>
-								{questionResponse}
-							</div>
-						{:else if questionError}
-							<p class="mt-2 text-danger/75 italic">{questionError}</p>
-						{/if}
-					</div>
+					<SearchAi
+						bind:this={aiRef}
+						query={cleanQuery}
+						{searchFocused}
+						onask={() => (query = '')}
+					/>
 				</div>
 			</div>
 		</div>
@@ -312,16 +182,6 @@
 {/if}
 
 <style>
-	@keyframes color-shift {
-		0%,
-		100% {
-			color: var(--color-accent);
-		}
-		50% {
-			color: var(--color-shimmer);
-		}
-	}
-
 	.placeholder-glow {
 		background: linear-gradient(
 			90deg,
