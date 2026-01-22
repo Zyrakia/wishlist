@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { ArrowDownRight, CornerDownLeftIcon, SparklesIcon } from '@lucide/svelte';
 	import Loader from './loader.svelte';
+	import Markdown from './markdown.svelte';
 	import { slide } from 'svelte/transition';
-	import { isHttpError } from '@sveltejs/kit';
+	import { AppErrorSchema } from '$lib/schemas/error';
 
 	interface Props {
 		query: string;
@@ -46,6 +47,8 @@
 		if (isQuestionInProgress) return;
 		if (!query) return;
 
+		const question = query;
+
 		isQuestionInProgress = true;
 		questionResponse = '';
 		questionError = '';
@@ -56,8 +59,16 @@
 			const res = await fetch('/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
-				body: JSON.stringify({ question: query }),
+				body: JSON.stringify({ question }),
 			});
+
+			if (!res.ok) {
+				const json = await res.json().catch(() => null);
+				const parsed = AppErrorSchema.safeParse(json);
+				questionError =
+					parsed.data?.userMessage ?? 'Something went wrong while asking that question.';
+				return;
+			}
 
 			const reader = res.body?.getReader();
 			if (!reader) throw new Error('No reader obtained from search response stream');
@@ -71,10 +82,7 @@
 			}
 		} catch (err) {
 			console.warn(err);
-
-			if (isHttpError(err) && err.body.userMessage) {
-				questionError = err.body.userMessage;
-			} else questionError = 'An unknown error occurred during generation.';
+			questionError = 'An unknown error occurred during generation.';
 		} finally {
 			isQuestionInProgress = false;
 		}
@@ -128,11 +136,8 @@
 			<Loader thickness="2px" pulseDur="1.25s" pulseStaggerDur="250ms" pulseCount={2} />
 		</div>
 	{:else if questionResponse}
-		<div
-			aria-live="polite"
-			class="mt-2 font-mono tracking-tight wrap-break-word whitespace-pre-wrap"
-		>
-			{questionResponse}
+		<div aria-live="polite" class="mt-2">
+			<Markdown content={questionResponse} />
 		</div>
 	{:else if questionError}
 		<p class="mt-2 text-danger/75 italic">{questionError}</p>
