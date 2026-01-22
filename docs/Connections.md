@@ -43,7 +43,9 @@ To troubleshoot, verify that the external list URL is correct and that the list 
 **Important:** When you remove a connection, all items that were synced from that connection are also removed from your list. Items you added manually are not affected.
 
 ## Connection Items vs Manual Items
-Items synced from a connection are linked to that connection. You can identify these items by the connection indicator that appears on them.
+Items synced from a connection are linked to that connection and cannot be edited manually on Wishii. The item details (name, price, image, etc.) are controlled entirely by the external list. You can identify synced items by the connection indicator that appears on them.
+
+To update a synced item's details, edit it on the original external list and then sync the connection on Wishii.
 
 If you delete a connection item manually (using the **Trash** icon on the item), it will reappear after the next sync if it still exists on the external list.
 
