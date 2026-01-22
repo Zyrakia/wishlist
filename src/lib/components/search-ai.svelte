@@ -92,15 +92,19 @@
 {#snippet askButton()}
 	<button
 		title="Ask Wishii AI"
-		class="flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
+		class="flex items-center gap-2 border-accent p-2 py-1 mb-1 text-xs text-text"
 		disabled={isQuestionInProgress || !query}
 		onclick={ask}
 		type="button"
 	>
-		<span>Ask</span>
+		{#if isQuestionInProgress}
+			<span class="animate-pulse">Asking...</span>
+		{:else}
+			<span>Ask</span>
 
-		{#if searchFocused}
-			<CornerDownLeftIcon size={12} />
+			{#if searchFocused}
+				<CornerDownLeftIcon size={12} />
+			{/if}
 		{/if}
 	</button>
 {/snippet}
@@ -113,12 +117,12 @@
 
 		<span class="me-auto">Wishii AI</span>
 
-		{#if !shouldPromptToAsk && !isQuestionInProgress}
+		{#if !isQueryQuestion}
 			{@render askButton()}
 		{/if}
 	</div>
 
-	{#if shouldPromptToAsk}
+	{#if isQueryQuestion}
 		<div transition:slide={{ duration: 150 }} class="flex items-center gap-2">
 			<ArrowDownRight class="shrink-0 animate-pulse text-accent" size={14} />
 
