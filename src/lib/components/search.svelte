@@ -44,7 +44,6 @@
 	);
 
 	let searchFocused = $state(false);
-	let searchHovered = $state(false);
 	let resultsFocused = $state(false);
 	let resultsHovered = $state(false);
 
@@ -55,7 +54,6 @@
 
 	const closeSearch = () => {
 		searchFocused = false;
-		searchHovered = false;
 		resultsFocused = false;
 		resultsHovered = false;
 	};
@@ -120,8 +118,6 @@
 					bind:value={query}
 					onfocus={() => (searchFocused = true)}
 					onblur={() => (searchFocused = false)}
-					onmouseenter={() => (searchHovered = true)}
-					onmouseleave={() => (searchHovered = false)}
 					class="w-full"
 				/>
 
@@ -158,11 +154,7 @@
 					? 'border-primary'
 					: 'border-accent'}"
 			>
-				<div
-					role="group"
-					aria-label="Search Results"
-					class="flex flex-col gap-3 p-3"
-				>
+				<div role="group" aria-label="Search Results" class="flex flex-col gap-3 p-3">
 					<ul class="flex-1 overflow-y-auto" role="listbox">
 						<p class="text-text-muted italic">No results...</p>
 					</ul>
