@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DOMPurify from 'dompurify';
 	import { Marked, Renderer } from 'marked';
 
 	interface Props {
@@ -16,7 +17,7 @@
 	};
 
 	const marked = new Marked({ renderer, async: false });
-	const rendered = $derived(marked.parse(content, { async: false }));
+	const rendered = $derived(DOMPurify.sanitize(marked.parse(content, { async: false })));
 </script>
 
 <div class="markdown">
