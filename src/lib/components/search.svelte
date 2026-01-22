@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { SearchIcon, SparklesIcon } from '@lucide/svelte';
-	import { fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { onMount } from 'svelte';
 	import SearchAi from './search-ai.svelte';
 
@@ -104,9 +104,9 @@
 			aria-expanded={searching}
 			aria-haspopup="dialog"
 			aria-controls="search-panel"
-			class="w-full max-w-full px-3 transition-all duration-300 sm:relative {searching
-				? 'md:w-2/3'
-				: 'md:w-1/3'}"
+			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:max-w-4/5 {searching
+				? 'lg:w-xl'
+				: 'lg:w-md'}"
 		>
 			<div class="relative flex w-full items-center">
 				<input
@@ -122,20 +122,24 @@
 				/>
 
 				{#if !query}
-					{#key currentPlaceholder}
-						<span
-							transition:fade
-							class="pointer-events-none absolute left-3 flex items-center gap-2 {searching
-								? 'text-text-muted/50'
-								: 'text-text-muted'}"
-						>
-							<SparklesIcon size={18} />
+					<span
+						class="pointer-events-none absolute left-3 flex w-full items-center gap-2 overflow-hidden {searching
+							? 'text-text-muted/50'
+							: 'text-text-muted'}"
+					>
+						<SparklesIcon size={18} />
 
-							<span class={searching ? '' : 'placeholder-glow'}>
+						{#key currentPlaceholder}
+							<span
+								transition:fly={{ y: 50 }}
+								class="{searching
+									? ''
+									: 'placeholder-glow'} absolute max-w-full truncate ps-7 pe-6"
+							>
 								{currentPlaceholder}
 							</span>
-						</span>
-					{/key}
+						{/key}
+					</span>
 				{/if}
 			</div>
 
