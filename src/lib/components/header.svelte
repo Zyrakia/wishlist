@@ -124,7 +124,7 @@
 			{/if}
 		</div>
 
-		{#if hasJs()}
+		{#if hasJs() && user}
 			<div
 				in:slide={{ duration: 200 }}
 				class="col-span-2 grid shrink-0 place-items-center md:order-2 md:col-span-1"
