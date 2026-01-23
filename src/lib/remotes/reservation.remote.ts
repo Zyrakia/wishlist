@@ -24,7 +24,7 @@ export const reserveItem = form(
 		);
 
 		unwrapOrDomain(await ItemsService.getByIdOrErr(itemId, wl.id), invalid);
-		unwrapOrDomain(await ReservationsService.getByItemIdOrErr(itemId), invalid);
+		unwrapOrDomain(await ReservationsService.assertNotReserved(itemId), invalid);
 		unwrapOrDomain(await GroupsService.sharesByUserIdsOrErr(viewer.id, wl.userId), invalid);
 
 		unwrap(

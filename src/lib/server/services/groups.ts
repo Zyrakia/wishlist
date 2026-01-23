@@ -69,11 +69,7 @@ export const GroupsService = createService(db(), {
 	 * @param groupId the group ID to update
 	 * @param data the fields to update
 	 */
-	updateById: async (
-		client,
-		groupId: string,
-		data: Partial<typeof GroupTable.$inferInsert>,
-	) => {
+	updateById: async (client, groupId: string, data: Partial<typeof GroupTable.$inferInsert>) => {
 		await client.update(GroupTable).set(data).where(eq(GroupTable.id, groupId));
 		return Ok(undefined);
 	},
@@ -235,12 +231,7 @@ export const GroupsService = createService(db(), {
 	 * @param userId the user ID to add
 	 * @param inviteId the invite ID to remove
 	 */
-	acceptInvite: async (
-		client,
-		groupId: string,
-		userId: string,
-		inviteId: string,
-	) => {
+	acceptInvite: async (client, groupId: string, userId: string, inviteId: string) => {
 		await client.transaction(async (tx) => {
 			await tx.insert(GroupMembershipTable).values({
 				userId,
@@ -397,8 +388,8 @@ export const GroupsService = createService(db(), {
 			}),
 		]);
 
-		const userOneGroupIds = new Set(userOneGroups.map((v: { groupId: string }) => v.groupId));
-		return Ok(userTwoGroups.some((v: { groupId: string }) => userOneGroupIds.has(v.groupId)));
+		const userOneGroupIds = new Set(userOneGroups.map((v) => v.groupId));
+		return Ok(userTwoGroups.some((v) => userOneGroupIds.has(v.groupId)));
 	},
 
 	sharesByUserIdsOrErr: async (client, userOneId: string, userTwoId: string) => {

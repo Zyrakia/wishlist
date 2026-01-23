@@ -3,7 +3,7 @@ import { formatRelative } from '$lib/util/date';
 import { safePrune } from '$lib/util/safe-prune';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
-import { Ok, type Result } from 'ts-results';
+import { Err, Ok, type Result } from 'ts-results';
 
 import { db, type DatabaseClient } from '../db';
 import { generateItemCandidates, type ItemCandidate } from '../generation/item-generator';
@@ -25,20 +25,23 @@ export const normalizeCompareUrl = (raw: string) => {
 
 const syncing = new Map<string, Promise<Result<void, unknown>>>();
 
-const _syncConnection = async (client: DatabaseClient, connectionId: string) => {
+const _syncConnection = async (
+	client: DatabaseClient,
+	connectionId: string,
+): Promise<Result<void, DomainError>> => {
 	const connection = unwrap(await ConnectionsService.getByIdWithItems(connectionId));
-	if (!connection) throw DomainError.of('Cannot retrieve connection');
+	if (!connection) return Err(DomainError.of('Cannot retrieve connection'));
 
 	const now = new Date();
 	if (connection.lastSyncedAt && now.getTime() - connection.lastSyncedAt.getTime() < SYNC_DELAY) {
 		const nextSync = new Date(connection.lastSyncedAt.getTime() + SYNC_DELAY);
-		throw DomainError.of(`Next sync ${formatRelative(nextSync)}`);
+		return Err(DomainError.of(`Next sync ${formatRelative(nextSync)}`));
 	}
 
 	const candidatesResult = await generateItemCandidates(connection.url);
 	if (candidatesResult.err) {
 		unwrap(await ConnectionsService.updateSyncStatusById(connectionId, { syncError: true }));
-		throw candidatesResult.val;
+		return candidatesResult;
 	}
 
 	const candidates: ItemCandidate[] = candidatesResult.val;
@@ -68,7 +71,7 @@ const _syncConnection = async (client: DatabaseClient, connectionId: string) => 
 
 	if (!items.length && !connection.lastSyncedAt) {
 		unwrap(await ConnectionsService.updateSyncStatusById(connectionId, { syncError: true }));
-		throw DomainError.of('No products found, is the list private?');
+		return Err(DomainError.of('No products found, is the list private?'));
 	}
 
 	await client.transaction(async (tx) => {

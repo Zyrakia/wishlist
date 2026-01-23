@@ -49,12 +49,18 @@ export const ReservationsService = createService(db(), {
 		return Ok(reservation);
 	},
 
-	getByItemIdOrErr: async (client, itemId: string) => {
+	/**
+	 * Asserts that an item is not already reserved.
+	 * Returns an error if a reservation exists.
+	 *
+	 * @param itemId the item ID to check
+	 */
+	assertNotReserved: async (client, itemId: string) => {
 		const reservation = await client.query.ReservationTable.findFirst({
 			where: (t, { eq }) => eq(t.itemId, itemId),
 		});
 		if (reservation) return Err(DomainError.of('Item already reserved'));
-		return Ok(reservation);
+		return Ok(undefined);
 	},
 
 	/**
@@ -92,16 +98,19 @@ export const ReservationsService = createService(db(), {
 	 *
 	 * @param reserverId the user ID who left the group
 	 */
-	cleanAfterGroupExit: async (_client, reserverId: string) => {
-		const reservations = unwrap(await ReservationsService.listByUserIdWithOwners(reserverId));
+	cleanAfterGroupExit: async (client, reserverId: string) => {
+		const reservationsService = ReservationsService.$with(client);
+		const groupsService = GroupsService.$with(client);
+
+		const reservations = unwrap(await reservationsService.listByUserIdWithOwners(reserverId));
 		if (reservations.length === 0) return Ok(undefined);
 
 		const ownerIds = Array.from(new Set(reservations.map((v) => v.item.wishlist.userId)));
 
-		const reserverMemberships = unwrap(await GroupsService.listMembershipsByUserId(reserverId));
+		const reserverMemberships = unwrap(await groupsService.listMembershipsByUserId(reserverId));
 		const reserverGroups = new Set(reserverMemberships.map((v) => v.groupId));
 
-		const ownerMemberships = unwrap(await GroupsService.listMembershipsByUserIds(ownerIds));
+		const ownerMemberships = unwrap(await groupsService.listMembershipsByUserIds(ownerIds));
 
 		const connectedOwners = new Set<string>();
 		for (const membership of ownerMemberships) {
@@ -117,7 +126,7 @@ export const ReservationsService = createService(db(), {
 		if (invalidReservedItems.length === 0) return Ok(undefined);
 
 		unwrap(
-			await ReservationsService.deleteByUserAndItemIds(reserverId, ...invalidReservedItems),
+			await reservationsService.deleteByUserAndItemIds(reserverId, ...invalidReservedItems),
 		);
 		return Ok(undefined);
 	},
