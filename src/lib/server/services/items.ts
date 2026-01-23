@@ -4,7 +4,7 @@ import { Err, Ok } from 'ts-results';
 import { db } from '../db';
 import { WishlistItemTable } from '../db/schema';
 import { buildUpsertSet } from '../util/drizzle';
-import { createService, DomainError } from '../util/service';
+import { createService, DomainError, unwrap } from '../util/service';
 
 export const ItemsService = createService(db(), {
 	/**
@@ -98,11 +98,7 @@ export const ItemsService = createService(db(), {
 		await client.transaction(async (tx) => {
 			await Promise.all(
 				items.map(async ({ id: itemId, order }) => {
-					(
-					await ItemsService.$with(tx).updateById(itemId, wishlistId, {
-							order,
-						})
-					).unwrap();
+					unwrap(await ItemsService.$with(tx).updateById(itemId, wishlistId, { order }));
 				}),
 			);
 		});

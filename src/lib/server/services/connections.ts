@@ -1,9 +1,9 @@
 import { count, eq, sql } from 'drizzle-orm';
-import { Err, Ok } from 'ts-results';
+import { Ok } from 'ts-results';
 
 import { db } from '../db';
 import { WishlistConnectionTable } from '../db/schema';
-import { createService, DomainError } from '../util/service';
+import { createService, unwrap } from '../util/service';
 import { ItemsService } from './items';
 
 export const ConnectionsService = createService(db(), {
@@ -96,7 +96,7 @@ export const ConnectionsService = createService(db(), {
 		await client.transaction(async (tx) => {
 			// By default, on connection delete, column on items is set to `null`
 			if (deleteItems) {
-				(await ItemsService.$with(tx).deleteByConnectionId(connectionId)).unwrap();
+				unwrap(await ItemsService.$with(tx).deleteByConnectionId(connectionId));
 			}
 
 			await tx

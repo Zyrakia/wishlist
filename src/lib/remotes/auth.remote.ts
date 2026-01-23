@@ -16,14 +16,15 @@ import {
 	verifyAuth,
 } from '$lib/server/auth';
 import { sendEmail } from '$lib/server/email';
+import { GroupsService } from '$lib/server/services/groups';
 import { UsersService } from '$lib/server/services/users';
+import { unwrap } from '$lib/server/util/service';
 import { formatRelative } from '$lib/util/date';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
-import { GroupsService } from '$lib/server/services/groups';
 
 export const resolveMySession = query(async () => {
 	const ev = getRequestEvent();
@@ -31,9 +32,7 @@ export const resolveMySession = query(async () => {
 	const session = await readSession(ev.cookies);
 	if (!session) return;
 
-	const result = await UsersService.getById(session.sub);
-	if (result.err) throw result.val;
-	return result.val;
+	return unwrap(await UsersService.getById(session.sub));
 });
 
 const failStratSchema = z.enum(['login', 'register', 'error']).optional();
@@ -48,12 +47,7 @@ export const resolveMe = query(
 	z.object({ failStrategy: failStratSchema }),
 	async ({ failStrategy }) => {
 		const me = verifyAuth({ failStrategy });
-
-		const userResult = await UsersService.getById(me.id);
-		if (userResult.err) throw userResult.val;
-		const user = userResult.val;
-
-		return user!;
+		return unwrap(await UsersService.getById(me.id))!;
 	},
 );
 
@@ -66,21 +60,13 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const existingResult = await UsersService.getByEmail(email);
-	if (existingResult.err) throw existingResult.val;
-	const existing = existingResult.val;
+	const existing = unwrap(await UsersService.getByEmail(email));
 	if (existing) invalid(invalid.email('Email is already registered'));
 
 	const passwordHash = await hashPassword(password);
 	const id = uuid4();
 
-	const createResult = await UsersService.create({
-		id,
-		email,
-		name: username,
-		password: passwordHash,
-	});
-	if (createResult.err) throw createResult.val;
+	unwrap(await UsersService.create({ id, email, name: username, password: passwordHash }));
 
 	const token = await issueToken({ sub: id, name: username, rollingStartMs: Date.now() });
 	setSession(cookies, token);
@@ -95,10 +81,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const userResult = await UsersService.getByEmail(email);
-	if (userResult.err) throw userResult.val;
-	const user = userResult.val;
-
+	const user = unwrap(await UsersService.getByEmail(email));
 	if (!user) return invalid('Invalid credentials');
 
 	const passwordValid = await compPasswords(password, user.password);
@@ -114,9 +97,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 export const resetPasswordStart = form(
 	z.object({ email: CredentialsSchema.shape.email }),
 	async ({ email }) => {
-		const userResult = await UsersService.getByEmail(email);
-		if (userResult.err) throw userResult.val;
-		const user = userResult.val;
+		const user = unwrap(await UsersService.getByEmail(email));
 
 		if (user) {
 			const { token, expiresAt } = await createAccountAction(
@@ -152,8 +133,7 @@ export const resetPassword = form(
 		if (!action) return invalid('Password reset link have expired');
 
 		const passwordHash = await hashPassword(password);
-		const updateResult = await UsersService.updatePasswordById(action.userId, passwordHash);
-		if (updateResult.err) throw updateResult.val;
+		unwrap(await UsersService.updatePasswordById(action.userId, passwordHash));
 
 		redirect(303, `/login?updated=password`);
 	},
@@ -163,8 +143,7 @@ export const changeName = form(
 	CreateCredentialsSchema.pick({ username: true }),
 	async ({ username }) => {
 		const me = await resolveMe({});
-		const updateResult = await UsersService.updateNameById(me.id, username);
-		if (updateResult.err) throw updateResult.val;
+		unwrap(await UsersService.updateNameById(me.id, username));
 
 		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
 	},
@@ -178,21 +157,18 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	if (!isOldPasswordValid) return invalid(invalid.oldPassword('Current password is invalid'));
 
 	const newPasswordHash = await hashPassword(newPassword);
-	const updateResult = await UsersService.updatePasswordById(me.id, newPasswordHash);
-	if (updateResult.err) throw updateResult.val;
+	unwrap(await UsersService.updatePasswordById(me.id, newPasswordHash));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
 
 const isEmailOpenForChange = async (email: string) => {
-	const [existingUserResult, existingInvitesResult] = await Promise.all([
-		UsersService.getByEmail(email),
-		GroupsService.listInvitesByEmail(email),
+	const [existingUser, existingInvites] = await Promise.all([
+		UsersService.getByEmail(email).then(unwrap),
+		GroupsService.listInvitesByEmail(email).then(unwrap),
 	]);
 
-	if (existingUserResult.err) throw existingUserResult.val;
-	if (existingInvitesResult.err) throw existingInvitesResult.val;
-	return existingUserResult.val === undefined && existingInvitesResult.val.length === 0;
+	return existingUser === undefined && existingInvites.length === 0;
 };
 
 export const changeEmailStart = form(
@@ -233,8 +209,7 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	if (!action) error(401);
 
 	if (!(await isEmailOpenForChange(action.payload.newEmail))) error(400, 'Email already taken');
-	const updateResult = await UsersService.updateEmailById(action.userId, action.payload.newEmail);
-	if (updateResult.err) throw updateResult.val;
+	unwrap(await UsersService.updateEmailById(action.userId, action.payload.newEmail));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
 });

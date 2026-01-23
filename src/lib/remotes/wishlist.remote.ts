@@ -2,7 +2,7 @@ import { form, getRequestEvent, query } from '$app/server';
 import { WishlistSchema } from '$lib/schemas/wishlist';
 import { verifyAuth } from '$lib/server/auth';
 import { WishlistService } from '$lib/server/services/wishlist';
-import { DomainError } from '$lib/server/util/service';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { randomUUID } from 'crypto';
 import z from 'zod';
 
@@ -16,15 +16,15 @@ export const isWishlistSlugOpen = query(z.object({ slug: z.string() }), async ({
 export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 	const user = verifyAuth();
 
-	const created = await WishlistService.createWithSlugCheck({
-		id: randomUUID(),
-		userId: user.id,
-		...data,
-	});
-	if (created.err) {
-		if (DomainError.is(created.val)) return invalid(invalid.slug(created.val.message));
-		throw created.val;
-	}
+	unwrapOrDomain(
+		await WishlistService.createWithSlugCheck({
+			id: randomUUID(),
+			userId: user.id,
+			...data,
+		}),
+		(m) => invalid(invalid.slug(m)),
+	);
+
 	redirect(303, `/lists/${data.slug}`);
 });
 
@@ -36,32 +36,19 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 	} = getRequestEvent();
 	if (!wishlist_slug) error(400, 'Cannot update wishlist without slug');
 
-	const updateResult = await WishlistService.updateBySlugForOwnerChecked(
-		wishlist_slug,
-		user.id,
-		data,
+	const [updated] = unwrapOrDomain(
+		await WishlistService.updateBySlugForOwnerChecked(wishlist_slug, user.id, data),
+		(m) => invalid(invalid.slug(m)),
 	);
-	if (updateResult.err) {
-		if (DomainError.is(updateResult.val)) return invalid(invalid.slug(updateResult.val.message));
-		throw updateResult.val;
-	}
-
-	const [updated] = updateResult.val;
 
 	if (updated) {
-		const touchResult = await WishlistService.touchById(updated.id);
-		if (touchResult.err) throw touchResult.val;
+		unwrap(await WishlistService.touchById(updated.id));
 		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
 	} else error(400, 'No wishlist can be updated');
 });
 
 export const getWishlist = query(z.object({ slug: z.string() }), async ({ slug }) => {
-	const result = await WishlistService.getBySlugOrErr(slug);
-	if (result.err) {
-		if (DomainError.is(result.val)) return undefined;
-		throw result.val;
-	}
-	return result.val;
+	return unwrapOrDomain(await WishlistService.getBySlugOrErr(slug), () => undefined);
 });
 
 const ItemSortSchema = z.enum(['alphabetical', 'created', 'price', 'user']);
@@ -70,16 +57,10 @@ const ItemDirectionSchema = z.enum(['asc', 'desc']);
 export const getWishlistWithItems = query(
 	z.object({ slug: z.string(), sort: ItemSortSchema, direction: ItemDirectionSchema }),
 	async ({ slug, sort, direction }) => {
-		const result = await WishlistService.getBySlugWithItemsOrErr(
-			slug,
-			sort,
-			direction,
+		return unwrapOrDomain(
+			await WishlistService.getBySlugWithItemsOrErr(slug, sort, direction),
+			() => undefined,
 		);
-		if (result.err) {
-			if (DomainError.is(result.val)) return undefined;
-			throw result.val;
-		}
-		return result.val;
 	},
 );
 
@@ -104,27 +85,17 @@ export const deleteWishlist = form(
 
 		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
 
-		const wlResult = await WishlistService.getBySlugAndIdForOwnerOrErr(
-			data.slug,
-			data.id,
-			user.id,
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugAndIdForOwnerOrErr(data.slug, data.id, user.id),
+			invalid,
 		);
-		if (wlResult.err) {
-			if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-			throw wlResult.val;
-		}
-		const wl = wlResult.val;
 
-		const deleteResult = await WishlistService.deleteById(wl.id);
-		if (deleteResult.err) throw deleteResult.val;
+		unwrap(await WishlistService.deleteById(wl.id));
 		redirect(303, '/');
 	},
 );
 
 export const getWishlists = query(async () => {
 	const user = verifyAuth({ failStrategy: 'login' });
-
-	const listResult = await WishlistService.listForOwner(user.id);
-	if (listResult.err) throw listResult.val;
-	return listResult.val;
+	return unwrap(await WishlistService.listForOwner(user.id));
 });

@@ -1,4 +1,4 @@
-import { Err, Result, OkImpl, ErrImpl } from 'ts-results';
+import { Err, type Result, type OkImpl, type ErrImpl } from 'ts-results';
 
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 
@@ -93,4 +93,42 @@ export class DomainError extends Error {
 	public static is(value: unknown): value is DomainError {
 		return value instanceof DomainError;
 	}
+}
+
+/**
+ * Unwraps a Result, throwing the error if present.
+ *
+ * @param result the Result to unwrap
+ * @returns the Ok value
+ * @throws the Err value
+ */
+export function unwrap<T>(result: Result<T, unknown>): T {
+	if (result.err) throw result.val;
+	return result.val;
+}
+
+/**
+ * Unwraps a Result, calling a handler if a DomainError is present.
+ * Non-DomainError errors are re-thrown.
+ *
+ * When the handler throws (returns `never`), returns just `T`.
+ * When the handler returns a value, returns `T | R`.
+ */
+export function unwrapOrDomain<T>(
+	result: Result<T, unknown>,
+	onDomainError: (message: string) => never,
+): T;
+export function unwrapOrDomain<T, R>(
+	result: Result<T, unknown>,
+	onDomainError: (message: string) => R,
+): T | R;
+export function unwrapOrDomain<T, R>(
+	result: Result<T, unknown>,
+	onDomainError: (message: string) => R,
+): T | R {
+	if (result.err) {
+		if (DomainError.is(result.val)) return onDomainError(result.val.message);
+		throw result.val;
+	}
+	return result.val;
 }

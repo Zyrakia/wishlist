@@ -8,7 +8,7 @@ import { db } from '../db';
 import { ConnectionsService } from '../services/connections';
 import { ItemsService } from '../services/items';
 import { generateItemCandidates, type ItemCandidate } from './item-generator';
-import { DomainError } from '../util/service';
+import { DomainError, unwrap } from '../util/service';
 import { WishlistService } from '../services/wishlist';
 import { formatRelative } from '$lib/util/date';
 
@@ -39,12 +39,7 @@ const _syncListConnection = async (connectionId: string): Promise<Result<void, u
 
 	const candidatesResult = await generateItemCandidates(connection.url);
 	if (candidatesResult.err) {
-		(
-			await ConnectionsService.updateSyncStatusById(connectionId, {
-				syncError: true,
-			})
-		).unwrap();
-
+		unwrap(await ConnectionsService.updateSyncStatusById(connectionId, { syncError: true }));
 		return candidatesResult;
 	}
 
@@ -74,12 +69,7 @@ const _syncListConnection = async (connectionId: string): Promise<Result<void, u
 	});
 
 	if (!items.length && !connection.lastSyncedAt) {
-		(
-			await ConnectionsService.updateSyncStatusById(connectionId, {
-				syncError: true,
-			})
-		).unwrap();
-
+		unwrap(await ConnectionsService.updateSyncStatusById(connectionId, { syncError: true }));
 		return Err(DomainError.of('No products found, is the list private?'));
 	}
 
@@ -87,26 +77,23 @@ const _syncListConnection = async (connectionId: string): Promise<Result<void, u
 		const connectionsService = ConnectionsService.$with(tx);
 		const itemsService = ItemsService.$with(tx);
 
-		(
+		unwrap(
 			await connectionsService.updateSyncStatusById(connectionId, {
 				lastSyncedAt: new Date(),
 				syncError: false,
-			})
-		).unwrap();
+			}),
+		);
 
 		if (items.length === 0) {
-			(await itemsService.deleteByConnectionId(connectionId)).unwrap();
+			unwrap(await itemsService.deleteByConnectionId(connectionId));
 		} else {
 			const activeIds = items.map((item) => item.id);
-			(
-				await itemsService.deleteByConnectionId(connectionId, ...activeIds)
-			).unwrap();
-
-			(await itemsService.upsert(items)).unwrap();
+			unwrap(await itemsService.deleteByConnectionId(connectionId, ...activeIds));
+			unwrap(await itemsService.upsert(items));
 		}
 	});
 
-	(await WishlistService.touchById(connection.wishlistId)).unwrap();
+	unwrap(await WishlistService.touchById(connection.wishlistId));
 	return Ok(undefined);
 };
 

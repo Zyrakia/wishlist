@@ -1,9 +1,11 @@
 import { form, query } from '$app/server';
-import z from 'zod';
-import { checkRole } from './auth.remote';
-import { error } from '@sveltejs/kit';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { AdminService } from '$lib/server/services/admin';
+import { unwrap } from '$lib/server/util/service';
+import { error } from '@sveltejs/kit';
+import z from 'zod';
+
+import { checkRole } from './auth.remote';
+import { syncListConnection } from '$lib/server/generation/connection-sync';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
@@ -21,9 +23,7 @@ export const listUsers = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const result = await AdminService.listUsersPage(limit, offset);
-		if (result.err) throw result.val;
-		return result.val;
+		return unwrap(await AdminService.listUsersPage(limit, offset));
 	},
 );
 
@@ -36,9 +36,7 @@ export const listErroredConnections = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const result = await AdminService.listErroredConnectionsPage(limit, offset);
-		if (result.err) throw result.val;
-		return result.val;
+		return unwrap(await AdminService.listErroredConnectionsPage(limit, offset));
 	},
 );
 

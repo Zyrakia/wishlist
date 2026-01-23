@@ -4,7 +4,7 @@ import { GroupsService } from '$lib/server/services/groups';
 import { ItemsService } from '$lib/server/services/items';
 import { ReservationsService } from '$lib/server/services/reservations';
 import { WishlistService } from '$lib/server/services/wishlist';
-import { DomainError } from '$lib/server/util/service';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { error } from '@sveltejs/kit';
 import z from 'zod';
 import { resolveMe } from './auth.remote';
@@ -18,54 +18,25 @@ export const reserveItem = form(
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while reserving an item');
 
 		const viewer = await resolveMe({});
-		const wlResult = await WishlistService.getBySlugForNonOwnerOrErr(
-			wishlist_slug,
-			viewer.id,
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForNonOwnerOrErr(wishlist_slug, viewer.id),
+			invalid,
 		);
-		if (wlResult.err) {
-			if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-			throw wlResult.val;
-		}
-		const wl = wlResult.val;
 
-		const itemResult = await ItemsService.getByIdOrErr(itemId, wl.id);
-		if (itemResult.err) {
-			if (DomainError.is(itemResult.val)) return invalid(itemResult.val.message);
-			throw itemResult.val;
-		}
+		unwrapOrDomain(await ItemsService.getByIdOrErr(itemId, wl.id), invalid);
+		unwrapOrDomain(await ReservationsService.getByItemIdOrErr(itemId), invalid);
+		unwrapOrDomain(await GroupsService.sharesByUserIdsOrErr(viewer.id, wl.userId), invalid);
 
-		const reservationResult = await ReservationsService.getByItemIdOrErr(itemId);
-		if (reservationResult.err) {
-			if (DomainError.is(reservationResult.val)) return invalid(reservationResult.val.message);
-			throw reservationResult.val;
-		}
-
-		const shareResult = await GroupsService.sharesByUserIdsOrErr(viewer.id, wl.userId);
-		if (shareResult.err) {
-			if (DomainError.is(shareResult.val)) return invalid(shareResult.val.message);
-			throw shareResult.val;
-		}
-
-		const createResult = await ReservationsService.create({
-			itemId: itemId,
-			userId: viewer.id,
-			wishlistId: wl.id,
-		});
-		if (createResult.err) throw createResult.val;
+		unwrap(
+			await ReservationsService.create({ itemId: itemId, userId: viewer.id, wishlistId: wl.id }),
+		);
 	},
 );
 
-export const removeReservation = form(
-	z.object({ itemId: z.string() }),
-	async ({ itemId }) => {
-		const viewer = verifyAuth();
-		const deleteResult = await ReservationsService.deleteByUserAndItemIds(
-			viewer.id,
-			itemId,
-		);
-		if (deleteResult.err) throw deleteResult.val;
-	},
-);
+export const removeReservation = form(z.object({ itemId: z.string() }), async ({ itemId }) => {
+	const viewer = verifyAuth();
+	unwrap(await ReservationsService.deleteByUserAndItemIds(viewer.id, itemId));
+});
 
 export const getReservations = query(async () => {
 	const {
@@ -77,14 +48,17 @@ export const getReservations = query(async () => {
 	const viewer = locals.user;
 	if (!viewer) return;
 
-	const wlResult = await WishlistService.getBySlugForNonOwnerOrErr(wishlist_slug, viewer.id);
-	if (wlResult.err) return;
-	const wl = wlResult.val;
+	const wl = unwrapOrDomain(
+		await WishlistService.getBySlugForNonOwnerOrErr(wishlist_slug, viewer.id),
+		() => undefined,
+	);
+	if (!wl) return;
 
-	const shareResult = await GroupsService.sharesByUserIdsOrErr(viewer.id, wl.userId);
-	if (shareResult.err) return;
+	const shares = unwrapOrDomain(
+		await GroupsService.sharesByUserIdsOrErr(viewer.id, wl.userId),
+		() => undefined,
+	);
+	if (!shares) return;
 
-	const reservationsResult = await ReservationsService.listByWishlistId(wl.id);
-	if (reservationsResult.err) throw reservationsResult.val;
-	return reservationsResult.val;
+	return unwrap(await ReservationsService.listByWishlistId(wl.id));
 });

@@ -10,7 +10,7 @@ import { error, redirect } from '@sveltejs/kit';
 
 import { ItemsService } from '../server/services/items';
 import { WishlistService } from '../server/services/wishlist';
-import { DomainError } from '$lib/server/util/service';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 
 export const createItem = form(
 	ItemSchema.safeExtend({
@@ -25,27 +25,18 @@ export const createItem = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
-		const wlResult = await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id);
-		if (wlResult.err) {
-			if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-			throw wlResult.val;
-		}
-		const wl = wlResult.val;
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+			invalid,
+		);
 
 		data.continue ??= false;
 		const redirectUrl = data.continue
 			? `${url.pathname}?continue=true`
 			: `/lists/${wishlist_slug}`;
 
-		const createResult = await ItemsService.create({
-			id: randomUUID(),
-			wishlistId: wl.id,
-			...data,
-		});
-		if (createResult.err) throw createResult.val;
-
-		const touchResult = await WishlistService.touchById(wl.id);
-		if (touchResult.err) throw touchResult.val;
+		unwrap(await ItemsService.create({ id: randomUUID(), wishlistId: wl.id, ...data }));
+		unwrap(await WishlistService.touchById(wl.id));
 		redirect(303, redirectUrl);
 	},
 );
@@ -60,18 +51,13 @@ export const updateItem = form(ItemSchema.partial(), async (data, invalid) => {
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
-	const wlResult = await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id);
-	if (wlResult.err) {
-		if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-		throw wlResult.val;
-	}
-	const wl = wlResult.val;
+	const wl = unwrapOrDomain(
+		await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+		invalid,
+	);
 
-	const updateResult = await ItemsService.updateById(item_id, wl.id, data);
-	if (updateResult.err) throw updateResult.val;
-
-	const touchResult = await WishlistService.touchById(wl.id);
-	if (touchResult.err) throw touchResult.val;
+	unwrap(await ItemsService.updateById(item_id, wl.id, data));
+	unwrap(await WishlistService.touchById(wl.id));
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
@@ -85,15 +71,12 @@ export const setItemFavorited = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while favoriting an item');
 
-		const wlResult = await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id);
-		if (wlResult.err) {
-			if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-			throw wlResult.val;
-		}
-		const wl = wlResult.val;
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+			invalid,
+		);
 
-		const updateResult = await ItemsService.updateFavoritedById(itemId, wl.id, favorited);
-		if (updateResult.err) throw updateResult.val;
+		unwrap(await ItemsService.updateFavoritedById(itemId, wl.id, favorited));
 	},
 );
 
@@ -114,12 +97,8 @@ export const reorderItems = query(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while updating item ordering');
 
-		const wlResult = await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id);
-		if (wlResult.err) throw wlResult.val;
-		const wl = wlResult.val;
-
-		const reorderResult = await ItemsService.reorder(wl.id, items);
-		if (reorderResult.err) throw reorderResult.val;
+		const wl = unwrap(await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id));
+		unwrap(await ItemsService.reorder(wl.id, items));
 	},
 );
 
@@ -145,21 +124,13 @@ export const deleteItem = form(
 		if (!data.confirm)
 			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
-		const wlResult = await WishlistService.getBySlugForOwnerOrErr(
-			data.wishlistSlug,
-			user.id,
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(data.wishlistSlug, user.id),
+			invalid,
 		);
-		if (wlResult.err) {
-			if (DomainError.is(wlResult.val)) return invalid(wlResult.val.message);
-			throw wlResult.val;
-		}
-		const wl = wlResult.val;
 
-		const deleteResult = await ItemsService.deleteById(data.itemId, wl.id);
-		if (deleteResult.err) throw deleteResult.val;
-
-		const touchResult = await WishlistService.touchById(wl.id);
-		if (touchResult.err) throw touchResult.val;
+		unwrap(await ItemsService.deleteById(data.itemId, wl.id));
+		unwrap(await WishlistService.touchById(wl.id));
 		redirect(303, `/lists/${data.wishlistSlug}`);
 	},
 );
@@ -167,17 +138,11 @@ export const deleteItem = form(
 export const getItemForWishlist = query(
 	z.object({ wishlistId: z.string(), itemId: z.string() }),
 	async ({ wishlistId, itemId }) => {
-		const itemResult = await ItemsService.getById(itemId, wishlistId);
-		if (itemResult.err) throw itemResult.val;
-		return itemResult.val;
+		return unwrap(await ItemsService.getById(itemId, wishlistId));
 	},
 );
 
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
-
-	const genResult = await generateItemCandidate(data.url);
-	if (genResult.ok) return genResult.val;
-	if (DomainError.is(genResult.val)) return invalid(genResult.val.message);
-	throw genResult.val;
+	return unwrapOrDomain(await generateItemCandidate(data.url), invalid);
 });
