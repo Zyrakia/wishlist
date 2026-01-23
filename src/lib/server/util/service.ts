@@ -1,4 +1,4 @@
-import { Err, type Result, type OkImpl, type ErrImpl } from 'ts-results';
+import { Err, type Result, type OkImpl, type ErrImpl } from 'ts-results-es';
 
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 

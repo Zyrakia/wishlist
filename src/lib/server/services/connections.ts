@@ -1,5 +1,5 @@
 import { count, eq, sql } from 'drizzle-orm';
-import { Ok } from 'ts-results';
+import { Ok } from 'ts-results-es';
 
 import { db } from '../db';
 import { WishlistConnectionTable } from '../db/schema';

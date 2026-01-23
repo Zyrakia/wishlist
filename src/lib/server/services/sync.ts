@@ -3,7 +3,7 @@ import { formatRelative } from '$lib/util/date';
 import { safePrune } from '$lib/util/safe-prune';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
-import { Err, Ok, type Result } from 'ts-results';
+import { Err, Ok, type Result } from 'ts-results-es';
 
 import { db, type DatabaseClient } from '../db';
 import { generateItemCandidates, type ItemCandidate } from '../generation/item-generator';

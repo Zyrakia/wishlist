@@ -4,7 +4,7 @@ import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
 import TurndownService from 'turndown';
-import { Err, Ok, Result } from 'ts-results';
+import { Err, Ok, Result } from 'ts-results-es';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';

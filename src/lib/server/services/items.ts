@@ -1,5 +1,5 @@
 import { and, eq, notInArray } from 'drizzle-orm';
-import { Err, Ok } from 'ts-results';
+import { Err, Ok } from 'ts-results-es';
 
 import { db } from '../db';
 import { WishlistItemTable } from '../db/schema';
