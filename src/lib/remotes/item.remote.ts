@@ -2,23 +2,21 @@ import { form, getRequestEvent, query } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
 import { generateItemCandidate } from '$lib/server/generation/item-generator';
-import { requestGeolocation } from '$lib/server/util/geolocation';
 import { strBoolean } from '$lib/util/zod';
-import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
 
-import { db } from '../server/db';
-import { WishlistItemTable, WishlistTable } from '../server/db/schema';
-import { touchList } from './wishlist.remote';
+import { ItemsService } from '../server/services/items';
+import { WishlistService } from '../server/services/wishlist';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 
 export const createItem = form(
 	ItemSchema.safeExtend({
 		continue: z.boolean().optional(),
 	}),
-	async (data) => {
+	async (data, invalid) => {
 		const {
 			params: { wishlist_slug },
 			url,
@@ -27,31 +25,23 @@ export const createItem = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while creating an item');
 
-		const wl = await db().query.WishlistTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
-		});
-
-		if (!wl) error(400, 'Invalid wishlist slug provided');
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+			invalid,
+		);
 
 		data.continue ??= false;
 		const redirectUrl = data.continue
 			? `${url.pathname}?continue=true`
 			: `/lists/${wishlist_slug}`;
 
-		await db()
-			.insert(WishlistItemTable)
-			.values({
-				id: randomUUID(),
-				wishlistId: wl.id,
-				...data,
-			});
-
-		touchList({ id: wl.id });
+		unwrap(await ItemsService.create({ id: randomUUID(), wishlistId: wl.id, ...data }));
+		unwrap(await WishlistService.touchById(wl.id));
 		redirect(303, redirectUrl);
 	},
 );
 
-export const updateItem = form(ItemSchema.partial(), async (data) => {
+export const updateItem = form(ItemSchema.partial(), async (data, invalid) => {
 	const {
 		params: { wishlist_slug, item_id },
 	} = getRequestEvent();
@@ -61,24 +51,19 @@ export const updateItem = form(ItemSchema.partial(), async (data) => {
 	if (!wishlist_slug || !item_id)
 		error(400, 'A wishlist slug and item ID is required while updating an item');
 
-	const wl = await db().query.WishlistTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
-	});
+	const wl = unwrapOrDomain(
+		await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+		invalid,
+	);
 
-	if (!wl) error(400, 'Invalid wishlist slug provided');
-
-	await db()
-		.update(WishlistItemTable)
-		.set({ ...data })
-		.where(and(eq(WishlistItemTable.id, item_id), eq(WishlistItemTable.wishlistId, wl.id)));
-
-	touchList({ id: wl.id });
+	unwrap(await ItemsService.updateById(item_id, wl.id, data));
+	unwrap(await WishlistService.touchById(wl.id));
 	redirect(303, `/lists/${wishlist_slug}`);
 });
 
 export const setItemFavorited = form(
 	z.object({ favorited: strBoolean(), itemId: z.string() }),
-	async ({ favorited, itemId }) => {
+	async ({ favorited, itemId }, invalid) => {
 		const {
 			params: { wishlist_slug },
 		} = getRequestEvent();
@@ -86,17 +71,12 @@ export const setItemFavorited = form(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while favoriting an item');
 
-		const wl = await db().query.WishlistTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
-			columns: { id: true },
-		});
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+			invalid,
+		);
 
-		if (!wl) error(400, 'Invalid wishlist slug provided');
-
-		await db()
-			.update(WishlistItemTable)
-			.set({ favorited })
-			.where(and(eq(WishlistItemTable.id, itemId), eq(WishlistItemTable.wishlistId, wl.id)));
+		unwrap(await ItemsService.updateFavoritedById(itemId, wl.id, favorited));
 	},
 );
 
@@ -117,28 +97,8 @@ export const reorderItems = query(
 		const user = verifyAuth();
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while updating item ordering');
 
-		const wl = await db().query.WishlistTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, wishlist_slug)),
-			columns: { id: true },
-		});
-
-		if (!wl) error(400, 'Invalid wishlist slug provided');
-
-		await db().transaction(async (tx) => {
-			await Promise.all(
-				items.map((v) => {
-					return tx
-						.update(WishlistItemTable)
-						.set({ order: v.order })
-						.where(
-							and(
-								eq(WishlistItemTable.id, v.id),
-								eq(WishlistItemTable.wishlistId, wl.id),
-							),
-						);
-				}),
-			);
-		});
+		const wl = unwrap(await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id));
+		unwrap(await ItemsService.reorder(wl.id, items));
 	},
 );
 
@@ -158,38 +118,31 @@ export const deleteItem = form(
 				}),
 		]),
 	}),
-	async (data) => {
+	async (data, invalid) => {
 		const user = verifyAuth();
 
 		if (!data.confirm)
 			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
 
-		const wl = await db().query.WishlistTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.userId, user.id), eq(t.slug, data.wishlistSlug)),
-		});
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(data.wishlistSlug, user.id),
+			invalid,
+		);
 
-		if (!wl) error(400, 'Invalid wishlist slug provided');
-
-		await db()
-			.delete(WishlistItemTable)
-			.where(
-				and(eq(WishlistItemTable.id, data.itemId), eq(WishlistItemTable.wishlistId, wl.id)),
-			);
-
-		touchList({ id: wl.id });
+		unwrap(await ItemsService.deleteById(data.itemId, wl.id));
+		unwrap(await WishlistService.touchById(wl.id));
 		redirect(303, `/lists/${data.wishlistSlug}`);
+	},
+);
+
+export const getItemForWishlist = query(
+	z.object({ wishlistId: z.string(), itemId: z.string() }),
+	async ({ wishlistId, itemId }) => {
+		return unwrap(await ItemsService.getById(itemId, wishlistId));
 	},
 );
 
 export const generateItem = form(z.object({ url: RequiredUrlSchema }), async (data, invalid) => {
 	verifyAuth();
-
-	const geo = await requestGeolocation(getRequestEvent().getClientAddress());
-
-	const { data: candidate, error } = await generateItemCandidate(data.url, geo);
-	if (candidate) {
-		if (!candidate.name || !candidate.valid) {
-			invalid('No product found');
-		} else return { ...candidate, url: data.url };
-	} else if (typeof error === 'string') invalid(error);
+	return unwrapOrDomain(await generateItemCandidate(data.url), invalid);
 });

@@ -1,10 +1,6 @@
 <script lang="ts">
 	import Loader from '$lib/components/loader.svelte';
-	import {
-		forceResync,
-		paginateErroredConnections,
-		paginateUsers,
-	} from '$lib/remotes/admin.remote';
+	import { forceResync, listErroredConnections, listUsers } from '$lib/remotes/admin.remote';
 	import { formatRelative } from '$lib/util/date';
 	import {
 		ArrowBigLeftIcon,
@@ -19,14 +15,14 @@
 	const connPagination = $state({ page: 0, limit: 10 });
 
 	const usersQ = $derived(
-		paginateUsers({
+		listUsers({
 			page: usersPagination.page,
 			limit: usersPagination.limit,
 		}),
 	);
 
 	const connQ = $derived(
-		paginateErroredConnections({
+		listErroredConnections({
 			page: connPagination.page,
 			limit: connPagination.limit,
 		}),

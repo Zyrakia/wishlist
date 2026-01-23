@@ -58,7 +58,6 @@
 <div class="relative flex h-full w-full max-w-full flex-col">
 	<svelte:element
 		this={canClick ? 'a' : 'div'}
-		role="link"
 		tabindex="0"
 		class={[
 			'button flex h-full w-full flex-col justify-center rounded-xl border border-accent/30 from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-all dark:bg-radial-[at_50%_25%]',

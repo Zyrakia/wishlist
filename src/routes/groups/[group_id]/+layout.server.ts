@@ -1,5 +1,5 @@
+import { getGroupById } from '$lib/remotes/group.remote';
 import { verifyAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db';
 
 import { error } from '@sveltejs/kit';
 
@@ -7,10 +7,7 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async ({ params, locals }) => {
 	verifyAuth();
 
-	const group = await db().query.GroupTable.findFirst({
-		where: (t, { eq }) => eq(t.id, params.group_id),
-		with: { owner: { columns: { id: true, name: true } } },
-	});
+	const group = await getGroupById({ groupId: params.group_id });
 
 	if (!group) error(404);
 	return {

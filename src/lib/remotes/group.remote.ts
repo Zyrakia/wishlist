@@ -2,46 +2,33 @@ import { form, getRequestEvent, query } from '$app/server';
 import { CredentialsSchema } from '$lib/schemas/auth';
 import { GroupSchema } from '$lib/schemas/group';
 import { verifyAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-import { GroupInviteTable, GroupMembershipTable, GroupTable } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
+import { GroupsService } from '$lib/server/services/groups';
+import { ReservationsService } from '$lib/server/services/reservations';
+import { UsersService } from '$lib/server/services/users';
+import { unwrap } from '$lib/server/util/service';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
-import { and, eq, sql } from 'drizzle-orm';
 import z from 'zod';
 
 import { error, redirect } from '@sveltejs/kit';
 
 import { resolveMe } from './auth.remote';
-import { cleanReservationsAfterGroupExit } from '$lib/server/reservations';
 
 export const createGroup = form(GroupSchema, async (data, invalid) => {
 	const user = verifyAuth();
 
-	const existing = await db().query.GroupTable.findFirst({
-		where: (t, { eq }) => eq(t.ownerId, user.id),
-	});
+	const existing = unwrap(await GroupsService.getByOwnerId(user.id));
 	if (existing) invalid('You can only own one group');
 
-	const group = await db().transaction(async (tx) => {
-		const group = await tx
-			.insert(GroupTable)
-			.values({
-				id: randomUUID(),
-				ownerId: user.id,
-				memberLimit: 25,
-				...data,
-			})
-			.returning()
-			.get();
-
-		await tx.insert(GroupMembershipTable).values({
-			groupId: group.id,
-			userId: user.id,
-		});
-
-		return group;
-	});
+	const group = unwrap(
+		await GroupsService.create({
+			id: randomUUID(),
+			ownerId: user.id,
+			memberLimit: 25,
+			...data,
+		}),
+	);
 
 	redirect(303, `/groups/${group.id}`);
 });
@@ -54,13 +41,10 @@ export const updateGroup = form(GroupSchema.partial(), async (data) => {
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = await db().query.GroupTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.id, group_id), eq(t.ownerId, user.id)),
-	});
-
+	const group = unwrap(await GroupsService.getByIdForOwner(group_id, user.id));
 	if (!group) error(400, 'Invalid group ID provided');
 
-	await db().update(GroupTable).set(data).where(eq(GroupTable.id, group_id));
+	unwrap(await GroupsService.updateById(group_id, data));
 	redirect(303, `/groups/${group.id}`);
 });
 
@@ -75,13 +59,10 @@ export const deleteGroup = form(
 		if (!group_id) error(400, 'A group ID is required');
 		if (!confirm) redirect(303, `/groups/${group_id}/delete-confirm`);
 
-		const group = await db().query.GroupTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.id, group_id), eq(t.ownerId, user.id)),
-		});
-
+		const group = unwrap(await GroupsService.getByIdForOwner(group_id, user.id));
 		if (!group) error(400, 'Invalid group ID provided');
 
-		await db().delete(GroupTable).where(eq(GroupTable.id, group.id));
+		unwrap(await GroupsService.deleteById(group.id));
 		redirect(303, '/');
 	},
 );
@@ -97,50 +78,31 @@ export const issueGroupInvite = form(
 		const user = verifyAuth();
 		if (!group_id) error(400, 'A group ID is required');
 
-		const group = await db().query.GroupTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.id, group_id), eq(t.ownerId, user.id)),
-			with: { owner: { columns: { name: true } } },
-			extras: (t) => ({
-				inviteCount:
-					sql<number>`(select count(*) from ${GroupInviteTable} where ${GroupInviteTable.groupId} = ${group_id})`.as(
-						'inviteCount',
-					),
-				memberCount:
-					sql<number>`(select count(*) from ${GroupMembershipTable} where ${GroupMembershipTable.groupId} = ${group_id})`.as(
-						'memberCount',
-					),
-			}),
-		});
+		const group = unwrap(await GroupsService.getByIdWithInviteCountsForOwner(group_id, user.id));
 
 		if (!group) error(400, 'Invalid group ID provided');
 		if (group.memberCount >= group.memberLimit) invalid('The group is alrady full');
 		else if (group.memberCount + group.inviteCount >= group.memberLimit)
 			invalid('Too many pending invites');
 
-		const existingUser = await db().query.UserTable.findFirst({
-			where: (t, { eq }) => eq(t.email, targetEmail),
-		});
+		const existingUser = unwrap(await UsersService.getByEmail(targetEmail));
 
 		if (existingUser) {
-			const existingMembership = await db().query.GroupMembershipTable.findFirst({
-				where: (t, { and, eq }) =>
-					and(eq(t.groupId, group.id), eq(t.userId, existingUser.id)),
-			});
-
+			const existingMembership = unwrap(
+				await GroupsService.getMembershipByGroupIdAndUserId(group.id, existingUser.id),
+			);
 			if (existingMembership) invalid('User is already a member');
 		}
 
-		const existingInvite = await db().query.GroupInviteTable.findFirst({
-			where: (t, { and, eq }) => and(eq(t.groupId, group.id), eq(t.targetEmail, targetEmail)),
-		});
-
+		const existingInvite = unwrap(
+			await GroupsService.getInviteByGroupIdAndEmail(group.id, targetEmail),
+		);
 		if (existingInvite) invalid('User is already invited');
 
 		const secret = randomUUID();
-		const [createdInvite] = await db()
-			.insert(GroupInviteTable)
-			.values({ groupId: group.id, targetEmail, id: secret })
-			.returning();
+		const [createdInvite] = unwrap(
+			await GroupsService.createInvite({ groupId: group.id, targetEmail, id: secret }),
+		);
 
 		await sendEmail(targetEmail, {
 			template: {
@@ -165,13 +127,10 @@ export const revokeGroupInvite = form(z.object({ inviteId: z.string() }), async 
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = await db().query.GroupTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.id, group_id), eq(t.ownerId, user.id)),
-	});
-
+	const group = unwrap(await GroupsService.getByIdForOwner(group_id, user.id));
 	if (!group) error(400, 'Invalid group ID provided');
 
-	await db().delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
+	unwrap(await GroupsService.deleteInviteById(inviteId));
 	redirect(303, `/groups/${group.id}`);
 });
 
@@ -181,41 +140,23 @@ export const resolveGroupInvite = form(
 		const user = await resolveMe({});
 		if (!user) error(401);
 
-		const invite = await db().query.GroupInviteTable.findFirst({
-			where: (t, { eq }) => eq(t.id, inviteId),
-		});
+		const invite = unwrap(await GroupsService.getInviteById(inviteId));
 
 		if (!invite) return invalid(invalid.inviteId('Invite invalid or expired'));
 		if (invite.targetEmail !== user.email) invalid(invalid.inviteId('This is not your invite'));
 
 		if (decision === 'decline') {
-			await db().delete(GroupInviteTable).where(eq(GroupInviteTable.id, invite.id));
+			unwrap(await GroupsService.deleteInviteById(invite.id));
 			redirect(303, `/`);
 		}
 
-		const group = await db().query.GroupTable.findFirst({
-			where: (t, { eq }) => eq(t.id, invite.groupId),
-			extras: {
-				memberCount:
-					sql<number>`(select count(*) from ${GroupMembershipTable} where ${GroupMembershipTable.groupId} = ${GroupTable.id})`.as(
-						'memberCount',
-					),
-			},
-		});
+		const group = unwrap(await GroupsService.getByIdWithMemberCount(invite.groupId));
 
 		if (!group) return invalid(invalid.inviteId('Group does not exist'));
 		if (group.memberCount >= group.memberLimit)
 			return invalid(invalid.inviteId('Group is full'));
 
-		await db().transaction(async (tx) => {
-			await tx.insert(GroupMembershipTable).values({
-				userId: user.id,
-				groupId: invite.groupId,
-			});
-
-			await tx.delete(GroupInviteTable).where(eq(GroupInviteTable.id, invite.id));
-		});
-
+		unwrap(await GroupsService.acceptInvite(invite.groupId, user.id, invite.id));
 		redirect(303, `/`);
 	},
 );
@@ -228,32 +169,20 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	const user = verifyAuth();
 	if (!group_id) error(400, 'A group ID is required');
 
-	const group = await db().query.GroupTable.findFirst({
-		where: (t, { eq }) => eq(t.id, group_id),
-	});
-
+	const group = unwrap(await GroupsService.getById(group_id));
 	if (!group) error(400, 'Invalid group ID provided');
 
 	if (group.ownerId === targetId) error(400, 'Cannot remove group owner');
 	if (group.ownerId !== user.id && user.id !== targetId)
 		error(401, 'Cannot modify other members of this group');
 
-	const membership = await db().query.GroupMembershipTable.findFirst({
-		where: (t, { and, eq }) => and(eq(t.groupId, group.id), eq(t.userId, targetId)),
-	});
-
+	const membership = unwrap(
+		await GroupsService.getMembershipByGroupIdAndUserId(group.id, targetId),
+	);
 	if (!membership) error(400, 'User is not an active member');
 
-	await db()
-		.delete(GroupMembershipTable)
-		.where(
-			and(
-				eq(GroupMembershipTable.groupId, group.id),
-				eq(GroupMembershipTable.userId, targetId),
-			),
-		);
-
-	await cleanReservationsAfterGroupExit(targetId);
+	unwrap(await GroupsService.deleteMembershipByGroupIdAndUserId(group.id, targetId));
+	unwrap(await ReservationsService.cleanAfterGroupExit(targetId));
 
 	redirect(303, `/groups/${group.id}`);
 });
@@ -261,44 +190,13 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 export const getMyInvites = query(async () => {
 	const user = await resolveMe({});
 	if (!user) return [];
-
-	return await db().query.GroupInviteTable.findMany({
-		where: (t, { eq }) => eq(t.targetEmail, user.email),
-		with: {
-			group: {
-				columns: { name: true },
-				with: { owner: { columns: { name: true } } },
-			},
-		},
-	});
+	return unwrap(await GroupsService.listInvitesByEmail(user.email));
 });
 
 export const getGroupActivity = query(async () => {
 	const user = verifyAuth();
 
-	const memberships = await db().query.GroupMembershipTable.findMany({
-		where: (t, { eq }) => eq(t.userId, user.id),
-		with: {
-			group: {
-				with: {
-					members: {
-						with: {
-							user: {
-								columns: { name: true, id: true },
-								with: {
-									wishlists: {
-										where: (t, { ne }) => ne(t.userId, user.id),
-										orderBy: (t, { desc }) => desc(t.activityAt),
-										limit: 5,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	});
+	const memberships = unwrap(await GroupsService.listActivityByUserId(user.id));
 
 	return memberships.map(({ group }) => {
 		const wishlists = group.members.flatMap((member) => {
@@ -318,4 +216,25 @@ export const getGroupActivity = query(async () => {
 			activity: wishlists.slice(0, 5),
 		};
 	});
+});
+
+export const getOwnedGroup = query(async () => {
+	const user = verifyAuth();
+	return unwrap(await GroupsService.getByOwnerId(user.id));
+});
+
+export const getGroupById = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	return unwrap(await GroupsService.getByIdWithOwner(groupId));
+});
+
+export const getGroupMembers = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	return unwrap(await GroupsService.listMembersWithListsByGroupId(groupId));
+});
+
+export const getGroupInvites = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	return unwrap(await GroupsService.listInvitesByGroupId(groupId));
+});
+
+export const getGroupInvite = query(z.object({ inviteId: z.string() }), async ({ inviteId }) => {
+	return unwrap(await GroupsService.getInviteByIdWithGroup(inviteId));
 });

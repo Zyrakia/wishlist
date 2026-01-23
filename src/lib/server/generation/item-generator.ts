@@ -1,18 +1,18 @@
 import { dev } from '$app/environment';
 import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
-import { safeCall, wrapSafeAsync } from '$lib/util/safe-call';
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
 import { chromium, devices, type Page } from 'playwright';
 import TurndownService from 'turndown';
+import { Err, Ok, Result } from 'ts-results-es';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
 import { reportGenerationUsage } from './usage-stats';
 
-import type { Geolocation } from '../util/geolocation';
 import ENV from '$lib/env';
+import { DomainError } from '../util/service';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 
@@ -25,9 +25,10 @@ const CandidateSchema = z.object({
 	url: z.url().optional().nullish(),
 });
 
+export type ItemCandidate = z.infer<typeof CandidateSchema>;
+
 interface RenderOptions {
 	maxScrolls?: number;
-	geolocation?: Geolocation;
 }
 
 interface DistillOptions {
@@ -52,18 +53,15 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	}
 }
 
-async function renderUrl(url: string, { maxScrolls, geolocation }: RenderOptions = {}) {
+async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
 	const browser = await chromium.launch({ headless: !dev });
 
 	try {
 		const page = await browser.newPage({
 			locale: 'en-US',
-			timezoneId: geolocation?.timezone || 'America/New_York',
+			timezoneId: 'America/New_York',
 			extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
 			...devices['iPhone 15 Pro Max'],
-			geolocation: geolocation
-				? { latitude: geolocation.latitude, longitude: geolocation.longitude }
-				: undefined,
 		});
 
 		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -131,8 +129,9 @@ function distillPage(
 		const alt = img.attr('alt');
 
 		if (src && alt) {
-			const { data: absoluteSrc } = safeCall(() => new URL(src, baseUrl).href);
-			if (absoluteSrc) {
+			const absoluteSrcResult = Result.wrap(() => new URL(src, baseUrl).href);
+			if (absoluteSrcResult.ok) {
+				const absoluteSrc = absoluteSrcResult.val;
 				img.attr('src', absoluteSrc);
 				return;
 			}
@@ -150,8 +149,9 @@ function distillPage(
 			if (href.startsWith('https')) return;
 			if (stripRelativeLinks) return void link.remove();
 
-			const { data: absoluteHref } = safeCall(() => new URL(href, baseUrl).href);
-			if (absoluteHref) {
+			const absoluteHrefResult = Result.wrap(() => new URL(href, baseUrl).href);
+			if (absoluteHrefResult.ok) {
+				const absoluteHref = absoluteHrefResult.val;
 				link.attr('href', absoluteHref);
 				return;
 			}
@@ -179,24 +179,31 @@ ${Object.entries(meta)
 ${markdownContent.replace(/\n{2,}/g, '\n').trim()}`;
 }
 
-const distillUrl = wrapSafeAsync(
-	async (url: string, renderOptions?: RenderOptions, distillOptions?: DistillOptions) => {
-		const { data: parsedUrl, success: isValidUrl } = safeCall(() => new URL(url));
-		if (!isValidUrl) throw 'Invalid URL';
+const distillUrl = async (
+	url: string,
+	renderOptions?: RenderOptions,
+	distillOptions?: DistillOptions,
+): Promise<Result<string, DomainError>> => {
+	const parsedUrlResult = Result.wrap(() => new URL(url));
+	if (parsedUrlResult.err) return Err(DomainError.of('Invalid URL'));
 
-		const html = await renderUrl(parsedUrl.href, renderOptions);
-		if (!html) throw 'Cannot load page';
+	const parsedUrl = parsedUrlResult.val;
+	const html = await renderUrl(parsedUrl.href, renderOptions);
+	if (!html) return Err(DomainError.of('Cannot render page'));
 
-		const distilled = distillPage(html, parsedUrl.origin, distillOptions);
-		if (!distilled) throw 'Cannot read page';
+	const distilled = distillPage(html, parsedUrl.origin, distillOptions);
+	if (!distilled) return Err(DomainError.of('Cannot read page'));
 
-		return distilled;
-	},
-);
+	return Ok(distilled);
+};
 
-export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Geolocation) => {
-	const { data: page, success, error } = await distillUrl(url, { geolocation: from });
-	if (!success) throw error;
+export const generateItemCandidate = async (
+	url: string,
+): Promise<Result<z.infer<typeof CandidateSchema>, DomainError>> => {
+	const pageResult = await distillUrl(url);
+	if (pageResult.err) return pageResult;
+
+	const page = pageResult.val;
 
 	try {
 		const { object: candidate, usage } = await generateObject({
@@ -213,26 +220,25 @@ export const generateItemCandidate = wrapSafeAsync(async (url: string, from?: Ge
 
 		reportGenerationUsage(url, usage);
 
-		if (!candidate?.valid) throw 'No product found';
-		return candidate;
+		if (!candidate?.valid) return Err(DomainError.of('No product found'));
+		return Ok(candidate);
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			throw 'Generation temporarily unavailable';
-		} else if (typeof err === 'string') throw err;
-		else throw 'Generation failed';
+			return Err(DomainError.of('Generation temporarily disabled'));
+		}
+		return Err(DomainError.of('Generation failed'));
 	}
-});
+};
 
-export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: Geolocation) => {
-	const {
-		data: page,
-		success,
-		error,
-	} = await distillUrl(url, { maxScrolls: 5, geolocation: from }, { stripRelativeLinks: false });
+export const generateItemCandidates = async (
+	url: string,
+): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>, DomainError>> => {
+	const pageResult = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
+	if (pageResult.err) return pageResult;
 
-	if (!success) throw error;
+	const page = pageResult.val;
 
 	try {
 		const {
@@ -256,13 +262,14 @@ export const generateItemCandidates = wrapSafeAsync(async (url: string, from?: G
 
 		reportGenerationUsage(url, usage);
 
-		return candidates.filter((v) => v.valid);
+		return Ok(candidates.filter((v) => v.valid));
 	} catch (err) {
 		console.warn(err);
 
 		if (APICallError.isInstance(err) && err.statusCode === 429) {
-			throw 'Generation temporarily unavailable';
-		} else if (typeof err === 'string') throw err;
-		else throw 'Generation failed';
+			return Err(DomainError.of('Generation temporarily disabled'));
+		}
+
+		return Err(DomainError.of('Generation failed'));
 	}
-});
+};
