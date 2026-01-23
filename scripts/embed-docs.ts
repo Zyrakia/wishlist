@@ -1,18 +1,16 @@
 import { createHash } from 'crypto';
-import { Dirent, readdirSync, readFileSync } from 'fs';
+import { type Dirent, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { Embedding, embedMany } from 'ai';
-import { createMistral } from '@ai-sdk/mistral';
-import { db } from '../src/lib/server/db';
-import ENV from '../src/lib/env';
-import { DocumentationTable } from '../src/lib/server/db/schema';
-import { notInArray } from 'drizzle-orm';
+import type { Embedding } from 'ai';
+
+import { DocsService } from '../src/lib/server/services/docs';
+import { EMBEDDING_MAX_INPUT, EmbeddingService } from '../src/lib/server/services/embedding';
+import { unwrap } from '../src/lib/server/util/service';
 
 const DOCS_ROOT = join(process.cwd(), 'docs');
-const CHUNCK_DELIM = '##';
-const CHUNCK_LIMIT = 8192;
+const CHUNK_DELIM = '##';
 
-type DocumentChunck = {
+type DocumentChunk = {
 	id: string;
 	origin: Dirent;
 	title: string;
@@ -20,136 +18,104 @@ type DocumentChunck = {
 	hash: string;
 };
 
-type EmbeddedChunck = DocumentChunck & {
+type EmbeddedChunk = DocumentChunk & {
 	embedding: Embedding;
 };
 
-const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
-const embeddingModel = modelHost.textEmbedding('mistral-embed');
-
 const slugify = (s: string) => s.toLowerCase().replaceAll(/\s+/g, '-');
+
 function generateId(origin: Dirent, title: string) {
 	return `${slugify(origin.name)}:${slugify(title)}`;
 }
 
-function chunckDocument(file: Dirent) {
+function chunkDocument(file: Dirent) {
 	if (!file.isFile()) return;
 
 	const absolutePath = join(file.parentPath, file.name);
 	const content = readFileSync(absolutePath, { encoding: 'utf-8' });
 
-	return content.split(CHUNCK_DELIM).flatMap((v, i): DocumentChunck[] => {
+	return content.split(CHUNK_DELIM).flatMap((v, i): DocumentChunk[] => {
 		const lines = v.split('\n').map((v) => v.trim());
 		const [title, ...content] = lines;
 
 		if (!title || !content.length) {
 			if (i === 0) return [];
-			throw `Empty chunck ${file.name}#${i}`;
+			throw `Empty chunk ${file.name}#${i}`;
 		}
 
-		const chunck = lines.join('\n');
-		if (chunck.length >= CHUNCK_LIMIT) {
-			throw `Chunck ${file.name}@${title} above chunck limit (${chunck.length}/${CHUNCK_LIMIT}).`;
+		const chunk = lines.join('\n');
+		if (chunk.length >= EMBEDDING_MAX_INPUT) {
+			throw `Chunk ${file.name}@${title} above embedding limit (${chunk.length}/${EMBEDDING_MAX_INPUT}).`;
 		}
 
 		return [
 			{
 				id: generateId(file, title),
 				title,
-				content: chunck,
-				hash: createHash('sha256').update(chunck).digest('hex'),
+				content: chunk,
+				hash: createHash('sha256').update(chunk).digest('hex'),
 				origin: file,
 			},
 		];
 	});
 }
 
-async function embedChuncks(chuncks: DocumentChunck[]) {
-	if (chuncks.length === 0) return [];
+async function embedChunks(chunks: DocumentChunk[]) {
+	if (chunks.length === 0) return [];
 
-	const { embeddings } = await embedMany({
-		model: embeddingModel,
-		values: chuncks.map((v) => v.content),
-	});
+	const embeddings = unwrap(await EmbeddingService.generateMany(chunks.map((v) => v.content)));
 
-	return embeddings.map((v, i): EmbeddedChunck => {
-		const chunck = chuncks[i];
-		if (!chunck)
-			throw `Embedding -> Chunck Mismatch on index ${i}. ${embeddings.length} embeddings, ${chuncks.length} chuncks.`;
+	return embeddings.map((embedding, i): EmbeddedChunk => {
+		const chunk = chunks[i];
+		if (!chunk) {
+			throw `Embedding -> Chunk mismatch on index ${i}. ${embeddings.length} embeddings, ${chunks.length} chunks.`;
+		}
 
-		return {
-			...chunck,
-			embedding: v,
-		};
+		return { ...chunk, embedding };
 	});
 }
 
-async function insertChuncks(chuncks: EmbeddedChunck[]) {
+async function insertChunks(chunks: EmbeddedChunk[]) {
 	let inserted = 0;
 
 	await Promise.all(
-		chuncks.map(async (chunck) => {
-			const insertRes = await db()
-				.insert(DocumentationTable)
-				.values({
-					id: chunck.id,
-					content: chunck.content,
-					contentHash: chunck.hash,
-					vector: chunck.embedding,
-				})
-				.onConflictDoUpdate({
-					target: DocumentationTable.id,
-					set: {
-						content: chunck.content,
-						contentHash: chunck.hash,
-						vector: chunck.embedding,
-					},
-				});
+		chunks.map(async (chunk) => {
+			const rowsAffected = unwrap(
+				await DocsService.upsertOnId({
+					id: chunk.id,
+					content: chunk.content,
+					contentHash: chunk.hash,
+					vector: chunk.embedding,
+				}),
+			);
 
-			inserted += insertRes.rowsAffected;
+			inserted += rowsAffected;
 		}),
 	);
 
 	return inserted;
 }
 
-async function deleteStaleChuncks(nonStaleIds: string[]) {
-	const res = await db()
-		.delete(DocumentationTable)
-		.where(notInArray(DocumentationTable.id, nonStaleIds));
+async function dedupeChunks(chunks: DocumentChunk[]) {
+	const existingHashes = unwrap(await DocsService.listHashesByIds(chunks.map((c) => c.id)));
+	const hashMap = new Map(existingHashes.map((h) => [h.id, h.contentHash]));
 
-	return res.rowsAffected;
-}
-
-async function dedupeChuncks(chuncks: DocumentChunck[]) {
-	const deduped: DocumentChunck[] = [];
-
-	for (const chunck of chuncks) {
-		const existing = await db().query.DocumentationTable.findFirst({
-			where: (t, { eq }) => eq(t.id, chunck.id),
-			columns: { contentHash: true },
-		});
-
-		if (existing && existing.contentHash === chunck.hash) continue;
-		else deduped.push(chunck);
-	}
-
-	return deduped;
+	return chunks.filter((chunk) => hashMap.get(chunk.id) !== chunk.hash);
 }
 
 async function main() {
 	const entries = readdirSync(DOCS_ROOT, { withFileTypes: true, recursive: true });
 
-	const chuncks = entries.flatMap((entry) => {
+	const chunks = entries.flatMap((entry) => {
 		if (!entry.isFile()) return [];
-		return chunckDocument(entry) || [];
+		return chunkDocument(entry) || [];
 	});
 
-	const chuncksWithEmbedding = await embedChuncks(await dedupeChuncks(chuncks));
-	const inserted = await insertChuncks(chuncksWithEmbedding);
-	const deleted = await deleteStaleChuncks(chuncks.map((v) => v.id));
+	const chunksWithEmbedding = await embedChunks(await dedupeChunks(chunks));
+	const inserted = await insertChunks(chunksWithEmbedding);
+	const deleted = unwrap(await DocsService.deleteExceptIds(chunks.map((v) => v.id)));
 
-	console.log(`${inserted} chuncks inserted, ${deleted} removed.`);
+	console.log(`${inserted} chunks inserted, ${deleted} removed.`);
 }
 
 main();
