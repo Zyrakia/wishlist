@@ -130,8 +130,8 @@ function distillPage(
 
 		if (src && alt) {
 			const absoluteSrcResult = Result.wrap(() => new URL(src, baseUrl).href);
-			if (absoluteSrcResult.ok) {
-				const absoluteSrc = absoluteSrcResult.val;
+			if (absoluteSrcResult.isOk()) {
+				const absoluteSrc = absoluteSrcResult.value;
 				img.attr('src', absoluteSrc);
 				return;
 			}
@@ -150,8 +150,8 @@ function distillPage(
 			if (stripRelativeLinks) return void link.remove();
 
 			const absoluteHrefResult = Result.wrap(() => new URL(href, baseUrl).href);
-			if (absoluteHrefResult.ok) {
-				const absoluteHref = absoluteHrefResult.val;
+			if (absoluteHrefResult.isOk()) {
+				const absoluteHref = absoluteHrefResult.value;
 				link.attr('href', absoluteHref);
 				return;
 			}
@@ -185,9 +185,9 @@ const distillUrl = async (
 	distillOptions?: DistillOptions,
 ): Promise<Result<string, DomainError>> => {
 	const parsedUrlResult = Result.wrap(() => new URL(url));
-	if (parsedUrlResult.err) return Err(DomainError.of('Invalid URL'));
+	if (parsedUrlResult.isErr()) return Err(DomainError.of('Invalid URL'));
 
-	const parsedUrl = parsedUrlResult.val;
+	const parsedUrl = parsedUrlResult.value;
 	const html = await renderUrl(parsedUrl.href, renderOptions);
 	if (!html) return Err(DomainError.of('Cannot render page'));
 
@@ -201,9 +201,9 @@ export const generateItemCandidate = async (
 	url: string,
 ): Promise<Result<z.infer<typeof CandidateSchema>, DomainError>> => {
 	const pageResult = await distillUrl(url);
-	if (pageResult.err) return pageResult;
+	if (pageResult.isErr()) return pageResult;
 
-	const page = pageResult.val;
+	const page = pageResult.value;
 
 	try {
 		const { object: candidate, usage } = await generateObject({
@@ -236,9 +236,9 @@ export const generateItemCandidates = async (
 	url: string,
 ): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>, DomainError>> => {
 	const pageResult = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
-	if (pageResult.err) return pageResult;
+	if (pageResult.isErr()) return pageResult;
 
-	const page = pageResult.val;
+	const page = pageResult.value;
 
 	try {
 		const {
