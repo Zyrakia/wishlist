@@ -102,8 +102,8 @@ export class DomainError extends Error {
  * @throws the Err value
  */
 export function unwrap<T>(result: Result<T, unknown>): T {
-	if (result.err) throw result.val;
-	return result.val;
+	if (result.isErr()) throw result.error;
+	return result.value;
 }
 
 /**
@@ -117,17 +117,20 @@ export function unwrapOrDomain<T>(
 	result: Result<T, unknown>,
 	onDomainError: (message: string) => never,
 ): T;
+
 export function unwrapOrDomain<T, R>(
 	result: Result<T, unknown>,
 	onDomainError: (message: string) => R,
 ): T | R;
+
 export function unwrapOrDomain<T, R>(
 	result: Result<T, unknown>,
 	onDomainError: (message: string) => R,
 ): T | R {
-	if (result.err) {
-		if (DomainError.is(result.val)) return onDomainError(result.val.message);
-		throw result.val;
+	if (result.isErr()) {
+		if (DomainError.is(result.error)) return onDomainError(result.error.message);
+		throw result.error;
 	}
-	return result.val;
+
+	return result.value;
 }

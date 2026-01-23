@@ -39,12 +39,12 @@ const _syncConnection = async (
 	}
 
 	const candidatesResult = await generateItemCandidates(connection.url);
-	if (candidatesResult.err) {
+	if (candidatesResult.isErr()) {
 		unwrap(await ConnectionsService.updateSyncStatusById(connectionId, { syncError: true }));
 		return candidatesResult;
 	}
 
-	const candidates: ItemCandidate[] = candidatesResult.val;
+	const candidates: ItemCandidate[] = candidatesResult.value;
 
 	const existingItems = connection.items;
 	const urlToId = new Map(
