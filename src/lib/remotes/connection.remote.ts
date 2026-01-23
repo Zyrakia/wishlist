@@ -1,8 +1,8 @@
 import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { verifyAuth } from '$lib/server/auth';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { ConnectionsService } from '$lib/server/services/connections';
+import { SyncService } from '$lib/server/services/sync';
 import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { cleanBaseName } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
@@ -47,7 +47,7 @@ export const createWishlistConnection = form(
 			}),
 		);
 
-		syncListConnection(id);
+		SyncService.syncConnection(id);
 	},
 );
 
@@ -71,7 +71,7 @@ export const syncWishlistConnection = form(
 		const connection = unwrap(await ConnectionsService.getByIdWithWishlist(connectionId));
 		if (connection?.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
-		unwrapOrDomain(await syncListConnection(connection.id), invalid);
+		unwrapOrDomain(await SyncService.syncConnection(connection.id), invalid);
 	},
 );
 

@@ -49,10 +49,9 @@ export function createService<C, A extends Actions<C>>(client: C, actions: A): S
 			try {
 				return (await action(client, ...args)) as BoxResult<UnwrapPromise<R>>;
 			} catch (err) {
-				if (!DomainError.is(err)) {
-					console.warn(err);
-				} else if (err instanceof Error) return Err(err);
-				else return Error(String(err), { cause: err });
+				if (!DomainError.is(err)) console.warn(err);
+				if (err instanceof Error) return Err(err) as BoxResult<UnwrapPromise<R>>;
+				return Err(new Error(String(err), { cause: err })) as BoxResult<UnwrapPromise<R>>;
 			}
 		};
 	}

@@ -1,4 +1,3 @@
-import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { safePruneParams } from '$lib/util/safe-prune';
 import ms from 'ms';
 import z from 'zod';
@@ -8,6 +7,7 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { getReservations } from '$lib/remotes/reservation.remote';
 import { getWishlistWithItems } from '$lib/remotes/wishlist.remote';
+import { SyncService } from '$lib/server/services/sync';
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({
@@ -38,7 +38,7 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 		})
 		.map((v) => v.id);
 
-	staleConnectionIds.forEach((v) => syncListConnection(v));
+	staleConnectionIds.forEach((v) => SyncService.syncConnection(v));
 
 	return {
 		wishlist,

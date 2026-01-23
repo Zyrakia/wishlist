@@ -3,7 +3,8 @@ import { Err, Ok } from 'ts-results';
 
 import { db } from '../db';
 import { ReservationTable } from '../db/schema';
-import { createService, DomainError } from '../util/service';
+import { createService, DomainError, unwrap } from '../util/service';
+import { GroupsService } from './groups';
 
 export const ReservationsService = createService(db(), {
 	/**
@@ -81,6 +82,43 @@ export const ReservationsService = createService(db(), {
 		await client
 			.delete(ReservationTable)
 			.where(and(eq(ReservationTable.userId, userId), itemSelector));
+		return Ok(undefined);
+	},
+
+	/**
+	 * Cleans up reservations after a user exits a group.
+	 * Removes reservations for items where the reserver is no longer
+	 * connected to the owner through any shared group.
+	 *
+	 * @param reserverId the user ID who left the group
+	 */
+	cleanAfterGroupExit: async (_client, reserverId: string) => {
+		const reservations = unwrap(await ReservationsService.listByUserIdWithOwners(reserverId));
+		if (reservations.length === 0) return Ok(undefined);
+
+		const ownerIds = Array.from(new Set(reservations.map((v) => v.item.wishlist.userId)));
+
+		const reserverMemberships = unwrap(await GroupsService.listMembershipsByUserId(reserverId));
+		const reserverGroups = new Set(reserverMemberships.map((v) => v.groupId));
+
+		const ownerMemberships = unwrap(await GroupsService.listMembershipsByUserIds(ownerIds));
+
+		const connectedOwners = new Set<string>();
+		for (const membership of ownerMemberships) {
+			if (reserverGroups.has(membership.groupId)) {
+				connectedOwners.add(membership.userId);
+			}
+		}
+
+		const invalidReservedItems = reservations
+			.filter((v) => !connectedOwners.has(v.item.wishlist.userId))
+			.map((v) => v.itemId);
+
+		if (invalidReservedItems.length === 0) return Ok(undefined);
+
+		unwrap(
+			await ReservationsService.deleteByUserAndItemIds(reserverId, ...invalidReservedItems),
+		);
 		return Ok(undefined);
 	},
 });

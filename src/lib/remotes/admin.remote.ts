@@ -1,11 +1,11 @@
 import { form, query } from '$app/server';
 import { AdminService } from '$lib/server/services/admin';
-import { unwrap } from '$lib/server/util/service';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { error } from '@sveltejs/kit';
 import z from 'zod';
 
 import { checkRole } from './auth.remote';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
+import { SyncService } from '$lib/server/services/sync';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
@@ -42,7 +42,7 @@ export const listErroredConnections = query(
 
 export const forceResync = form(
 	z.object({ connectionId: z.string() }),
-	async ({ connectionId }) => {
-		await syncListConnection(connectionId);
+	async ({ connectionId }, invalid) => {
+		unwrapOrDomain(await SyncService.syncConnection(connectionId), invalid);
 	},
 );

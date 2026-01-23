@@ -4,6 +4,7 @@ import { GroupSchema } from '$lib/schemas/group';
 import { verifyAuth } from '$lib/server/auth';
 import { sendEmail } from '$lib/server/email';
 import { GroupsService } from '$lib/server/services/groups';
+import { ReservationsService } from '$lib/server/services/reservations';
 import { UsersService } from '$lib/server/services/users';
 import { unwrap } from '$lib/server/util/service';
 import { strBoolean } from '$lib/util/zod';
@@ -13,7 +14,6 @@ import z from 'zod';
 import { error, redirect } from '@sveltejs/kit';
 
 import { resolveMe } from './auth.remote';
-import { cleanReservationsAfterGroupExit } from '$lib/server/reservations';
 
 export const createGroup = form(GroupSchema, async (data, invalid) => {
 	const user = verifyAuth();
@@ -182,7 +182,7 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	if (!membership) error(400, 'User is not an active member');
 
 	unwrap(await GroupsService.deleteMembershipByGroupIdAndUserId(group.id, targetId));
-	await cleanReservationsAfterGroupExit(targetId);
+	unwrap(await ReservationsService.cleanAfterGroupExit(targetId));
 
 	redirect(303, `/groups/${group.id}`);
 });
