@@ -15,11 +15,11 @@ import {
 	setSession,
 	verifyAuth,
 } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-import { UserTable } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
+import { GroupsService } from '$lib/server/services/groups';
+import { UsersService } from '$lib/server/services/users';
+import { unwrap } from '$lib/server/util/service';
 import { formatRelative } from '$lib/util/date';
-import { eq } from 'drizzle-orm';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
@@ -32,9 +32,7 @@ export const resolveMySession = query(async () => {
 	const session = await readSession(ev.cookies);
 	if (!session) return;
 
-	return await db().query.UserTable.findFirst({
-		where: (t, { eq }) => eq(t.id, session.sub),
-	});
+	return unwrap(await UsersService.getById(session.sub));
 });
 
 const failStratSchema = z.enum(['login', 'register', 'error']).optional();
@@ -49,12 +47,7 @@ export const resolveMe = query(
 	z.object({ failStrategy: failStratSchema }),
 	async ({ failStrategy }) => {
 		const me = verifyAuth({ failStrategy });
-
-		const user = await db().query.UserTable.findFirst({
-			where: (t, { eq }) => eq(t.id, me.id),
-		});
-
-		return user!;
+		return unwrap(await UsersService.getById(me.id))!;
 	},
 );
 
@@ -67,20 +60,13 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	const { username, email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const existing = await db().query.UserTable.findFirst({
-		where: (t, { eq }) => eq(t.email, email),
-	});
+	const existing = unwrap(await UsersService.getByEmail(email));
 	if (existing) invalid(invalid.email('Email is already registered'));
 
 	const passwordHash = await hashPassword(password);
 	const id = uuid4();
 
-	await db().insert(UserTable).values({
-		id,
-		email,
-		name: username,
-		password: passwordHash,
-	});
+	unwrap(await UsersService.create({ id, email, name: username, password: passwordHash }));
 
 	const token = await issueToken({ sub: id, name: username, rollingStartMs: Date.now() });
 	setSession(cookies, token);
@@ -95,10 +81,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
-	const user = await db().query.UserTable.findFirst({
-		where: (t, { eq }) => eq(t.email, email),
-	});
-
+	const user = unwrap(await UsersService.getByEmail(email));
 	if (!user) return invalid('Invalid credentials');
 
 	const passwordValid = await compPasswords(password, user.password);
@@ -114,9 +97,7 @@ export const login = form(CredentialsSchema.omit({ username: true }), async (dat
 export const resetPasswordStart = form(
 	z.object({ email: CredentialsSchema.shape.email }),
 	async ({ email }) => {
-		const user = await db().query.UserTable.findFirst({
-			where: (t, { eq }) => eq(t.email, email),
-		});
+		const user = unwrap(await UsersService.getByEmail(email));
 
 		if (user) {
 			const { token, expiresAt } = await createAccountAction(
@@ -152,10 +133,7 @@ export const resetPassword = form(
 		if (!action) return invalid('Password reset link have expired');
 
 		const passwordHash = await hashPassword(password);
-		await db()
-			.update(UserTable)
-			.set({ password: passwordHash })
-			.where(eq(UserTable.id, action.userId));
+		unwrap(await UsersService.updatePasswordById(action.userId, passwordHash));
 
 		redirect(303, `/login?updated=password`);
 	},
@@ -165,7 +143,7 @@ export const changeName = form(
 	CreateCredentialsSchema.pick({ username: true }),
 	async ({ username }) => {
 		const me = await resolveMe({});
-		await db().update(UserTable).set({ name: username }).where(eq(UserTable.id, me.id));
+		unwrap(await UsersService.updateNameById(me.id, username));
 
 		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
 	},
@@ -179,10 +157,19 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	if (!isOldPasswordValid) return invalid(invalid.oldPassword('Current password is invalid'));
 
 	const newPasswordHash = await hashPassword(newPassword);
-	await db().update(UserTable).set({ password: newPasswordHash }).where(eq(UserTable.id, me.id));
+	unwrap(await UsersService.updatePasswordById(me.id, newPasswordHash));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
 });
+
+const isEmailOpenForChange = async (email: string) => {
+	const [existingUser, existingInvites] = await Promise.all([
+		UsersService.getByEmail(email).then(unwrap),
+		GroupsService.listInvitesByEmail(email).then(unwrap),
+	]);
+
+	return existingUser === undefined && existingInvites.length === 0;
+};
 
 export const changeEmailStart = form(
 	CredentialsSchema.pick({ email: true }),
@@ -190,11 +177,8 @@ export const changeEmailStart = form(
 		const me = await resolveMe({});
 		const { url } = getRequestEvent();
 
-		const existing = await db().query.UserTable.findFirst({
-			where: (t, { eq }) => eq(t.email, email),
-		});
-
-		if (existing) return invalid(invalid.email('Email already taken'));
+		if (!(await isEmailOpenForChange(email)))
+			return invalid(invalid.email('Email already taken'));
 
 		const { token, expiresAt } = await createAccountAction(me.id, ms('11m'), 'change-email', {
 			newEmail: email,
@@ -224,10 +208,8 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	const action = await resolveAccountAction(token, 'change-email');
 	if (!action) error(401);
 
-	await db()
-		.update(UserTable)
-		.set({ email: action.payload.newEmail })
-		.where(eq(UserTable.id, action.userId));
+	if (!(await isEmailOpenForChange(action.payload.newEmail))) error(400, 'Email already taken');
+	unwrap(await UsersService.updateEmailById(action.userId, action.payload.newEmail));
 
 	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
 });

@@ -1,5 +1,3 @@
-import { db } from '$lib/server/db';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
 import { safePruneParams } from '$lib/util/safe-prune';
 import ms from 'ms';
 import z from 'zod';
@@ -8,6 +6,8 @@ import { error } from '@sveltejs/kit';
 
 import type { LayoutServerLoad } from './$types';
 import { getReservations } from '$lib/remotes/reservation.remote';
+import { getWishlistWithItems } from '$lib/remotes/wishlist.remote';
+import { SyncService } from '$lib/server/services/sync';
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({
@@ -19,30 +19,10 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 	const searchParams = safePruneParams(ParamsSchema, url.searchParams);
 
 	const [wishlist, reservations] = await Promise.all([
-		db().query.WishlistTable.findFirst({
-			where: (t, { eq }) => eq(t.slug, params.wishlist_slug),
-			with: {
-				items: {
-					orderBy: (t, { asc, desc }) => {
-						const sortBy = (col: keyof typeof t) =>
-							searchParams.direction === 'asc' ? asc(t[col]) : desc(t[col]);
-
-						switch (searchParams.sort) {
-							case 'alphabetical':
-								return sortBy('name');
-							case 'created':
-								return sortBy('createdAt');
-							case 'price':
-								return sortBy('price');
-							case 'user':
-							default:
-								return asc(t.order);
-						}
-					},
-				},
-				connections: true,
-				user: { columns: { name: true } },
-			},
+		getWishlistWithItems({
+			slug: params.wishlist_slug,
+			sort: searchParams.sort ?? 'user',
+			direction: searchParams.direction ?? 'desc',
 		}),
 		getReservations(),
 	]);
@@ -58,7 +38,7 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 		})
 		.map((v) => v.id);
 
-	staleConnectionIds.forEach((v) => syncListConnection(v));
+	staleConnectionIds.forEach((v) => SyncService.syncConnection(v));
 
 	return {
 		wishlist,

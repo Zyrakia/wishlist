@@ -1,18 +1,18 @@
 import { form, query } from '$app/server';
-import z from 'zod';
-import { checkRole } from './auth.remote';
+import { AdminService } from '$lib/server/services/admin';
+import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { syncListConnection } from '$lib/server/generation/connection-sync';
-import { UserTable, WishlistConnectionTable } from '$lib/server/db/schema';
-import { count, eq } from 'drizzle-orm';
+import z from 'zod';
+
+import { checkRole } from './auth.remote';
+import { SyncService } from '$lib/server/services/sync';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
 	if (!isRole) error(401, 'You do not have permission to access this resource');
 };
 
-export const paginateUsers = query(
+export const listUsers = query(
 	z.object({
 		limit: z.number().min(10).multipleOf(10).max(100),
 		page: z.number().int().min(0),
@@ -23,20 +23,11 @@ export const paginateUsers = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const [data, [{ total }]] = await Promise.all([
-			db().query.UserTable.findMany({
-				limit,
-				offset,
-				columns: { password: false },
-			}),
-			db().select({ total: count() }).from(UserTable),
-		]);
-
-		return { data, total };
+		return unwrap(await AdminService.listUsersPage(limit, offset));
 	},
 );
 
-export const paginateErroredConnections = query(
+export const listErroredConnections = query(
 	z.object({
 		limit: z.number().min(10).multipleOf(10).max(100),
 		page: z.number().int().min(0),
@@ -45,32 +36,13 @@ export const paginateErroredConnections = query(
 		await verifyAdmin();
 
 		const offset = page * limit;
-		const [data, [{ total }]] = await Promise.all([
-			db().query.WishlistConnectionTable.findMany({
-				limit,
-				offset,
-				orderBy: (t, { asc }) => asc(t.lastSyncedAt),
-				where: (t, { eq }) => eq(t.syncError, true),
-				with: {
-					wishlist: {
-						columns: { id: true, name: true, slug: true },
-						with: { user: { columns: { id: true, name: true } } },
-					},
-				},
-			}),
-			db()
-				.select({ total: count() })
-				.from(WishlistConnectionTable)
-				.where(eq(WishlistConnectionTable.syncError, true)),
-		]);
-
-		return { data, total };
+		return unwrap(await AdminService.listErroredConnectionsPage(limit, offset));
 	},
 );
 
 export const forceResync = form(
 	z.object({ connectionId: z.string() }),
-	async ({ connectionId }) => {
-		await syncListConnection(connectionId);
+	async ({ connectionId }, invalid) => {
+		unwrapOrDomain(await SyncService.syncConnection(connectionId), invalid);
 	},
 );

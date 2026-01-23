@@ -1,10 +1,9 @@
-import { safeCall } from './safe-call';
-
 export function cleanBaseName(url: string | URL) {
 	let hostname: string | undefined;
 	if (typeof url === 'string') {
-		let { data } = safeCall(() => new URL(url).hostname);
-		if (data) hostname = data;
+		try {
+			hostname = new URL(url).hostname;
+		} catch {}
 	} else hostname = url.hostname;
 
 	if (!hostname) return '';
