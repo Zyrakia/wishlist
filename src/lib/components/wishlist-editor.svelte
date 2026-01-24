@@ -5,7 +5,7 @@
 		type createWishlist,
 	} from '$lib/remotes/wishlist.remote';
 	import { WishlistSchema, type Wishlist } from '$lib/schemas/wishlist';
-	import { firstIssue, formatAllIssues } from '$lib/util/issue';
+	import { firstIssue, formatAllIssues, formatIssue } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount, untrack } from 'svelte';
 	import InputGroup from './input-group.svelte';
@@ -96,7 +96,10 @@
 	onMount(() => handler.validate());
 
 	$effect(() => {
-		const issues = formatAllIssues(handler.fields);
+		const issues = firstIssue(
+			formatAllIssues(handler.fields) || (slugIssue && formatIssue(slugIssue, ['slug'])),
+		);
+
 		if (!issues) return;
 
 		return assistantIndicator('wishlist-form', {

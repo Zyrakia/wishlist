@@ -42,9 +42,17 @@ const formatIssuePath = (path: RemoteFormIssue['path']) => {
 		.join('');
 };
 
-const formatIssue = (issue: RemoteFormIssue) => {
-	if (issue.path.length === 0) return issue.message;
-	return `@${formatIssuePath(issue.path)}: ${issue.message}`;
+/**
+ * Formats an issue message with a path indicator '@'. The path
+ * is properly joined to indicate what part of an object the issue originates at.
+ *
+ * @param message the issue message
+ * @param path the path to the problematic property (['items', 0, 'name'])
+ * @return the formatted issue (@items[0].name: <issue>)
+ */
+export const formatIssue = (message: string, path?: (string | number)[]) => {
+	if (!path?.length) return message;
+	return `@${formatIssuePath(path)}: ${message}`;
 };
 
 /**
@@ -58,7 +66,8 @@ export const formatFirstIssue = (fields: { allIssues: () => RemoteFormIssue[] | 
 	const issues = fields.allIssues();
 	if (!issues?.length) return;
 
-	return formatIssue(issues[0]!);
+	const first = issues[0];
+	return formatIssue(first.message, first.path);
 };
 
 /**
@@ -72,5 +81,5 @@ export const formatAllIssues = (fields: { allIssues: () => RemoteFormIssue[] | u
 	const issues = fields.allIssues();
 	if (!issues?.length) return;
 
-	return issues.map(formatIssue).join('\n');
+	return issues.map((v) => formatIssue(v.message, v.path)).join('\n');
 };
