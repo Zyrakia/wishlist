@@ -23,18 +23,38 @@ On this page, you must enter your latest account email. After submission, you wi
 
 After changing your password with the link from the email, you can proceed to log in with your updated credentials. Your old password will not be retained or be usable.
 
-## Changing Name/Email/Password
-If you are already logged in and would like to change any of your account details, you can do so by navigating to the `/account` page. Here, you can click the **Pen** icon besides the property you would like to change.
+## Changing Name
+If you would like to change your display name:
+1. Navigate to `/account`
+2. Click the **Pen** icon on the section displaying your current name
+3. Enter your new name
+4. Click **Save** to save the change
 
-For example, if you would like to change your email:
+Your name will be updated immediately.
+
+## Changing Password
+If you would like to change your password:
+1. Navigate to `/account`
+2. Click the **Pen** icon on the section displaying your password
+3. Enter your current password
+4. Enter your new password
+5. Confirm your new password
+6. Click **Confirm Change** to save the change
+
+Your password will be updated immediately and you can use it on your next login.
+
+## Changing Email
+If you would like to change your email address:
 1. Navigate to `/account`
 2. Click the **Pen** icon on the section displaying your current email
 3. Enter your new email address
-4. Click **Submit** to request the change
+4. Click **Save** to request the change
 5. Check your new email inbox for a confirmation message
-6. Click the link in the confirmation email to finalize the change
+6. Click the link in the confirmation email
+7. Confirm the change on the page that opens
+8. You will be redirected back to the account page
 
-**Note:** The confirmation link expires after 11 minutes. If it expires, you will need to request the change again.
+**Note:** The confirmation link expires after 10 minutes. If it expires, you will need to request the change again.
 
 ## Switching Theme
 Wishii supports both light and dark themes. To switch between them, click the **Sun** or **Moon** icon in the header (on desktop) or footer (on mobile).
