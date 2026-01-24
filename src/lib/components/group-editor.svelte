@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { GroupSchema, type Group } from '$lib/schemas/group';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue, formatAllIssues } from '$lib/util/issue';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount } from 'svelte';
 	import InputGroup from './input-group.svelte';
@@ -16,7 +17,7 @@
 	} = $props();
 
 	const mode: 'edit' | 'create' = $derived(handler === createGroup ? 'create' : 'edit');
-	const generalIssue = $derived(asIssue(handler.fields.issues()));
+	const generalIssue = $derived(firstIssue(handler.fields.issues()));
 
 	const seed = (props?: Partial<Group>) => {
 		const cleanProps = safePrune(GroupSchema, props);
@@ -25,6 +26,16 @@
 
 	seed(init);
 	onMount(() => handler.validate());
+
+	$effect(() => {
+		const issues = formatAllIssues(handler.fields);
+		if (!issues) return;
+
+		return assistantIndicator('group-form', {
+			suggestedPrompt: { prompt: 'Explain my form errors', color: 'var(--color-danger)' },
+			context: `Group Form Errors:\n${issues}`,
+		});
+	});
 </script>
 
 <div class="flex h-full min-h-full w-full flex-col items-center justify-center bg-background">
@@ -39,7 +50,7 @@
 
 		<hr class="-mt-3" />
 
-		<InputGroup label="Name" error={asIssue(handler.fields.name)}>
+		<InputGroup label="Name" error={firstIssue(handler.fields.name)}>
 			{#snippet control()}
 				<input required {...handler.fields.name.as('text')} />
 			{/snippet}

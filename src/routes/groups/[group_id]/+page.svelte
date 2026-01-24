@@ -8,7 +8,7 @@
 	} from '$lib/remotes/group.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
 	import { formatDate } from '$lib/util/date';
-	import { asIssue } from '$lib/util/pick-issue.js';
+	import { firstIssue } from '$lib/util/issue.js';
 	import {
 		CircleUserRoundIcon,
 		MailQuestionMarkIcon,
@@ -158,7 +158,7 @@
 						<div class="flex items-end gap-2">
 							<InputGroup
 								label="Send Invite Email"
-								error={asIssue(
+								error={firstIssue(
 									inviteHandler.fields.targetEmail.issues() ||
 										inviteHandler.fields.allIssues(),
 								)}

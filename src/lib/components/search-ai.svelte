@@ -74,6 +74,8 @@
 		const prompt = getQueryAsPrompt();
 		if (!prompt) return;
 
+		console.log(prompt);
+
 		isQuestionInProgress = true;
 		lastSubmittedQuery = query;
 		questionResponse = '';

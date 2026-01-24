@@ -6,10 +6,11 @@
 	import { clock } from '$lib/runes/clock.svelte';
 	import type { WishlistConnection } from '$lib/schemas/connection';
 	import { formatRelative } from '$lib/util/date';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue, formatFirstIssue } from '$lib/util/issue';
 	import { ExternalLinkIcon, RefreshCwIcon, Trash2Icon, XIcon } from '@lucide/svelte';
 	import ms from 'ms';
 	import Loader from './loader.svelte';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte';
 
 	let {
 		connection,
@@ -27,6 +28,9 @@
 		manage?: boolean;
 	} = $props();
 
+	const deleteHandler = deleteWishlistConnection.for(connection.id);
+	const syncHandler = syncWishlistConnection.for(connection.id);
+
 	const manualSyncTimeout = ms('1h');
 	const nextSync = $derived.by(() => {
 		const lastSync = connection.lastSyncedAt;
@@ -37,6 +41,21 @@
 	});
 
 	const nextSyncLabel = $derived.by(() => (nextSync ? formatRelative(nextSync) : 'now'));
+
+	$effect(() => {
+		if (!manage) return;
+
+		const issue = formatFirstIssue(syncHandler.fields);
+		if (!issue) return;
+
+		return assistantIndicator('sync-error', {
+			context: issue,
+			suggestedPrompt: {
+				prompt: "What's wrong with my connection?",
+				color: 'var(--color-danger)',
+			},
+		});
+	});
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
@@ -63,11 +82,8 @@
 	</div>
 
 	{#if manage}
-		{@const deleteHandler = deleteWishlistConnection.for(connection.id)}
-		{@const syncHandler = syncWishlistConnection.for(connection.id)}
-		{@const anyIssue = asIssue(
-			deleteHandler.fields.issues() || asIssue(syncHandler.fields.issues()),
-		)}
+		{@const anyIssue =
+			firstIssue(deleteHandler.fields.issues()) || firstIssue(syncHandler.fields.issues())}
 
 		{@const isSyncing = (syncing && !connection.syncError) || !!syncHandler.pending}
 

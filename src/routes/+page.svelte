@@ -5,7 +5,7 @@
 	import { clock } from '$lib/runes/clock.svelte';
 	import { seen } from '$lib/runes/seen-ids.svelte';
 	import { formatRelative } from '$lib/util/date';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue.js';
 	import {
 		ArrowRightIcon,
 		BellDotIcon,
@@ -65,7 +65,7 @@
 			>
 				{#each invites as invite}
 					{@const inviteHandler = resolveGroupInvite.for(invite.id)}
-					{@const issue = asIssue(inviteHandler.fields.allIssues())}
+					{@const issue = firstIssue(inviteHandler.fields.allIssues())}
 
 					<div
 						class="flex flex-none flex-col gap-2 rounded border border-border bg-surface p-4"

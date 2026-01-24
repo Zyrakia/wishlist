@@ -33,6 +33,7 @@
 	};
 
 	let currentPlaceholder = $state(getRandomPlaceholder());
+	let inputBorderColor = $state<string | undefined>();
 
 	let query = $state('');
 	const cleanQuery = $derived(
@@ -87,18 +88,22 @@
 	$effect(() => {
 		if (!searchRef) return;
 
-		if (searchFocused) searchRef?.focus();
-		else searchRef.blur();
+		if (searchFocused) {
+			searchRef?.focus();
+			inputBorderColor = undefined;
+		} else searchRef.blur();
 	});
 
 	$effect(() => {
 		const suggested = getSuggestedPrompt();
 		if (suggested) {
-			currentPlaceholder = suggested;
+			currentPlaceholder = suggested.prompt;
+			inputBorderColor = suggested.color;
 			return;
 		}
 
 		// No suggested prompt - rotate through random placeholders
+		inputBorderColor = undefined;
 		currentPlaceholder = getRandomPlaceholder();
 		const interval = setInterval(() => {
 			currentPlaceholder = getRandomPlaceholder();
@@ -137,6 +142,7 @@
 					onfocus={() => (searchFocused = true)}
 					onblur={() => (searchFocused = false)}
 					class="w-full"
+					style:border-color={inputBorderColor}
 				/>
 
 				{#if !query}

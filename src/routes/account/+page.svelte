@@ -7,7 +7,7 @@
 		CredentialsSchema,
 	} from '$lib/schemas/auth.js';
 	import { formatDate, formatRelative } from '$lib/util/date';
-	import { asIssue } from '$lib/util/pick-issue.js';
+	import { firstIssue } from '$lib/util/issue.js';
 	import {
 		ClockIcon,
 		LockIcon,
@@ -137,7 +137,7 @@
 					>
 						<InputGroup
 							label="Change Email"
-							error={asIssue(handler.fields.allIssues())}
+							error={firstIssue(handler.fields.allIssues())}
 						>
 							{#snippet control()}
 								<input
@@ -200,7 +200,7 @@
 					>
 						<InputGroup
 							label="Current Password"
-							error={asIssue(
+							error={firstIssue(
 								handler.fields.oldPassword.issues() || handler.fields.issues(),
 							)}
 						>

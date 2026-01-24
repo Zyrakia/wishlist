@@ -30,6 +30,8 @@ export interface PromptIndicator {
 	prompt: string;
 	/** Priority for display - higher wins (default: 0) */
 	priority?: number;
+	/** Optional color override for the search bar (CSS variable or color value) */
+	color?: string;
 }
 
 export interface AssistantIndicator {
@@ -69,18 +71,18 @@ export function updateIndicator(id: string, updates: Partial<AssistantIndicator>
  * Get the highest priority suggested prompt, if any.
  */
 export const getSuggestedPrompt = () => {
-	let best: { prompt: string; priority: number } | undefined;
+	let best: PromptIndicator | undefined;
 
 	for (const indicator of indicators.values()) {
 		if (!indicator.suggestedPrompt) continue;
 
 		const priority = indicator.suggestedPrompt.priority ?? 0;
-		if (!best || priority > best.priority) {
-			best = { prompt: indicator.suggestedPrompt.prompt, priority };
+		if (!best || best.priority === undefined || priority > best.priority) {
+			best = { ...indicator.suggestedPrompt, priority };
 		}
 	}
 
-	return best?.prompt;
+	return best;
 };
 
 /**

@@ -4,7 +4,7 @@
 	import { generateItem, updateItem, createItem } from '$lib/remotes/item.remote';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount } from 'svelte';
 	import z from 'zod';
@@ -38,7 +38,7 @@
 
 	let pageHasScroll = $state(false);
 
-	const generalIssue = $derived(asIssue(handler.fields.issues()));
+	const generalIssue = $derived(firstIssue(handler.fields.issues()));
 	// SEE: https://github.com/sveltejs/kit/issues/14802
 	// Prevent generation value from persisting
 	let generateRemote = generateItem

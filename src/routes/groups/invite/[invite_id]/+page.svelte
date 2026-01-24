@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolveGroupInvite } from '$lib/remotes/group.remote';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { TriangleAlertIcon } from '@lucide/svelte';
 
 	let { data } = $props();
@@ -31,7 +31,7 @@
 
 			{#if me}
 				{#if me.email === invite.targetEmail}
-					{@const issue = asIssue(resolveGroupInvite.fields.allIssues())}
+					{@const issue = firstIssue(resolveGroupInvite.fields.allIssues())}
 
 					<form {...resolveGroupInvite} class="flex gap-3">
 						<input {...resolveGroupInvite.fields.inviteId.as('hidden', invite.id)} />

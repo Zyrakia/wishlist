@@ -5,7 +5,7 @@
 		type createWishlist,
 	} from '$lib/remotes/wishlist.remote';
 	import { WishlistSchema, type Wishlist } from '$lib/schemas/wishlist';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue, formatAllIssues } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { onMount, untrack } from 'svelte';
 	import InputGroup from './input-group.svelte';
@@ -14,6 +14,7 @@
 	import Loader from './loader.svelte';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { fade } from 'svelte/transition';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte';
 
 	let {
 		handler,
@@ -25,7 +26,7 @@
 
 	const hasJs = useHasJs();
 	const mode: 'edit' | 'create' = $derived(handler === updateWishlist ? 'edit' : 'create');
-	const generalIssue = $derived(asIssue(handler.fields.issues()));
+	const generalIssue = $derived(firstIssue(handler.fields.issues()));
 
 	let isSlugTaken = $state(false);
 	const generatedSlug = $derived.by(() => {
@@ -39,7 +40,7 @@
 	});
 
 	const slugIssue = $derived.by(() => {
-		const validationIssues = asIssue(handler.fields.slug);
+		const validationIssues = firstIssue(handler.fields.slug);
 		if (validationIssues) return validationIssues;
 		if (isSlugTaken) return 'Already taken';
 	});
@@ -93,6 +94,16 @@
 
 	seed(init);
 	onMount(() => handler.validate());
+
+	$effect(() => {
+		const issues = formatAllIssues(handler.fields);
+		if (!issues) return;
+
+		return assistantIndicator('wishlist-form', {
+			suggestedPrompt: { prompt: 'Explain my form errors', color: 'var(--color-danger)' },
+			context: `Wishlist Form Errors:\n${issues}`,
+		});
+	});
 </script>
 
 <form

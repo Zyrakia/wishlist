@@ -2,7 +2,7 @@
 	import InputGroup from '$lib/components/input-group.svelte';
 	import { resetPasswordStart } from '$lib/remotes/auth.remote.js';
 	import { CredentialsSchema } from '$lib/schemas/auth.js';
-	import { asIssue } from '$lib/util/pick-issue.js';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { CheckIcon, XIcon } from '@lucide/svelte';
 	import z from 'zod';
 
@@ -17,7 +17,7 @@
 		<form class="flex flex-col gap-4" {...handler} oninput={() => handler.validate()}>
 			<InputGroup
 				label="Your Email"
-				error={asIssue(handler.fields.email) || asIssue(handler.fields.issues())}
+				error={firstIssue(handler.fields.email) || firstIssue(handler.fields.issues())}
 			>
 				{#snippet control()}
 					<input

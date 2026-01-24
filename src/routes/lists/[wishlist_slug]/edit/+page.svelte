@@ -7,7 +7,7 @@
 	import { updateWishlist } from '$lib/remotes/wishlist.remote';
 	import { WishlistConnectionSchema } from '$lib/schemas/connection';
 	import { WishlistSchema } from '$lib/schemas/wishlist';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { cleanBaseName } from '$lib/util/url.js';
 	import { BadgeQuestionMarkIcon } from '@lucide/svelte';
 
@@ -16,7 +16,7 @@
 	const connections = $derived(data.wishlist.connections);
 	const connectionHandler = createWishlistConnection.preflight(WishlistConnectionSchema);
 
-	const connectionIssue = $derived(asIssue(connectionHandler.fields.issues()));
+	const connectionIssue = $derived(firstIssue(connectionHandler.fields.issues()));
 
 	let connectionProviderName = $derived.by(() => {
 		const url = connectionHandler.fields.url.value();

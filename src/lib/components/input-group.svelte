@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue';
 	import { type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
 
@@ -13,7 +13,7 @@
 		error?: string | { message: string }[];
 	} = $props();
 
-	const errorMessage = $derived(asIssue(error));
+	const errorMessage = $derived(firstIssue(error));
 </script>
 
 <label class="wrapper relative flex w-full min-w-16 flex-col gap-1">

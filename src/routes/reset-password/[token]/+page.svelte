@@ -3,7 +3,7 @@
 	import { resetPassword } from '$lib/remotes/auth.remote.js';
 	import { useHasJs } from '$lib/runes/has-js.svelte.js';
 	import { ResetPasswordSchema } from '$lib/schemas/auth.js';
-	import { asIssue } from '$lib/util/pick-issue.js';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { EyeClosedIcon, EyeIcon, TriangleAlertIcon } from '@lucide/svelte';
 
 	let { data } = $props();
@@ -19,7 +19,7 @@
 			<form {...handler} class="flex flex-col gap-4" oninput={() => handler.validate()}>
 				<input {...handler.fields.actionToken.as('hidden', data.token)} />
 
-				<InputGroup label="Email" error={asIssue(handler.fields.issues())}>
+				<InputGroup label="Email" error={firstIssue(handler.fields.issues())}>
 					{#snippet control()}
 						<input
 							type="email"
