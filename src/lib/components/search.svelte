@@ -27,12 +27,7 @@
 		'What is a list connection?',
 	];
 
-	const getRandomPlaceholder = () => {
-		const index = Math.floor(Math.random() * placeholderRotation.length);
-		return placeholderRotation[index] || 'Search people, items or ask questions...';
-	};
-
-	let currentPlaceholder = $state(getRandomPlaceholder());
+	let currentPlaceholder = $state('');
 	let inputBorderColor = $state<string | undefined>();
 
 	let query = $state('');
@@ -54,6 +49,19 @@
 		return resultsHovered;
 	});
 
+	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
+
+	const setRandomPlaceholder = () => {
+		const index = Math.floor(Math.random() * placeholderRotation.length);
+		currentPlaceholder =
+			placeholderRotation[index] || 'Search people, items or ask questions...';
+	};
+
+	const tryTakePlaceholder = () => {
+		if (query) return;
+		query = currentPlaceholder;
+	};
+
 	const closeSearch = () => {
 		searchFocused = false;
 		resultsFocused = false;
@@ -63,8 +71,6 @@
 	const openSearch = () => {
 		searchFocused = true;
 	};
-
-	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
 		if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement)
@@ -78,9 +84,9 @@
 		if (ev.key === 'Escape') closeSearch();
 		else if (ev.key === 'Enter') {
 			if (query) aiRef?.ask();
-			else currentPlaceholder = getRandomPlaceholder();
-		} else if (ev.key === 'ArrowRight' && !query) {
-			query = currentPlaceholder;
+			else setRandomPlaceholder();
+		} else if (ev.key === 'ArrowRight') {
+			tryTakePlaceholder();
 		}
 	};
 
@@ -99,16 +105,14 @@
 		if (suggested) {
 			currentPlaceholder = suggested.prompt;
 			inputBorderColor = suggested.color;
+
 			return;
 		}
 
-		// No suggested prompt - rotate through random placeholders
 		inputBorderColor = undefined;
-		currentPlaceholder = getRandomPlaceholder();
-		const interval = setInterval(() => {
-			currentPlaceholder = getRandomPlaceholder();
-		}, 5000);
 
+		setRandomPlaceholder();
+		const interval = setInterval(setRandomPlaceholder, 5000);
 		return () => clearInterval(interval);
 	});
 </script>
@@ -166,7 +170,12 @@
 
 						{#if searching}
 							<span in:fade>
-								<ArrowBigRightIcon size={18} />
+								<ArrowBigRightIcon
+									size={18}
+									class="pointer-events-auto cursor-pointer"
+									onmousedown={(e) => e.preventDefault()}
+									onclick={() => tryTakePlaceholder()}
+								/>
 							</span>
 						{:else if likelyHasKeyboard.current}
 							<span in:fade>
