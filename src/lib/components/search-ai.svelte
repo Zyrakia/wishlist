@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { ArrowDownRight, CornerDownLeftIcon, SparklesIcon } from '@lucide/svelte';
+	import {
+		ArrowDownRight,
+		CornerDownLeftIcon,
+		MessageCircleQuestionMarkIcon,
+		SparklesIcon,
+	} from '@lucide/svelte';
 	import Loader from './loader.svelte';
 	import Markdown from './markdown.svelte';
 	import { slide } from 'svelte/transition';
@@ -40,8 +45,10 @@
 	});
 
 	let isQuestionInProgress = $state(false);
+	let lastAskedQuestion = $state('');
 	let questionResponse = $state('');
 	let questionError = $state('');
+
 	const shouldPromptToAsk = $derived(isQueryQuestion && !isQuestionInProgress);
 
 	export const ask = async () => {
@@ -51,6 +58,7 @@
 		const question = query;
 
 		isQuestionInProgress = true;
+		lastAskedQuestion = question;
 		questionResponse = '';
 		questionError = '';
 
@@ -133,6 +141,15 @@
 			</p>
 
 			{@render askButton()}
+		</div>
+	{/if}
+
+	{#if lastAskedQuestion}
+		<div
+			class="mt-2 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
+		>
+			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
+			<p class="text-sm text-text-muted italic">{lastAskedQuestion}</p>
 		</div>
 	{/if}
 
