@@ -1,18 +1,15 @@
-import { QuestionSchema } from '$lib/schemas/search';
+import { PromptSchema } from '$lib/schemas/search';
 import { verifyAuth } from '$lib/server/auth';
 import { SearchService } from '$lib/server/services/search';
 import { unwrapOrDomain } from '$lib/server/util/service';
 import { error, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-	const user = verifyAuth();
+export const POST: RequestHandler = async ({ request }) => {
+	verifyAuth();
 
 	const { success, data: body } = z
-		.object({
-			question: QuestionSchema,
-			currentPath: z.string().trim().startsWith('/').min(1).max(255).optional(),
-		})
+		.object({ prompt: PromptSchema })
 		.safeParse(await request.json());
 
 	if (!success) {
@@ -23,14 +20,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	}
 
-	const addonContext: string[] = [];
-	addonContext.push(`Logged in: ${locals.user !== undefined ? 'Yes' : 'No'}`);
-	if (body.currentPath) addonContext.push(`Asking from page: ${body.currentPath}`);
-	if (locals.user?.name) addonContext.push(`My name: ${user.name}`);
-
-	const stream = unwrapOrDomain(
-		await SearchService.streamDocsAnswer(body.question, addonContext),
-		(message) => error(404, { message: 'Search failed', userMessage: message }),
+	const stream = unwrapOrDomain(await SearchService.streamDocsAnswer(body.prompt), (message) =>
+		error(404, { message: 'Search failed', userMessage: message }),
 	);
 
 	request.signal.addEventListener('abort', async () => {

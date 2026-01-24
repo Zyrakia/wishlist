@@ -1,6 +1,6 @@
 import z from 'zod';
 
-export const QuestionSchema = z
+export const PromptSchema = z
 	.string({ error: 'Question is required' })
 	.trim()
 	.toLowerCase()

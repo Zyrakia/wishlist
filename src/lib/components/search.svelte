@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import { SearchIcon, SparklesIcon } from '@lucide/svelte';
-	import { fly } from 'svelte/transition';
-	import { onMount } from 'svelte';
+	import { ArrowBigRightIcon, SearchIcon, SlashIcon, SparklesIcon } from '@lucide/svelte';
+	import { fade, fly } from 'svelte/transition';
 	import SearchAi from './search-ai.svelte';
+	import { likelyHasKeyboard } from '$lib/runes/media.svelte';
+	import { getSuggestedPrompt } from '$lib/runes/assistant-indicators.svelte';
 
 	const hasJs = useHasJs();
 
@@ -65,11 +66,20 @@
 	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
-		if (searching) {
-			if (ev.key === 'Escape') closeSearch();
-			else if (ev.key === 'Enter') aiRef?.ask();
-		} else {
-			if (ev.key === '/') openSearch();
+		if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement)
+			return;
+		if (ev.key === '/') openSearch();
+	};
+
+	const handleKeyDown = (ev: KeyboardEvent) => {
+		if (!searching) return;
+
+		if (ev.key === 'Escape') closeSearch();
+		else if (ev.key === 'Enter') {
+			if (query) aiRef?.ask();
+			else currentPlaceholder = getRandomPlaceholder();
+		} else if (ev.key === 'ArrowRight' && !query) {
+			query = currentPlaceholder;
 		}
 	};
 
@@ -81,16 +91,24 @@
 		else searchRef.blur();
 	});
 
-	onMount(() => {
-		const changePlaceholderTick = setInterval(() => {
+	$effect(() => {
+		const suggested = getSuggestedPrompt();
+		if (suggested) {
+			currentPlaceholder = suggested;
+			return;
+		}
+
+		// No suggested prompt - rotate through random placeholders
+		currentPlaceholder = getRandomPlaceholder();
+		const interval = setInterval(() => {
 			currentPlaceholder = getRandomPlaceholder();
 		}, 5000);
 
-		return () => clearInterval(changePlaceholderTick);
+		return () => clearInterval(interval);
 	});
 </script>
 
-<svelte:window onkeyup={handleKeyUp} />
+<svelte:window onkeyup={handleKeyUp} onkeydown={handleKeyDown} />
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
@@ -122,8 +140,8 @@
 				/>
 
 				{#if !query}
-					<span
-						class="pointer-events-none absolute left-3 flex w-full items-center gap-2 overflow-hidden {searching
+					<p
+						class="pointer-events-none absolute flex w-full items-center justify-between gap-2 overflow-hidden px-3 {searching
 							? 'text-text-muted/50'
 							: 'text-text-muted'}"
 					>
@@ -132,14 +150,24 @@
 						{#key currentPlaceholder}
 							<span
 								transition:fly={{ y: 50 }}
-								class="{searching
+								class="absolute max-w-full truncate ps-7 pe-11 {searching
 									? ''
-									: 'placeholder-glow'} absolute max-w-full truncate ps-7 pe-6"
+									: 'placeholder-glow'}"
 							>
 								{currentPlaceholder}
 							</span>
 						{/key}
-					</span>
+
+						{#if searching}
+							<span in:fade>
+								<ArrowBigRightIcon size={18} />
+							</span>
+						{:else if likelyHasKeyboard.current}
+							<span in:fade>
+								<SlashIcon size={18} />
+							</span>
+						{/if}
+					</p>
 				{/if}
 			</div>
 

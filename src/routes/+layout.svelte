@@ -5,6 +5,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import Header from '$lib/components/header.svelte';
 	import { untrack } from 'svelte';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte.js';
 
 	let { children, data } = $props();
 
@@ -29,6 +30,16 @@
 
 		document.documentElement.dataset.theme = theme;
 	});
+
+	$effect(() => assistantIndicator('path', { context: `Current Path: ${page.url.pathname}` }));
+	$effect(() =>
+		assistantIndicator('user', {
+			context: [
+				`Logged In: ${data.user ? 'Yes' : 'No'}`,
+				data.user ? `User Name: ${data.user.name}` : '',
+			],
+		}),
+	);
 </script>
 
 <svelte:head>

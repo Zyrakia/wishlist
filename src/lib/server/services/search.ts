@@ -1,13 +1,11 @@
 import ENV from '$lib/env';
-import { QuestionSchema } from '$lib/schemas/search';
+import { PromptSchema } from '$lib/schemas/search';
 import { createMistral } from '@ai-sdk/mistral';
-import { streamText, type UserModelMessage } from 'ai';
-import { sql } from 'drizzle-orm';
+import { streamText } from 'ai';
 import { Err, Ok } from 'ts-results-es';
 
 import SYSTEM_PROMPT from '$lib/assets/docs-system-prompt.txt?raw';
 import { db } from '../db';
-import { DocumentationTable } from '../db/schema';
 import { createService, DomainError, unwrap } from '../util/service';
 import { EmbeddingService } from './embedding';
 import { DocsService } from './docs';
@@ -19,44 +17,45 @@ const DOC_CHUNKS = 5;
 
 export const SearchService = createService(db(), {
 	/**
-	 * Streams an AI-generated answer based on documentation search.
+	 * Streams an AI-generated answer based on documentation search prompt.
 	 *
-	 * @param dirtyQuestion the user's question (will be validated)
-	 * @param context additional context messages
+	 * @param dirtyPrompt the user's prompt
 	 */
-	streamDocsAnswer: async (_client, dirtyQuestion: string, context: string[] = []) => {
-		const { success, data: question } = QuestionSchema.safeParse(dirtyQuestion);
+	streamDocsAnswer: async (_client, dirtyPrompt: string) => {
+		const { success, data: userPrompt } = PromptSchema.safeParse(dirtyPrompt);
 		if (!success) {
 			return Err(DomainError.of("I don't understand that kind of question..."));
 		}
 
-		const embeddedQuestion = unwrap(await EmbeddingService.generate(question));
-		const questionVector = unwrap(await EmbeddingService.toBuffer(embeddedQuestion));
-		const relevantChunks = unwrap(
-			await DocsService.queryDocsByVector(questionVector, DOC_CHUNKS),
+		const embeddedPrompt = unwrap(await EmbeddingService.generate(userPrompt));
+		const promptVector = unwrap(await EmbeddingService.toBuffer(embeddedPrompt));
+		const relevantDocChunks = unwrap(
+			await DocsService.queryDocsByVector(promptVector, DOC_CHUNKS),
 		);
 
-		if (relevantChunks.length === 0) {
+		if (relevantDocChunks.length === 0) {
 			return Err(
 				DomainError.of("I couldn't find information about that, can you try rewording it?"),
 			);
 		}
 
-		const joinedChunks = relevantChunks.map((v) => v.content).join('\n\n');
-		const joinedContext = context.map((v) => `- ${v}`).join('\n');
+		const joinedDocChunks = relevantDocChunks
+			.map((v, i, arr) => {
+				const mostRelevant = arr.length;
+				const relativeRelevancy = mostRelevant - i;
+				return `Documentation Chunck ${i + 1} (${relativeRelevancy}/${mostRelevant} ~relevancy):\n${v.content}`;
+			})
+			.join('\n\n');
 
-		const systemPromptWithContext =
+		const sysPromptWithDocs =
 			SYSTEM_PROMPT +
-			`\n\nPotentially relevant snippets from documentation:\n---\n${joinedChunks}`;
-
-		const userPrompt = `Question: ${question}` + (context.length > 0 ? joinedContext : '');
+			`\n\n---\nPotentially relevant snippets from documentation:\n${joinedDocChunks}`;
 
 		const stream = streamText({
 			model: modelHost('mistral-small-latest'),
 			maxOutputTokens: MAX_OUTPUT_TOKENS,
 			messages: [
-				{ role: 'system', content: systemPromptWithContext },
-				...context.map((content): UserModelMessage => ({ role: 'user', content })),
+				{ role: 'system', content: sysPromptWithDocs },
 				{ role: 'user', content: userPrompt },
 			],
 		});

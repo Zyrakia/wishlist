@@ -9,7 +9,7 @@
 	import Markdown from './markdown.svelte';
 	import { slide } from 'svelte/transition';
 	import { AppErrorSchema } from '$lib/schemas/error';
-	import { page } from '$app/state';
+	import { getAssistantContext } from '$lib/runes/assistant-indicators.svelte';
 
 	interface Props {
 		query: string;
@@ -45,20 +45,37 @@
 	});
 
 	let isQuestionInProgress = $state(false);
-	let lastAskedQuestion = $state('');
+	let lastSubmittedQuery = $state('');
 	let questionResponse = $state('');
 	let questionError = $state('');
 
 	const shouldPromptToAsk = $derived(isQueryQuestion && !isQuestionInProgress);
 
-	export const ask = async () => {
-		if (isQuestionInProgress) return;
+	const getQueryAsPrompt = () => {
 		if (!query) return;
 
-		const question = query;
+		const lines: string[] = [];
+
+		const context = getAssistantContext();
+		if (context) {
+			lines.push('Page Context (may not be relevant to the question):');
+			lines.push(context);
+			lines.push('');
+		}
+
+		lines.push(`User Question: ${query}`);
+
+		return lines.join('\n');
+	};
+
+	export const ask = async () => {
+		if (isQuestionInProgress) return;
+
+		const prompt = getQueryAsPrompt();
+		if (!prompt) return;
 
 		isQuestionInProgress = true;
-		lastAskedQuestion = question;
+		lastSubmittedQuery = query;
 		questionResponse = '';
 		questionError = '';
 
@@ -68,7 +85,7 @@
 			const res = await fetch('/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
-				body: JSON.stringify({ question, currentPath: page.url.pathname }),
+				body: JSON.stringify({ prompt }),
 			});
 
 			if (!res.ok) {
@@ -144,12 +161,12 @@
 		</div>
 	{/if}
 
-	{#if lastAskedQuestion}
+	{#if lastSubmittedQuery}
 		<div
-			class="mt-2 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
+			class="my-3 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
 		>
 			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
-			<p class="text-sm text-text-muted italic">{lastAskedQuestion}</p>
+			<p class="text-sm text-text-muted italic">{lastSubmittedQuery}</p>
 		</div>
 	{/if}
 
