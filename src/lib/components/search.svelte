@@ -23,7 +23,6 @@
 		'How many connections can I have?',
 		'How do I change my password?',
 		'Can others see my reservations?',
-		'How do I leave a group?',
 		'What is a list connection?',
 	];
 
