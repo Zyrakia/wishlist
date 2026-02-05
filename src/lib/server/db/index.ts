@@ -4,8 +4,19 @@ import { createClient } from '@libsql/client/node';
 
 import * as schema from './schema';
 import ENV from '$lib/env';
+import { existsSync } from 'node:fs';
 
 const create = () => {
+	const dbPath = ENV.DATABASE_PATH;
+
+	// Render build env doesn't have disk access
+	if (!existsSync(dbPath)) {
+		console.warn(`DB not found at ${dbPath}, using :memory: (build phase)`);
+
+		const client = createClient({ url: ':memory:' });
+		return drizzle(client, { schema, casing: 'snake_case' });
+	}
+
 	const client = createClient({ url: ENV.DATABASE_PATH });
 	return drizzle(client, { schema, casing: 'snake_case' });
 };

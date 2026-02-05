@@ -14,7 +14,7 @@ const getRuntimeEnv = () => {
 };
 
 if (isServer()) {
-	const { error } = DotenvFlow.config();
+	const { error } = DotenvFlow.config({ silent: true });
 	if (error) console.warn('No environment loaded from `.env` files.');
 }
 
