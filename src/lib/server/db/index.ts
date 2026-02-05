@@ -6,14 +6,12 @@ import * as schema from './schema';
 import ENV from '$lib/env';
 import { existsSync } from 'node:fs';
 
-const isRenderBuild = process.env.RENDER === 'true' && !process.env.RENDER_INSTANCE_ID;
-
 const create = () => {
 	const dbPath = ENV.DATABASE_PATH;
 
 	// Render build env doesn't have disk access
-	if (!isRenderBuild) {
-		console.warn('Detected render build, using temporary in-memory DB');
+	if (!existsSync(dbPath.replace('file:', '')) && process.env.RENDER === 'true') {
+		console.warn('! USING IN MEMORY DATABASE !');
 
 		const client = createClient({ url: ':memory:' });
 		return drizzle(client, { schema, casing: 'snake_case' });
