@@ -19,6 +19,11 @@
 	let showPassword = $state(false);
 	let issue = $state(getIssue());
 
+	$effect(() => {
+		const nextIssue = getIssue();
+		if (nextIssue) issue = nextIssue;
+	});
+
 	let issueClearTimeout: NodeJS.Timeout | undefined;
 	$effect(() => {
 		if (issue) {
@@ -117,12 +122,8 @@
 				class:bg-danger={hasJs() && issue}
 				disabled={!!remote.pending}
 				{...remote.buttonProps.enhance(async ({ submit }) => {
-					try {
-						issue = undefined;
-						await submit();
-					} finally {
-						issue = getIssue();
-					}
+					issue = undefined;
+					await submit();
 				})}
 			>
 				Register

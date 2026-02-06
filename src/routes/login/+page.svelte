@@ -7,18 +7,22 @@
 	import { fade } from 'svelte/transition';
 
 	import backgroundImage from '$lib/assets/authentication-background.webp';
-	import { asIssue } from '$lib/util/pick-issue';
 	import { page } from '$app/state';
 	import { safePrune } from '$lib/util/safe-prune';
 
 	const hasJs = useHasJs();
-	const getIssue = () => asIssue(remote.fields);
+	const getIssue = () => remote.result?.error;
 
 	let { data } = $props();
 	const remote = login.preflight(CredentialsSchema.omit({ username: true }));
 
 	let showPassword = $state(false);
 	let issue = $state(getIssue());
+
+	$effect(() => {
+		const nextIssue = getIssue();
+		if (nextIssue) issue = nextIssue;
+	});
 
 	let issueClearTimeout: NodeJS.Timeout | undefined;
 	$effect(() => {
@@ -67,7 +71,10 @@
 		<form
 			{...remote}
 			class="container mt-6 flex w-full flex-col gap-5 rounded"
-			oninput={() => remote.validate({ preflightOnly: true })}
+			oninput={() => {
+				issue = undefined;
+				remote.validate({ preflightOnly: true });
+			}}
 		>
 			<InputGroup label="Email" error={remote.fields.email.issues()}>
 				{#snippet control()}
@@ -117,12 +124,8 @@
 				class:bg-danger={hasJs() && issue}
 				disabled={!!remote.pending}
 				{...remote.buttonProps.enhance(async ({ submit }) => {
-					try {
-						issue = undefined;
-						await submit();
-					} finally {
-						issue = getIssue();
-					}
+					issue = undefined;
+					await submit();
 				})}
 			>
 				Login

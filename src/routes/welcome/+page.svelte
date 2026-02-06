@@ -27,7 +27,6 @@
 <div
 	class="journey min-h-screen overflow-hidden bg-(--j-page-bg) font-[Nunito,sans-serif] transition-opacity duration-600 dark:bg-(--j-page-bg-dark)"
 >
-	<!-- Top bar with login -->
 	<nav class="flex items-center justify-between bg-(--j-bg-1) px-6 py-4 dark:bg-(--j-bg-1-dark)">
 		<span class="font-[Lilita_One,sans-serif] text-xl text-(--j-orange) dark:text-[#f0a888]">
 			Wishii
@@ -49,7 +48,6 @@
 		</div>
 	</nav>
 
-	<!-- Hero -->
 	<section
 		class="flex flex-col items-center bg-(--j-bg-1) px-6 py-8 text-center dark:bg-(--j-bg-1-dark)"
 	>
@@ -118,7 +116,6 @@
 		</div>
 	</section>
 
-	<!-- Wave divider 1 -->
 	<div class="-mt-px leading-0">
 		<svg
 			viewBox="0 0 1200 100"
@@ -132,7 +129,6 @@
 		</svg>
 	</div>
 
-	<!-- Step 1: Create -->
 	<section class="bg-(--j-bg-2) px-6 py-10 pb-12 dark:bg-(--j-bg-2-dark)">
 		<div
 			class="relative mx-auto flex max-w-3xl flex-col items-center gap-8 min-[700px]:flex-row min-[700px]:gap-12"
@@ -203,7 +199,6 @@
 		</div>
 	</section>
 
-	<!-- Zigzag divider -->
 	<div class="-mt-px leading-0">
 		<svg
 			viewBox="0 0 1200 100"
@@ -217,7 +212,6 @@
 		</svg>
 	</div>
 
-	<!-- Step 2: Share -->
 	<section class="bg-(--j-bg-3) px-6 py-10 pb-12 dark:bg-(--j-bg-3-dark)">
 		<div
 			class="relative mx-auto flex max-w-3xl flex-col items-center gap-8 min-[700px]:flex-row-reverse min-[700px]:gap-12"
@@ -282,7 +276,6 @@
 		</div>
 	</section>
 
-	<!-- Wave divider 3 -->
 	<div class="-mt-px leading-0">
 		<svg
 			viewBox="0 0 1200 100"
@@ -296,7 +289,6 @@
 		</svg>
 	</div>
 
-	<!-- Step 3: Celebrate -->
 	<section class="bg-(--j-bg-1) px-6 py-10 pb-12 dark:bg-(--j-bg-1-dark)">
 		<div
 			class="relative mx-auto flex max-w-3xl flex-col items-center gap-8 min-[700px]:flex-row min-[700px]:gap-12"
@@ -357,7 +349,6 @@
 		</div>
 	</section>
 
-	<!-- Final CTA -->
 	<section class="relative px-6 py-12 text-center">
 		<h2 class="mb-2 font-[Lilita_One,sans-serif] text-[clamp(1.6rem,4vw,2.2rem)] text-text">
 			Why are you still reading?
@@ -389,16 +380,15 @@
 </div>
 
 <style>
-	/* Custom properties — single source of truth for the palette */
 	.journey {
 		--j-page-bg: #fffbf5;
 		--j-page-bg-dark: #2d241f;
 		--j-bg-1: #fef7ed;
 		--j-bg-2: #eef6f0;
 		--j-bg-3: #f0f0fa;
-		--j-bg-1-dark: #3d2e28; /* Warm dark brown */
-		--j-bg-2-dark: #24332c; /* Forest moss */
-		--j-bg-3-dark: #2d2a3d; /* Dusty purple */
+		--j-bg-1-dark: #3d2e28;
+		--j-bg-2-dark: #24332c;
+		--j-bg-3-dark: #2d2a3d;
 		--j-orange: #e8805c;
 		--j-green: #4a9a6a;
 		--j-purple: #7b6baa;
@@ -406,7 +396,6 @@
 		--j-gold: #d4a44a;
 	}
 
-	/* Animations */
 	@keyframes bob {
 		0%,
 		100% {
@@ -416,6 +405,7 @@
 			transform: translateY(-5px);
 		}
 	}
+
 	@keyframes bounce-down {
 		0%,
 		100% {
@@ -425,6 +415,7 @@
 			transform: translateY(6px);
 		}
 	}
+
 	@keyframes twinkle {
 		0%,
 		100% {
@@ -436,6 +427,7 @@
 			transform: scale(1.1);
 		}
 	}
+
 	@keyframes confetti-fall {
 		0% {
 			transform: translateY(0) rotate(0deg);
