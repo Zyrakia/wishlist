@@ -31,7 +31,7 @@ export const verifyAuth = ({
 	check,
 	failStrategy = 'login',
 }: {
-	failStrategy?: 'login' | 'register' | 'error';
+	failStrategy?: 'welcome' | 'login' | 'register' | 'error';
 	check?: (user: Exclude<App.Locals['user'], undefined>) => boolean;
 } = {}) => {
 	const {
@@ -42,6 +42,8 @@ export const verifyAuth = ({
 	const fail = () => {
 		const returnUrl = encodeURIComponent(url.pathname + url.search);
 		switch (failStrategy) {
+			case 'welcome':
+				redirect(303, '/welcome');
 			case 'login':
 				redirect(303, `/login?redirect=${returnUrl}`);
 			case 'register':

@@ -77,15 +77,15 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 
 const ReturnUrlSchema = z.string().regex(/^\/(?!\/)/);
 
-export const login = form(CredentialsSchema.omit({ username: true }), async (data, invalid) => {
+export const login = form(CredentialsSchema.omit({ username: true }), async (data) => {
 	const { email, password } = data;
 	const { cookies, url } = getRequestEvent();
 
 	const user = unwrap(await UsersService.getByEmail(email));
-	if (!user) return invalid('Invalid credentials');
+	if (!user) return { error: 'Invalid credentials' };
 
 	const passwordValid = await compPasswords(password, user.password);
-	if (!passwordValid) invalid('Invalid credentials');
+	if (!passwordValid) return { error: 'Invalid credentials' };
 
 	const token = await issueToken({ sub: user.id, name: user.name, rollingStartMs: Date.now() });
 	setSession(cookies, token);

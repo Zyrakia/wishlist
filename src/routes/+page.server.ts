@@ -4,7 +4,7 @@ import { getWishlists } from '$lib/remotes/wishlist.remote';
 import { verifyAuth } from '$lib/server/auth';
 
 export const load: PageServerLoad = async () => {
-	const user = verifyAuth();
+	const user = verifyAuth({ failStrategy: 'welcome' });
 
 	const [wishlists, groups, invites] = await Promise.all([
 		getWishlists(),
