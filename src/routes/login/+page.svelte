@@ -9,6 +9,7 @@
 	import backgroundImage from '$lib/assets/authentication-background.webp';
 	import { page } from '$app/state';
 	import { safePrune } from '$lib/util/safe-prune';
+	import { UrlBuilder } from '$lib/util/url';
 
 	const hasJs = useHasJs();
 	const getIssue = () => remote.result?.error;
@@ -23,6 +24,17 @@
 		const nextIssue = getIssue();
 		if (nextIssue) issue = nextIssue;
 	});
+
+	const resetPasswordHref = $derived.by(() => {
+		const email = remote.fields.email.value();
+		const path = UrlBuilder.from('/reset-password');
+		if (email) path.param('email', email);
+		return path.toPath();
+	});
+
+	const registerHref = UrlBuilder.from('/register')
+		.query(Object.fromEntries(page.url.searchParams.entries()))
+		.toPath();
 
 	let issueClearTimeout: NodeJS.Timeout | undefined;
 	$effect(() => {
@@ -62,11 +74,7 @@
 
 		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Sign in to get started</p>
 		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Welcome Back</h1>
-		<p>
-			Don't have an account yet? <a href="/register{page.url.search}" class="text-accent"
-				>Create One</a
-			>
-		</p>
+		<p>Don't have an account yet? <a href={registerHref} class="text-accent">Create One</a></p>
 
 		<form
 			{...remote}
@@ -108,9 +116,7 @@
 					</div>
 
 					<a
-						href="/reset-password{remote.fields.email.value()
-							? `?email=${encodeURIComponent(remote.fields.email.value())}`
-							: ''}"
+						href={resetPasswordHref}
 						class="text-sm text-accent/75 italic"
 					>
 						Forgot password?

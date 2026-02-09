@@ -8,7 +8,7 @@
 	import { WishlistConnectionSchema } from '$lib/schemas/connection';
 	import { WishlistSchema } from '$lib/schemas/wishlist';
 	import { asIssue } from '$lib/util/pick-issue';
-	import { cleanBaseName } from '$lib/util/url.js';
+	import { formatHost, UrlBuilder } from '$lib/util/url.js';
 	import { BadgeQuestionMarkIcon } from '@lucide/svelte';
 
 	let { data } = $props();
@@ -20,12 +20,12 @@
 
 	let connectionProviderName = $derived.by(() => {
 		const url = connectionHandler.fields.url.value();
-		try {
-			return cleanBaseName(new URL(url));
-		} catch {
-			return '';
-		}
+		return formatHost(url, { subdomain: false, tld: false }) || '';
 	});
+
+	const connectAmazonHelpHref = UrlBuilder.from('/how/connect-amazon')
+		.param('return', page.url.pathname)
+		.toPath();
 </script>
 
 <div class="grid h-full grid-cols-1 place-items-center gap-4 py-6 lg:grid-cols-2 lg:px-4">
@@ -65,7 +65,7 @@
 					</p>
 
 					<a
-						href="/how/connect-amazon?return={encodeURIComponent(page.url.pathname)}"
+						href={connectAmazonHelpHref}
 						class="button flex items-center gap-2 p-2 text-accent"
 					>
 						<BadgeQuestionMarkIcon class="shrink-0 text-success" />

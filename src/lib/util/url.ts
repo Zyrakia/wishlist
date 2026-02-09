@@ -1,14 +1,210 @@
-export function cleanBaseName(url: string | URL) {
-	let hostname: string | undefined;
-	if (typeof url === 'string') {
-		try {
-			hostname = new URL(url).hostname;
-		} catch {}
-	} else hostname = url.hostname;
+type UrlProtocol = 'https' | 'http';
 
-	if (!hostname) return '';
-
-	const parts = hostname.split('.');
-	if (parts.length >= 3) return parts[parts.length - 2];
-	return parts[0];
+export interface ParseUrlOptions {
+	assumeProtocol?: UrlProtocol;
+	allowedProtocols?: readonly string[];
+	base?: string | URL;
 }
+
+export type UrlPartKey =
+	| 'href'
+	| 'origin'
+	| 'protocol'
+	| 'username'
+	| 'password'
+	| 'host'
+	| 'hostname'
+	| 'port'
+	| 'pathname'
+	| 'search'
+	| 'hash';
+
+type UrlQueryValue = string | number | boolean | null | undefined;
+
+const DEFAULT_ALLOWED_PROTOCOLS = ['https:', 'http:'];
+const INTERNAL_BASE = 'https://local.invalid';
+
+const hasScheme = (value: string) => /^[A-Za-z][A-Za-z0-9+\-.]*:/.test(value);
+
+const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`);
+
+const normalizeHash = (hash: string | null | undefined) => (hash || '').replace(/^#/, '');
+
+const parseStringUrl = (
+	rawInput: string,
+	{ assumeProtocol, base }: { assumeProtocol: UrlProtocol; base?: string | URL },
+) => {
+	const value = rawInput.trim();
+	if (!value) return;
+
+	if (base) return new URL(value, base);
+	if (hasScheme(value)) return new URL(value);
+	if (value.startsWith('/')) return;
+
+	return new URL(`${assumeProtocol}://${value.replace(/^\/+/, '')}`);
+};
+
+const parseInputUrl = (
+	input: string | URL,
+	{ assumeProtocol, base }: { assumeProtocol: UrlProtocol; base?: string | URL },
+) => {
+	if (input instanceof URL) return new URL(input.href);
+	return parseStringUrl(input, { assumeProtocol, base });
+};
+
+export const isRelativePath = (url: string) => /^\/(?!\/)/.test(url.trim());
+
+export const parseUrl = (input: string | URL, opts: ParseUrlOptions = {}) => {
+	const { assumeProtocol = 'https', allowedProtocols = DEFAULT_ALLOWED_PROTOCOLS, base } = opts;
+	try {
+		const parsed = parseInputUrl(input, { assumeProtocol, base });
+		if (!parsed) return;
+		if (!allowedProtocols.includes(parsed.protocol)) return;
+		return parsed;
+	} catch {
+		return;
+	}
+};
+
+const getBuilderSeedUrl = (input?: string | URL) => {
+	if (!input) return new URL(INTERNAL_BASE);
+	if (input instanceof URL) return new URL(input.href);
+
+	const raw = input.trim();
+	if (!raw) return new URL(INTERNAL_BASE);
+	if (isRelativePath(raw)) return new URL(raw, INTERNAL_BASE);
+
+	return parseUrl(raw) || new URL(INTERNAL_BASE);
+};
+
+export class UrlBuilder {
+	private pathname: string;
+	private params: URLSearchParams;
+	private hashFragment: string;
+
+	private constructor(seed: URL) {
+		this.pathname = seed.pathname || '/';
+		this.params = new URLSearchParams(seed.search);
+		this.hashFragment = normalizeHash(seed.hash);
+	}
+
+	public static from(input?: string | URL) {
+		return new UrlBuilder(getBuilderSeedUrl(input));
+	}
+
+	public path(nextPath: string) {
+		this.pathname = normalizePath(nextPath.trim() || '/');
+		return this;
+	}
+
+	public segment(nextSegment: string | number) {
+		const safeSegment = String(nextSegment)
+			.split('/')
+			.filter(Boolean)
+			.map((v) => encodeURIComponent(v))
+			.join('/');
+
+		if (!safeSegment) return this;
+
+		const basePath = this.pathname.replace(/\/+$/, '');
+		this.pathname = basePath ? `${basePath}/${safeSegment}` : `/${safeSegment}`;
+
+		return this;
+	}
+
+	public query(values: Record<string, UrlQueryValue>) {
+		for (const [key, value] of Object.entries(values)) {
+			this.param(key, value);
+		}
+
+		return this;
+	}
+
+	public param(key: string, value: UrlQueryValue) {
+		if (value === undefined || value === null) this.params.delete(key);
+		else this.params.set(key, String(value));
+
+		return this;
+	}
+
+	public removeParam(key: string) {
+		this.params.delete(key);
+		return this;
+	}
+
+	public clearQuery() {
+		this.params = new URLSearchParams();
+		return this;
+	}
+
+	public hash(nextHash: string | null | undefined) {
+		this.hashFragment = normalizeHash(nextHash);
+		return this;
+	}
+
+	public clearHash() {
+		this.hashFragment = '';
+		return this;
+	}
+
+	public toPath() {
+		const search = this.params.toString();
+		const hashPart = this.hashFragment ? `#${this.hashFragment}` : '';
+
+		return `${this.pathname}${search ? `?${search}` : ''}${hashPart}`;
+	}
+
+	public toAbsolute(base: string | URL) {
+		const target = parseUrl(base);
+		if (!target) throw new Error('Invalid base URL');
+
+		target.pathname = this.pathname;
+		target.search = this.params.toString();
+		target.hash = this.hashFragment ? `#${this.hashFragment}` : '';
+
+		return target.href;
+	}
+}
+
+export const createUrlBuilder = (input?: string | URL) => UrlBuilder.from(input);
+
+export const dissectUrl = <K extends UrlPartKey>(
+	input: string | URL,
+	...pick: K[]
+): Pick<URL, K> | undefined => {
+	const parsed = parseUrl(input);
+	if (!parsed) return;
+
+	const result = {} as Pick<URL, K>;
+	for (const key of pick) result[key] = parsed[key];
+
+	return result;
+};
+
+export const formatHost = (
+	input: string | URL,
+	opts: { subdomain?: boolean; tld?: boolean } = {},
+) => {
+	const parsed = parseUrl(input);
+	if (!parsed) return;
+
+	const { subdomain = false, tld = true } = opts;
+
+	const parts = parsed.hostname.split('.').filter(Boolean);
+	if (parts.length === 0) return;
+
+	if (subdomain) {
+		if (tld || parts.length === 1) return parsed.hostname;
+		return parts.slice(0, -1).join('.');
+	}
+
+	if (parts.length === 3) {
+		return tld ? `${parts[1]}.${parts[2]}` : parts[1];
+	}
+
+	if (parts.length === 2) {
+		return tld ? parsed.hostname : parts[0];
+	}
+
+	return tld ? parsed.hostname : parts[0];
+};

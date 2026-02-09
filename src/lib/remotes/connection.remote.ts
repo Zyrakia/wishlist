@@ -4,7 +4,7 @@ import { verifyAuth } from '$lib/server/auth';
 import { ConnectionsService } from '$lib/server/services/connections';
 import { SyncService } from '$lib/server/services/sync';
 import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
-import { cleanBaseName } from '$lib/util/url';
+import { formatHost } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
@@ -42,7 +42,7 @@ export const createWishlistConnection = form(
 			await ConnectionsService.create({
 				id: id,
 				wishlistId: wishlist.id,
-				provider: cleanBaseName(data.url),
+				provider: formatHost(data.url, { subdomain: false, tld: false }) || 'Unknown',
 				...data,
 			}),
 		);

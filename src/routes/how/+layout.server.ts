@@ -1,12 +1,10 @@
 import { safePrune } from '$lib/util/safe-prune';
+import { isRelativePath } from '$lib/util/url';
 import z from 'zod';
 
 import type { LayoutServerLoad } from './$types';
 const searchParams = z.object({
-	return: z
-		.string()
-		.startsWith('/')
-		.regex(/^\/.*$/),
+	return: z.string().refine(isRelativePath, { error: 'Invalid return URL' }),
 });
 
 export const load: LayoutServerLoad = (event) => {

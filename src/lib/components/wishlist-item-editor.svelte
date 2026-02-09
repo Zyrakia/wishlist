@@ -6,6 +6,7 @@
 	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
 	import { asIssue } from '$lib/util/pick-issue';
 	import { safePrune } from '$lib/util/safe-prune';
+	import { formatHost } from '$lib/util/url';
 	import { onMount } from 'svelte';
 	import z from 'zod';
 	import Loader from './loader.svelte';
@@ -139,14 +140,7 @@
 			genFavicon = response.favicon || '';
 			genTitle = response.title;
 		} catch (error) {
-			try {
-				const urlObject = new URL(url);
-				genTitle = urlObject.hostname.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '');
-			} catch (err) {
-				console.warn(err);
-				genTitle = 'Unknown Page';
-			}
-
+			genTitle = formatHost(url, { subdomain: true, tld: true }) || 'Unknown Page';
 			console.warn(error);
 			genFavicon = '';
 		}

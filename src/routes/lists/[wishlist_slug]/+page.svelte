@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import WishlistItem from '$lib/components/wishlist-item.svelte';
 	import { deleteWishlist } from '$lib/remotes/wishlist.remote';
 	import {
@@ -21,6 +22,7 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { seen } from '$lib/runes/seen-ids.svelte';
+	import { UrlBuilder } from '$lib/util/url';
 	import ItemOwnerToolbar from '$lib/components/item-owner-toolbar.svelte';
 	import ItemViewerToolbar from '$lib/components/item-viewer-toolbar.svelte';
 
@@ -208,12 +210,12 @@
 				class="appearance-none pe-12"
 				onchange={async (e) => {
 					const [sort, dir] = e.currentTarget.value.split(':');
-					const newSearchParams = new URLSearchParams(window.location.search);
+					const nextPath = UrlBuilder.from(page.url)
+						.param('sort', sort)
+						.param('direction', dir)
+						.toPath();
 
-					newSearchParams.set('sort', sort);
-					newSearchParams.set('direction', dir);
-
-					await goto(`?${newSearchParams.toString()}`, { replaceState: true });
+					await goto(nextPath, { replaceState: true });
 				}}
 			>
 				{#each Object.entries(sortOptions) as [label, value]}

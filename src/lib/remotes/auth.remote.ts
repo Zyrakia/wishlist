@@ -20,6 +20,7 @@ import { GroupsService } from '$lib/server/services/groups';
 import { UsersService } from '$lib/server/services/users';
 import { unwrap } from '$lib/server/util/service';
 import { formatRelative } from '$lib/util/date';
+import { isRelativePath, UrlBuilder } from '$lib/util/url';
 import ms from 'ms';
 import { v4 as uuid4 } from 'uuid';
 import z from 'zod';
@@ -75,7 +76,9 @@ export const register = form(CreateCredentialsSchema, async (data, invalid) => {
 	redirect(303, returnUrl || '/');
 });
 
-const ReturnUrlSchema = z.string().regex(/^\/(?!\/)/);
+const ReturnUrlSchema = z.string().refine(isRelativePath, {
+	error: 'Invalid return URL',
+});
 
 export const login = form(CredentialsSchema.omit({ username: true }), async (data) => {
 	const { email, password } = data;
@@ -113,7 +116,7 @@ export const resetPasswordStart = form(
 				template: {
 					id: '6c41869c-105c-4ec1-9054-c0a65c97beaf',
 					variables: {
-						RESET_LINK: `${url.protocol}//${url.host}/reset-password/${encodeURIComponent(token)}`,
+						RESET_LINK: UrlBuilder.from('/reset-password').segment(token).toAbsolute(url),
 						EXPIRES_AT: formatRelative(expiresAt),
 					},
 				},
@@ -135,7 +138,7 @@ export const resetPassword = form(
 		const passwordHash = await hashPassword(password);
 		unwrap(await UsersService.updatePasswordById(action.userId, passwordHash));
 
-		redirect(303, `/login?updated=password`);
+		redirect(303, UrlBuilder.from('/login').param('updated', 'password').toPath());
 	},
 );
 
@@ -145,7 +148,12 @@ export const changeName = form(
 		const me = await resolveMe({});
 		unwrap(await UsersService.updateNameById(me.id, username));
 
-		redirect(303, `/account?notice=${encodeURIComponent('Your name has been updated.')}`);
+		redirect(
+			303,
+			UrlBuilder.from('/account')
+				.param('notice', 'Your name has been updated.')
+				.toPath(),
+		);
 	},
 );
 
@@ -159,7 +167,12 @@ export const changePassword = form(ChangePasswordSchema, async (data, invalid) =
 	const newPasswordHash = await hashPassword(newPassword);
 	unwrap(await UsersService.updatePasswordById(me.id, newPasswordHash));
 
-	redirect(303, `/account?notice=${encodeURIComponent('Your password has been updated.')}`);
+	redirect(
+		303,
+		UrlBuilder.from('/account')
+			.param('notice', 'Your password has been updated.')
+			.toPath(),
+	);
 });
 
 const isEmailOpenForChange = async (email: string) => {
@@ -188,7 +201,7 @@ export const changeEmailStart = form(
 			template: {
 				id: '89718909-12de-4156-b766-5989ae2ab206',
 				variables: {
-					CHANGE_LINK: `${url.protocol}//${url.host}/account/change-email/${encodeURIComponent(token)}`,
+					CHANGE_LINK: UrlBuilder.from('/account/change-email').segment(token).toAbsolute(url),
 					EXPIRES_AT: formatRelative(expiresAt),
 				},
 			},
@@ -199,7 +212,9 @@ export const changeEmailStart = form(
 		} else
 			redirect(
 				303,
-				`/account?notice=${encodeURIComponent('A confirmation email has been sent.')}`,
+				UrlBuilder.from('/account')
+					.param('notice', 'A confirmation email has been sent.')
+					.toPath(),
 			);
 	},
 );
@@ -211,5 +226,8 @@ export const changeEmail = form(z.object({ token: z.string() }), async ({ token 
 	if (!(await isEmailOpenForChange(action.payload.newEmail))) error(400, 'Email already taken');
 	unwrap(await UsersService.updateEmailById(action.userId, action.payload.newEmail));
 
-	redirect(303, `/account?notice=${encodeURIComponent('Your email has been updated.')}`);
+	redirect(
+		303,
+		UrlBuilder.from('/account').param('notice', 'Your email has been updated.').toPath(),
+	);
 });

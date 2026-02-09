@@ -1,4 +1,5 @@
 import { getRequestEvent } from '$app/server';
+import { UrlBuilder } from '$lib/util/url';
 import bcrypt from 'bcryptjs';
 import { createSecretKey } from 'crypto';
 import { jwtVerify, SignJWT } from 'jose';
@@ -40,14 +41,14 @@ export const verifyAuth = ({
 	} = getRequestEvent();
 
 	const fail = () => {
-		const returnUrl = encodeURIComponent(url.pathname + url.search);
+		const returnUrl = UrlBuilder.from(url).toPath();
 		switch (failStrategy) {
 			case 'welcome':
 				redirect(303, '/welcome');
 			case 'login':
-				redirect(303, `/login?redirect=${returnUrl}`);
+				redirect(303, UrlBuilder.from('/login').param('redirect', returnUrl).toPath());
 			case 'register':
-				redirect(303, `/register?redirect=${returnUrl}`);
+				redirect(303, UrlBuilder.from('/register').param('redirect', returnUrl).toPath());
 			case 'error':
 				error(401);
 		}

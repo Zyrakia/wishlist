@@ -1,4 +1,4 @@
-import type { LayoutServerLoad } from '../testing/$types';
+import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = () => {
 	return { showHeader: false };

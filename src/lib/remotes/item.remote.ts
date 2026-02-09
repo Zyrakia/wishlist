@@ -2,6 +2,7 @@ import { form, getRequestEvent, query } from '$app/server';
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
 import { generateItemCandidate } from '$lib/server/generation/item-generator';
+import { UrlBuilder } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
@@ -32,8 +33,8 @@ export const createItem = form(
 
 		data.continue ??= false;
 		const redirectUrl = data.continue
-			? `${url.pathname}?continue=true`
-			: `/lists/${wishlist_slug}`;
+			? UrlBuilder.from(url.pathname).param('continue', true).toPath()
+			: UrlBuilder.from('/lists').segment(wishlist_slug).toPath();
 
 		unwrap(await ItemsService.create({ id: randomUUID(), wishlistId: wl.id, ...data }));
 		unwrap(await WishlistService.touchById(wl.id));
@@ -58,7 +59,7 @@ export const updateItem = form(ItemSchema.partial(), async (data, invalid) => {
 
 	unwrap(await ItemsService.updateById(item_id, wl.id, data));
 	unwrap(await WishlistService.touchById(wl.id));
-	redirect(303, `/lists/${wishlist_slug}`);
+	redirect(303, UrlBuilder.from('/lists').segment(wishlist_slug).toPath());
 });
 
 export const setItemFavorited = form(
@@ -122,7 +123,15 @@ export const deleteItem = form(
 		const user = verifyAuth();
 
 		if (!data.confirm)
-			redirect(303, `/lists/${data.wishlistSlug}/item/${data.itemId}/delete-confirm`);
+			redirect(
+				303,
+				UrlBuilder.from('/lists')
+					.segment(data.wishlistSlug)
+					.segment('item')
+					.segment(data.itemId)
+					.segment('delete-confirm')
+					.toPath(),
+			);
 
 		const wl = unwrapOrDomain(
 			await WishlistService.getBySlugForOwnerOrErr(data.wishlistSlug, user.id),
@@ -131,7 +140,7 @@ export const deleteItem = form(
 
 		unwrap(await ItemsService.deleteById(data.itemId, wl.id));
 		unwrap(await WishlistService.touchById(wl.id));
-		redirect(303, `/lists/${data.wishlistSlug}`);
+		redirect(303, UrlBuilder.from('/lists').segment(data.wishlistSlug).toPath());
 	},
 );
 
