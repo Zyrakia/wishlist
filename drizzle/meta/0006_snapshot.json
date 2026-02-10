@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b8aa5b99-1241-4f9e-9c66-52a1cc4e65fb",
-  "prevId": "b30a981a-db3e-4656-88a6-6da2d09acfb0",
+  "id": "4565cb33-d447-445f-bc8a-ff24736378f5",
+  "prevId": "dbbd0f09-cb6e-46b6-b76d-0c3b4d8a0c14",
   "tables": {
     "account_action": {
       "name": "account_action",
@@ -102,46 +102,15 @@
             "content_hash"
           ],
           "isUnique": true
+        },
+        "docs_vector_idx": {
+          "name": "docs_vector_idx",
+          "columns": [
+            "libsql_vector_idx(\"vector\")"
+          ],
+          "isUnique": false
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "geolocation": {
-      "name": "geolocation",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "latitude": {
-          "name": "latitude",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "longitude": {
-          "name": "longitude",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -347,15 +316,15 @@
     "item_reservation": {
       "name": "item_reservation",
       "columns": {
-        "wishlist_id": {
-          "name": "wishlist_id",
+        "item_id": {
+          "name": "item_id",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true,
           "autoincrement": false
         },
-        "item_id": {
-          "name": "item_id",
+        "wishlist_id": {
+          "name": "wishlist_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -379,12 +348,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "item_reservation_wishlist_id_wishlist_id_fk": {
-          "name": "item_reservation_wishlist_id_wishlist_id_fk",
+        "item_reservation_item_id_wishlist_item_id_fk": {
+          "name": "item_reservation_item_id_wishlist_item_id_fk",
           "tableFrom": "item_reservation",
-          "tableTo": "wishlist",
+          "tableTo": "wishlist_item",
           "columnsFrom": [
-            "wishlist_id"
+            "item_id"
           ],
           "columnsTo": [
             "id"
@@ -392,12 +361,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "item_reservation_item_id_wishlist_item_id_fk": {
-          "name": "item_reservation_item_id_wishlist_item_id_fk",
+        "item_reservation_wishlist_id_wishlist_id_fk": {
+          "name": "item_reservation_wishlist_id_wishlist_id_fk",
           "tableFrom": "item_reservation",
-          "tableTo": "wishlist_item",
+          "tableTo": "wishlist",
           "columnsFrom": [
-            "item_id"
+            "wishlist_id"
           ],
           "columnsTo": [
             "id"
@@ -419,15 +388,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "item_reservation_item_id_wishlist_id_pk": {
-          "columns": [
-            "item_id",
-            "wishlist_id"
-          ],
-          "name": "item_reservation_item_id_wishlist_id_pk"
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -545,13 +506,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_geo_id": {
-          "name": "created_geo_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -574,19 +528,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "wishlist_connection_created_geo_id_geolocation_id_fk": {
-          "name": "wishlist_connection_created_geo_id_geolocation_id_fk",
-          "tableFrom": "wishlist_connection",
-          "tableTo": "geolocation",
-          "columnsFrom": [
-            "created_geo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -810,6 +751,14 @@
     "columns": {}
   },
   "internal": {
-    "indexes": {}
+    "indexes": {
+      "docs_vector_idx": {
+        "columns": {
+          "libsql_vector_idx(\"vector\")": {
+            "isExpression": true
+          }
+        }
+      }
+    }
   }
 }

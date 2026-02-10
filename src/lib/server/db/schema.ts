@@ -96,22 +96,18 @@ export const WishlistItemTable = sqliteTable('wishlist_item', {
 	createdAt: autoTimestampColumn(),
 });
 
-export const ReservationTable = sqliteTable(
-	'item_reservation',
-	{
-		wishlistId: text()
-			.notNull()
-			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-		itemId: text()
-			.notNull()
-			.references(() => WishlistItemTable.id, { onDelete: 'cascade' }),
-		userId: text()
-			.notNull()
-			.references(() => UserTable.id, { onDelete: 'cascade' }),
-		createdAt: autoTimestampColumn(),
-	},
-	(t) => [primaryKey({ columns: [t.itemId, t.wishlistId] })],
-);
+export const ReservationTable = sqliteTable('item_reservation', {
+	itemId: text()
+		.references(() => WishlistItemTable.id, { onDelete: 'cascade' })
+		.primaryKey(),
+	wishlistId: text()
+		.notNull()
+		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+	userId: text()
+		.notNull()
+		.references(() => UserTable.id, { onDelete: 'cascade' }),
+	createdAt: autoTimestampColumn(),
+});
 
 export const GroupTable = sqliteTable('group', {
 	id: text().primaryKey(),

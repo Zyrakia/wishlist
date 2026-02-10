@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b8aa5b99-1241-4f9e-9c66-52a1cc4e65fb",
-  "prevId": "b30a981a-db3e-4656-88a6-6da2d09acfb0",
+  "id": "dbbd0f09-cb6e-46b6-b76d-0c3b4d8a0c14",
+  "prevId": "b8aa5b99-1241-4f9e-9c66-52a1cc4e65fb",
   "tables": {
     "account_action": {
       "name": "account_action",
@@ -102,6 +102,13 @@
             "content_hash"
           ],
           "isUnique": true
+        },
+        "docs_vector_idx": {
+          "name": "docs_vector_idx",
+          "columns": [
+            "libsql_vector_idx(\"vector\")"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -810,6 +817,14 @@
     "columns": {}
   },
   "internal": {
-    "indexes": {}
+    "indexes": {
+      "docs_vector_idx": {
+        "columns": {
+          "libsql_vector_idx(\"vector\")": {
+            "isExpression": true
+          }
+        }
+      }
+    }
   }
 }
