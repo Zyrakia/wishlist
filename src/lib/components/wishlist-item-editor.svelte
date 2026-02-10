@@ -47,7 +47,7 @@
 		.for(hasJs() ? crypto.randomUUID() : 1);
 
 	let formMirror: Partial<Item> = $state({});
-	const hasMirror = $derived(!!Object.keys(formMirror).length);
+	const hasMirror = $derived(Object.values(formMirror).filter(Boolean).length !== 0);
 
 	const mode = $derived(handler === createItem ? 'create' : 'edit');
 	let pageState: 'generate' | 'generate-confirm' | 'form' = $state(
