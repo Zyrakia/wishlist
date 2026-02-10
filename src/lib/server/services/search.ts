@@ -4,7 +4,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
 import { Err, Ok } from 'ts-results-es';
 
-import SYSTEM_PROMPT from '$lib/assets/docs-system-prompt.txt?raw';
+import SYSTEM_PROMPT from '$lib/assets/assistant-system-prompt.txt?raw';
 import { db } from '../db';
 import { createService, DomainError, unwrap } from '../util/service';
 import { EmbeddingService } from './embedding';
