@@ -1,3 +1,5 @@
+import { parse as tldts } from 'tldts';
+
 type UrlProtocol = 'https' | 'http';
 
 export interface ParseUrlOptions {
@@ -24,11 +26,25 @@ type UrlQueryValue = string | number | boolean | null | undefined;
 const DEFAULT_ALLOWED_PROTOCOLS = ['https:', 'http:'];
 const INTERNAL_BASE = 'https://local.invalid';
 
-const hasScheme = (value: string) => /^[A-Za-z][A-Za-z0-9+\-.]*:/.test(value);
-
 const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`);
 
 const normalizeHash = (hash: string | null | undefined) => (hash || '').replace(/^#/, '');
+
+const normalizeProtocol = (input: string) => (input.endsWith(':') ? input : `${input}:`);
+
+const hasAnyScheme = (value: string): boolean => {
+	const colonIndex = value.indexOf(':');
+	if (colonIndex === -1) return false;
+
+	const scheme = value.slice(0, colonIndex);
+
+	// RFC 3986 scheme validation: starts with letter, then letters/digits/+.-
+	if (!/^[a-z][a-z0-9+.-]*$/i.test(scheme)) return false;
+
+	// Accepted tradeoff: any valid "<token>:" prefix is treated as an explicit scheme.
+	// This avoids coercing opaque schemes, but requires explicit "http(s)://" for host:port inputs.
+	return true;
+};
 
 const parseStringUrl = (
 	rawInput: string,
@@ -38,8 +54,8 @@ const parseStringUrl = (
 	if (!value) return;
 
 	if (base) return new URL(value, base);
-	if (hasScheme(value)) return new URL(value);
 	if (value.startsWith('/')) return;
+	if (hasAnyScheme(value)) return new URL(value);
 
 	return new URL(`${assumeProtocol}://${value.replace(/^\/+/, '')}`);
 };
@@ -56,10 +72,13 @@ export const isRelativePath = (url: string) => /^\/(?!\/)/.test(url.trim());
 
 export const parseUrl = (input: string | URL, opts: ParseUrlOptions = {}) => {
 	const { assumeProtocol = 'https', allowedProtocols = DEFAULT_ALLOWED_PROTOCOLS, base } = opts;
+	const normalizedProtocols = new Set(allowedProtocols.map(normalizeProtocol));
+
 	try {
 		const parsed = parseInputUrl(input, { assumeProtocol, base });
 		if (!parsed) return;
-		if (!allowedProtocols.includes(parsed.protocol)) return;
+
+		if (!normalizedProtocols.has(parsed.protocol)) return;
 		return parsed;
 	} catch {
 		return;
@@ -188,23 +207,27 @@ export const formatHost = (
 	const parsed = parseUrl(input);
 	if (!parsed) return;
 
-	const { subdomain = false, tld = true } = opts;
+	const { subdomain: includeSub = false, tld: includeTld = true } = opts;
 
-	const parts = parsed.hostname.split('.').filter(Boolean);
-	if (parts.length === 0) return;
+	const {
+		domain,
+		hostname = '',
+		domainWithoutSuffix = '',
+		subdomain = '',
+	} = tldts(parsed.href, { allowPrivateDomains: true });
 
-	if (subdomain) {
-		if (tld || parts.length === 1) return parsed.hostname;
-		return parts.slice(0, -1).join('.');
+	// We can't do reliable checks anyways if tldts cannot parse parts
+	if (!domain) return hostname;
+
+	if (includeSub) {
+		// +sub +tld
+		if (includeTld) return hostname;
+		// +sub -tld
+		return (subdomain && `${subdomain}.${domainWithoutSuffix}`) || domainWithoutSuffix;
+	} else {
+		// -sub +tld
+		if (includeTld) return domain;
+		// -sub -tld
+		return domainWithoutSuffix;
 	}
-
-	if (parts.length === 3) {
-		return tld ? `${parts[1]}.${parts[2]}` : parts[1];
-	}
-
-	if (parts.length === 2) {
-		return tld ? parsed.hostname : parts[0];
-	}
-
-	return tld ? parsed.hostname : parts[0];
 };
