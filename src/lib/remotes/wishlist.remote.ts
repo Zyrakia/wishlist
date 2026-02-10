@@ -3,6 +3,7 @@ import { WishlistSchema } from '$lib/schemas/wishlist';
 import { verifyAuth } from '$lib/server/auth';
 import { WishlistService } from '$lib/server/services/wishlist';
 import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
+import { UrlBuilder } from '$lib/util/url';
 import { randomUUID } from 'crypto';
 import z from 'zod';
 
@@ -25,7 +26,7 @@ export const createWishlist = form(WishlistSchema, async (data, invalid) => {
 		(m) => invalid(invalid.slug(m)),
 	);
 
-	redirect(303, `/lists/${data.slug}`);
+	redirect(303, UrlBuilder.from('/lists').segment(data.slug).toPath());
 });
 
 export const updateWishlist = form(WishlistSchema.partial(), async (data, invalid) => {
@@ -43,7 +44,7 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 
 	if (updated) {
 		unwrap(await WishlistService.touchById(updated.id));
-		redirect(303, `/lists/${data.slug ?? wishlist_slug}`);
+		redirect(303, UrlBuilder.from('/lists').segment(data.slug ?? wishlist_slug).toPath());
 	} else error(400, 'No wishlist can be updated');
 });
 
@@ -83,7 +84,11 @@ export const deleteWishlist = form(
 	async (data, invalid) => {
 		const user = verifyAuth();
 
-		if (!data.confirm) redirect(303, `/lists/${data.slug}/delete-confirm`);
+		if (!data.confirm)
+			redirect(
+				303,
+				UrlBuilder.from('/lists').segment(data.slug).segment('delete-confirm').toPath(),
+			);
 
 		const wl = unwrapOrDomain(
 			await WishlistService.getBySlugAndIdForOwnerOrErr(data.slug, data.id, user.id),

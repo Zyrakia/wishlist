@@ -6,6 +6,7 @@
 	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
 	import { firstIssue } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
+	import { formatHost } from '$lib/util/url';
 	import { onMount } from 'svelte';
 	import z from 'zod';
 	import Loader from './loader.svelte';
@@ -46,7 +47,7 @@
 		.for(hasJs() ? crypto.randomUUID() : 1);
 
 	let formMirror: Partial<Item> = $state({});
-	const hasMirror = $derived(!!Object.keys(formMirror).length);
+	const hasMirror = $derived(Object.values(formMirror).filter(Boolean).length !== 0);
 
 	const mode = $derived(handler === createItem ? 'create' : 'edit');
 	let pageState: 'generate' | 'generate-confirm' | 'form' = $state(
@@ -139,14 +140,7 @@
 			genFavicon = response.favicon || '';
 			genTitle = response.title;
 		} catch (error) {
-			try {
-				const urlObject = new URL(url);
-				genTitle = urlObject.hostname.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '');
-			} catch (err) {
-				console.warn(err);
-				genTitle = 'Unknown Page';
-			}
-
+			genTitle = formatHost(url, { subdomain: true, tld: true }) || 'Unknown Page';
 			console.warn(error);
 			genFavicon = '';
 		}

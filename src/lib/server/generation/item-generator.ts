@@ -12,6 +12,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { reportGenerationUsage } from './usage-stats';
 
 import ENV from '$lib/env';
+import { parseUrl } from '$lib/util/url';
 import { DomainError } from '../util/service';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
@@ -129,9 +130,8 @@ function distillPage(
 		const alt = img.attr('alt');
 
 		if (src && alt) {
-			const absoluteSrcResult = Result.wrap(() => new URL(src, baseUrl).href);
-			if (absoluteSrcResult.isOk()) {
-				const absoluteSrc = absoluteSrcResult.value;
+			const absoluteSrc = parseUrl(src, { base: baseUrl })?.href;
+			if (absoluteSrc) {
 				img.attr('src', absoluteSrc);
 				return;
 			}
@@ -149,9 +149,8 @@ function distillPage(
 			if (href.startsWith('https')) return;
 			if (stripRelativeLinks) return void link.remove();
 
-			const absoluteHrefResult = Result.wrap(() => new URL(href, baseUrl).href);
-			if (absoluteHrefResult.isOk()) {
-				const absoluteHref = absoluteHrefResult.value;
+			const absoluteHref = parseUrl(href, { base: baseUrl })?.href;
+			if (absoluteHref) {
 				link.attr('href', absoluteHref);
 				return;
 			}
@@ -184,10 +183,9 @@ const distillUrl = async (
 	renderOptions?: RenderOptions,
 	distillOptions?: DistillOptions,
 ): Promise<Result<string, DomainError>> => {
-	const parsedUrlResult = Result.wrap(() => new URL(url));
-	if (parsedUrlResult.isErr()) return Err(DomainError.of('Invalid URL'));
+	const parsedUrl = parseUrl(url);
+	if (!parsedUrl) return Err(DomainError.of('Invalid URL'));
 
-	const parsedUrl = parsedUrlResult.value;
 	const html = await renderUrl(parsedUrl.href, renderOptions);
 	if (!html) return Err(DomainError.of('Cannot render page'));
 

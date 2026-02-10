@@ -1,11 +1,14 @@
 import { query } from '$app/server';
 import { RequiredUrlSchema } from '$lib/schemas/item';
+import { formatHost, parseUrl } from '$lib/util/url';
 import { load as cheerio } from 'cheerio';
 import { devices } from 'playwright';
 
 export const readMetadata = query(RequiredUrlSchema, async (url) => {
 	try {
-		const target = new URL(url);
+		const target = parseUrl(url);
+		if (!target) return;
+
 		const res = await fetch(target, {
 			redirect: 'follow',
 			headers: {
@@ -21,6 +24,7 @@ export const readMetadata = query(RequiredUrlSchema, async (url) => {
 			$('title').first().text().trim() ||
 			$('meta[property="og:title"]').attr('content') ||
 			$('meta[name="twitter:title"]').attr('content') ||
+			formatHost(target, { subdomain: false, tld: true }) ||
 			target.hostname;
 
 		const favicons = $('link[rel]').filter((_, el) => {

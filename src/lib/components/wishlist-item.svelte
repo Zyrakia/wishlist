@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import type { Item } from '$lib/schemas/item';
+	import { formatHost } from '$lib/util/url';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -43,13 +44,7 @@
 
 	const urlSummary = $derived.by(() => {
 		if (!item.url) return;
-
-		try {
-			const [, ...hostParts] = new URL(item.url).hostname.split('.');
-			return hostParts.join('.');
-		} catch (err) {
-			console.warn(err);
-		}
+		return formatHost(item.url, { subdomain: false, tld: true });
 	});
 
 	const renderBody = $derived(item.price || item.url || item.notes);

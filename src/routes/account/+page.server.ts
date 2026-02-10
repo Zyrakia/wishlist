@@ -1,5 +1,6 @@
 import { resolveMe } from '$lib/remotes/auth.remote';
 import { safePruneParams } from '$lib/util/safe-prune';
+import { UrlBuilder } from '$lib/util/url';
 import z from 'zod';
 
 import { redirect } from '@sveltejs/kit';
@@ -12,7 +13,7 @@ const ParamsSchema = z.object({
 
 export const load: PageServerLoad = async ({ url }) => {
 	const me = await resolveMe({});
-	if (!me) redirect(303, '/login?return=/account');
+	if (!me) redirect(303, UrlBuilder.from('/login').param('return', '/account').toPath());
 
 	const props = safePruneParams(ParamsSchema, url.searchParams);
 

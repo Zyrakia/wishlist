@@ -1,26 +1,16 @@
 import z from 'zod';
+import { parseUrl } from '$lib/util/url';
 
 const normalizeUrl = (raw: string, ctx: z.RefinementCtx) => {
 	if (!raw) return null;
 
-	let candidate = raw;
-	if (!candidate.match(/^[A-Za-z]+:\/\//)) {
-		candidate = `https://${candidate.replace(/:\/{1,2}/, '')}`;
-	}
-
-	try {
-		const url = new URL(candidate);
-
-		if (!candidate.startsWith(url.origin)) {
-			ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: url.origin });
-			return z.NEVER;
-		}
-
-		return url.href;
-	} catch (err) {
-		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: candidate });
+	const parsed = parseUrl(raw);
+	if (!parsed) {
+		ctx.addIssue({ code: 'custom', message: 'Invalid URL', input: raw });
 		return z.NEVER;
 	}
+
+	return parsed.href;
 };
 
 const toPrice = (raw: string | number, ctx: z.RefinementCtx) => {

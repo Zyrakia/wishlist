@@ -9,6 +9,7 @@
 	import backgroundImage from '$lib/assets/authentication-background.webp';
 	import { firstIssue } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
+	import { UrlBuilder } from '$lib/util/url';
 	import { page } from '$app/state';
 
 	const hasJs = useHasJs();
@@ -40,6 +41,10 @@
 		remote.fields.set(validProps as any);
 	};
 
+	const loginHref = UrlBuilder.from('/login')
+		.query(Object.fromEntries(page.url.searchParams.entries()))
+		.toPath();
+
 	seed(Object.fromEntries(page.url.searchParams.entries()));
 </script>
 
@@ -54,7 +59,7 @@
 	>
 		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Register to get started</p>
 		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Create an Account</h1>
-		<p>Already have an account? <a href="/login" class="text-accent">Login</a></p>
+		<p>Already have an account? <a href={loginHref} class="text-accent">Login</a></p>
 
 		<form
 			{...remote}

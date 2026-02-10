@@ -7,6 +7,7 @@ import { GroupsService } from '$lib/server/services/groups';
 import { ReservationsService } from '$lib/server/services/reservations';
 import { UsersService } from '$lib/server/services/users';
 import { unwrap } from '$lib/server/util/service';
+import { UrlBuilder } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
 import z from 'zod';
@@ -30,7 +31,7 @@ export const createGroup = form(GroupSchema, async (data, invalid) => {
 		}),
 	);
 
-	redirect(303, `/groups/${group.id}`);
+	redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 });
 
 export const updateGroup = form(GroupSchema.partial(), async (data) => {
@@ -45,7 +46,7 @@ export const updateGroup = form(GroupSchema.partial(), async (data) => {
 	if (!group) error(400, 'Invalid group ID provided');
 
 	unwrap(await GroupsService.updateById(group_id, data));
-	redirect(303, `/groups/${group.id}`);
+	redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 });
 
 export const deleteGroup = form(
@@ -57,7 +58,11 @@ export const deleteGroup = form(
 
 		const user = verifyAuth();
 		if (!group_id) error(400, 'A group ID is required');
-		if (!confirm) redirect(303, `/groups/${group_id}/delete-confirm`);
+		if (!confirm)
+			redirect(
+				303,
+				UrlBuilder.from('/groups').segment(group_id).segment('delete-confirm').toPath(),
+			);
 
 		const group = unwrap(await GroupsService.getByIdForOwner(group_id, user.id));
 		if (!group) error(400, 'Invalid group ID provided');
@@ -110,12 +115,12 @@ export const issueGroupInvite = form(
 				variables: {
 					SENDER: group.owner.name,
 					GROUP: group.name,
-					INVITE_LINK: `${url.protocol}//${url.host}/groups/invite/${encodeURIComponent(createdInvite.id)}`,
+					INVITE_LINK: UrlBuilder.from('/groups/invite').segment(createdInvite.id).toAbsolute(url),
 				},
 			},
 		});
 
-		redirect(303, `/groups/${group.id}`);
+		redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 	},
 );
 
@@ -131,7 +136,7 @@ export const revokeGroupInvite = form(z.object({ inviteId: z.string() }), async 
 	if (!group) error(400, 'Invalid group ID provided');
 
 	unwrap(await GroupsService.deleteInviteById(inviteId));
-	redirect(303, `/groups/${group.id}`);
+	redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 });
 
 export const resolveGroupInvite = form(
@@ -147,7 +152,7 @@ export const resolveGroupInvite = form(
 
 		if (decision === 'decline') {
 			unwrap(await GroupsService.deleteInviteById(invite.id));
-			redirect(303, `/`);
+			redirect(303, '/');
 		}
 
 		const group = unwrap(await GroupsService.getByIdWithMemberCount(invite.groupId));
@@ -157,7 +162,7 @@ export const resolveGroupInvite = form(
 			return invalid(invalid.inviteId('Group is full'));
 
 		unwrap(await GroupsService.acceptInvite(invite.groupId, user.id, invite.id));
-		redirect(303, `/`);
+		redirect(303, '/');
 	},
 );
 
@@ -184,7 +189,7 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 	unwrap(await GroupsService.deleteMembershipByGroupIdAndUserId(group.id, targetId));
 	unwrap(await ReservationsService.cleanAfterGroupExit(targetId));
 
-	redirect(303, `/groups/${group.id}`);
+	redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 });
 
 export const getMyInvites = query(async () => {

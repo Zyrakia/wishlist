@@ -2,12 +2,31 @@
 	import { page } from '$app/state';
 	import { resolveGroupInvite } from '$lib/remotes/group.remote';
 	import { firstIssue } from '$lib/util/issue.js';
+	import { UrlBuilder } from '$lib/util/url.js';
 	import { TriangleAlertIcon } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	const invite = $derived(data.invite);
 	const me = $derived(data.me);
+
+	const loginInviteHref = $derived.by(() => {
+		if (!invite) return '/login';
+
+		return UrlBuilder.from('/login')
+			.param('email', invite.targetEmail)
+			.param('redirect', page.url.pathname)
+			.toPath();
+	});
+
+	const registerInviteHref = $derived.by(() => {
+		if (!invite) return '/register';
+
+		return UrlBuilder.from('/register')
+			.param('email', invite.targetEmail)
+			.param('redirect', page.url.pathname)
+			.toPath();
+	});
 </script>
 
 <div class="flex h-full w-full items-center justify-center px-4 py-6 text-center">
@@ -51,10 +70,7 @@
 				{:else}
 					<p class="text-warning">This is not your invite.</p>
 
-					<a
-						href="/login?email={invite.targetEmail}&redirect={page.url.pathname}"
-						class="button bg-accent text-accent-fg"
-					>
+					<a href={loginInviteHref} class="button bg-accent text-accent-fg">
 						Change Account
 					</a>
 				{/if}
@@ -62,19 +78,11 @@
 				<p class="text-warning">You must be signed in to accept this invite.</p>
 
 				<div class="flex gap-3">
-					<a
-						href="/register?email={invite.targetEmail}&redirect={page.url.pathname}"
-						class="button bg-success text-accent-fg"
-					>
+					<a href={registerInviteHref} class="button bg-success text-accent-fg">
 						Create Account
 					</a>
 
-					<a
-						href="/login?email={invite.targetEmail}&redirect={page.url.pathname}"
-						class="button bg-accent text-accent-fg"
-					>
-						Log In
-					</a>
+					<a href={loginInviteHref} class="button bg-accent text-accent-fg"> Log In </a>
 				</div>
 			{/if}
 		</div>

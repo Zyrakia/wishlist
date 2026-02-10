@@ -1,6 +1,7 @@
 import { ItemSchema } from '$lib/schemas/item';
 import { formatRelative } from '$lib/util/date';
 import { safePrune } from '$lib/util/safe-prune';
+import { dissectUrl } from '$lib/util/url';
 import { randomUUID } from 'crypto';
 import ms from 'ms';
 import { Err, Ok, type Result } from 'ts-results-es';
@@ -15,12 +16,10 @@ import { WishlistService } from './wishlist';
 const SYNC_DELAY = ms('1h');
 
 export const normalizeCompareUrl = (raw: string) => {
-	try {
-		const url = new URL(raw);
-		return `${url.protocol}//${url.host}${url.pathname}`;
-	} catch {
-		return raw;
-	}
+	const url = dissectUrl(raw, 'protocol', 'host', 'pathname');
+	if (!url) return raw;
+
+	return `${url.protocol}//${url.host}${url.pathname}`;
 };
 
 const syncing = new Map<string, Promise<Result<void, unknown>>>();
