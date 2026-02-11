@@ -54,6 +54,7 @@ const searchMutuals = async (
 	SELECT ${MutualsTable}.name, ${MutualsTable}.user_id as userId, ${MutualsTable}.group_id as groupId
 	FROM ${MutualsTable}
 	WHERE ${MutualsTable}.group_id IN ${groupIds}
+		AND ${MutualsTable}.user_id <> ${queryUserId}
 		AND ${MutualsTable}.name MATCH ${ftsQuery}
 	GROUP BY ${MutualsTable}.user_id
 	ORDER BY MIN(${MutualsTable}.rank)`);
