@@ -2,18 +2,54 @@ import ENV from '$lib/env';
 import { PromptSchema } from '$lib/schemas/search';
 import { createMistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
-import { Err, Ok } from 'ts-results-es';
+import { Err, Ok, Result } from 'ts-results-es';
 
 import SYSTEM_PROMPT from '$lib/assets/assistant-system-prompt.txt?raw';
-import { db } from '../db';
+import { db, type DatabaseClient } from '../db';
 import { createService, DomainError, unwrap } from '../util/service';
 import { EmbeddingService } from './embedding';
 import { DocsService } from './docs';
+import { GroupsService } from './groups';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 const MAX_OUTPUT_TOKENS = 1024;
 
 const DOC_CHUNKS = 5;
+
+interface SearchResults {
+	mutual: {name: string; userId: string; groupId: string;}
+	reservation: {name: string; notes: string; itemId: string; wishlistSlug: string;}
+	list: {name: string; description: string; id: string;}
+}
+
+export type SearchResult = {[K in keyof SearchResults]: {kind: K, entity: SearchResults[K]}}[keyof SearchResults]
+
+const searchMutuals = async (client: DatabaseClient, query: string, queryUserId: string): Promise<SearchResults['mutual'][]> => {
+	const groupsRes = await GroupsService.$with(client).listByUserId(queryUserId);
+	if (!groupsRes.isOk()) {
+		console.warn(groupsRes.error);
+		return [];
+	}
+
+	const groups = groupsRes.value;
+	const groupIds = groupsRes.value.map((v) => v.groupId)
+
+	// TODO Query
+
+	return []
+}
+
+const searchReservations = async (client: DatabaseClient, query: string, queryUserId: string): Promise<SearchResults['reservation'][]> => {
+	// TODO query
+
+	return []
+}
+
+const searchLists = async (client: DatabaseClient, query: string, queryUserId: string): Promise<SearchResults['list'][]> => {
+	// TODO query
+
+	return []
+}
 
 export const SearchService = createService(db(), {
 	/**
@@ -62,4 +98,11 @@ export const SearchService = createService(db(), {
 
 		return Ok(stream);
 	},
+
+	search: async (client, dirtyQuery: string) => {
+		// TODO validate query
+		// TODO aggregate searches, join needed information
+		// return in ordered list Mutuals -> Lists -> Reservations
+		return Ok([])
+	}
 });
