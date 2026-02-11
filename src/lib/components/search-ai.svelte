@@ -75,7 +75,11 @@
 		const rawPrompt = getQueryAsPrompt();
 		if (!rawPrompt) return;
 
-		const {success: isPromptValid, error: promptError, data: prompt} = PromptSchema.safeParse(rawPrompt);
+		const {
+			success: isPromptValid,
+			error: promptError,
+			data: prompt,
+		} = PromptSchema.safeParse(rawPrompt);
 
 		if (!isPromptValid) {
 			questionError = firstIssue(promptError.issues) || 'Unknown issue with your prompt.';
@@ -97,7 +101,7 @@
 			});
 
 			if (!res.ok) {
-				questionError ='Something went wrong while asking that question.';
+				questionError = 'Something went wrong while asking that question.';
 				return;
 			}
 
@@ -180,7 +184,7 @@
 			<Loader thickness="2px" pulseDur="1.25s" pulseStaggerDur="250ms" pulseCount={2} />
 		</div>
 	{:else if questionResponse}
-		<div aria-live="polite" class="mt-2">
+		<div aria-live="polite" class="mt-2" title="Generated Response">
 			<Markdown content={questionResponse} />
 		</div>
 	{:else if questionError}
