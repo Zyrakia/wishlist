@@ -1,5 +1,5 @@
 <script lang="ts">
-	import '$lib/assets/app.css';
+	import '../app.css';
 
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
