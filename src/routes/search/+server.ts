@@ -8,16 +8,12 @@ import z from 'zod';
 export const POST: RequestHandler = async ({ request }) => {
 	verifyAuth();
 
-	const { success, data: body } = z
+	const { success, error: schemaError, data: body } = z
 		.object({ prompt: PromptSchema })
 		.safeParse(await request.json());
 
 	if (!success) {
-		error(400, {
-			message: 'Invalid question provided',
-			userMessage:
-				"I don't know what kind of question that is, but I don't seem to understand it...",
-		});
+		error(400, "Invalid prompt");
 	}
 
 	const stream = unwrapOrDomain(await SearchService.streamDocsAnswer(body.prompt), (message) =>

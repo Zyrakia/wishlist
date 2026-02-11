@@ -1,8 +1,8 @@
 import z from 'zod';
 
 export const PromptSchema = z
-	.string({ error: 'Question is required' })
+	.string({ error: 'Prompt is required' })
 	.trim()
 	.toLowerCase()
-	.min(1, { error: 'Question is required' })
-	.max(255);
+	.min(1, { error: 'Minimum 1 character' })
+	.max(512, {error: "Maximum 512 characters!"});

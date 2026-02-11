@@ -8,8 +8,9 @@
 	import Loader from './loader.svelte';
 	import Markdown from './markdown.svelte';
 	import { slide } from 'svelte/transition';
-	import { AppErrorSchema } from '$lib/schemas/error';
 	import { getAssistantContext } from '$lib/runes/assistant-indicators.svelte';
+	import { PromptSchema } from '$lib/schemas/search';
+	import { firstIssue } from '$lib/util/issue';
 
 	interface Props {
 		query: string;
@@ -71,8 +72,15 @@
 	export const ask = async () => {
 		if (isQuestionInProgress) return;
 
-		const prompt = getQueryAsPrompt();
-		if (!prompt) return;
+		const rawPrompt = getQueryAsPrompt();
+		if (!rawPrompt) return;
+
+		const {success: isPromptValid, error: promptError, data: prompt} = PromptSchema.safeParse(rawPrompt);
+
+		if (!isPromptValid) {
+			questionError = firstIssue(promptError.issues) || 'Unknown issue with your prompt.';
+			return;
+		}
 
 		isQuestionInProgress = true;
 		lastSubmittedQuery = query;
@@ -89,10 +97,7 @@
 			});
 
 			if (!res.ok) {
-				const json = await res.json().catch(() => null);
-				const parsed = AppErrorSchema.safeParse(json);
-				questionError =
-					parsed.data?.userMessage ?? 'Something went wrong while asking that question.';
+				questionError ='Something went wrong while asking that question.';
 				return;
 			}
 
