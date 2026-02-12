@@ -10,28 +10,7 @@
 	import { runGlobalSearch } from '$lib/remotes/search.remote';
 	import Loader from './loader.svelte';
 
-	const hasJs = useHasJs();
-
-	const placeholderRotation = [
-		'How do I create a list?',
-		'How can I link my Amazon list?',
-		'How do I create a group for my family?',
-		'How many items can I have on my wishlist?',
-		'How do I invite someone to my group?',
-		'How do I share my wishlist?',
-		'How do I add an item from a link?',
-		'What happens when I reserve an item?',
-		'How do I prioritize items on my list?',
-		'Can I reorganize items on my list?',
-		'How do I sync my external wishlist?',
-		'How many connections can I have?',
-		'How do I change my password?',
-		'Can others see my reservations?',
-		'What is a list connection?',
-	];
-
-	let currentPlaceholder = $state('');
-	let inputBorderColor = $state<string | undefined>();
+	let mode: 'ask' | 'search' = $state('search');
 
 	let query = $state('');
 	const cleanQuery = $derived(
@@ -56,6 +35,27 @@
 		if (searchFocused || resultsFocused) return true;
 		return resultsHovered;
 	});
+
+	const placeholderRotation = [
+		'How do I create a list?',
+		'How can I link my Amazon list?',
+		'How do I create a group for my family?',
+		'How many items can I have on my wishlist?',
+		'How do I invite someone to my group?',
+		'How do I share my wishlist?',
+		'How do I add an item from a link?',
+		'What happens when I reserve an item?',
+		'How do I prioritize items on my list?',
+		'Can I reorganize items on my list?',
+		'How do I sync my external wishlist?',
+		'How many connections can I have?',
+		'How do I change my password?',
+		'Can others see my reservations?',
+		'What is a list connection?',
+	];
+
+	let currentPlaceholder = $state('');
+	let inputBorderColor = $state<string | undefined>();
 
 	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
 
@@ -171,6 +171,8 @@
 			clearTimeout(timeout);
 		};
 	});
+
+	const hasJs = useHasJs();
 </script>
 
 <svelte:window onkeyup={handleKeyUp} onkeydown={handleKeyDown} />
@@ -179,7 +181,11 @@
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
 		<div class="shrnk-0 relative flex size-8 items-center justify-center">
 			{#if searchPending || searchInflight}
-				<span in:fade={{ duration: 120 }} out:fade={{ duration: 120 }} class="absolute w-full h-full">
+				<span
+					in:fade={{ duration: 120 }}
+					out:fade={{ duration: 120 }}
+					class="absolute h-full w-full"
+				>
 					<Loader
 						thickness="2px"
 						pulseDur="500ms"
