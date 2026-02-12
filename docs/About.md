@@ -2,6 +2,14 @@
 
 Wishii is a wishlist management platform that helps you organize your wishes and share them with family and friends. Create lists, connect external wishlists, form groups, and coordinate gift-giving without the awkward "who's buying what?" conversations.
 
+## Core Features Summary
+
+- Create and manage personal wishlists
+- Share lists with family and friends
+- Connect and import external wishlists
+- Create groups to organize collaborative gifting
+- Coordinate gift-giving privately to avoid duplicate purchases
+
 ## Creator
 
 Wishii was created by **Zyrakia**.
