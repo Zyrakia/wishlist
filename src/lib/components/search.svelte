@@ -3,8 +3,12 @@
 	import { ArrowBigRightIcon, SearchIcon, SlashIcon, SparklesIcon } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import SearchAi from './search-ai.svelte';
+	import SearchResultTesting from './search-result.svelte';
+	import type { SearchResult } from '$lib/server/services/search';
 	import { likelyHasKeyboard } from '$lib/runes/media.svelte';
 	import { getSuggestedPrompt } from '$lib/runes/assistant-indicators.svelte';
+	import { runGlobalSearch } from '$lib/remotes/search.remote';
+	import Loader from './loader.svelte';
 
 	const hasJs = useHasJs();
 
@@ -39,11 +43,16 @@
 			.join(' '),
 	);
 
-	let searchFocused = $state(false);
+	let searchFocused = $state(true);
 	let resultsFocused = $state(false);
 	let resultsHovered = $state(false);
 
-	const searching = $derived.by(() => {
+	let searchResults = $state<SearchResult[]>([]);
+	let searchPending = $state(false);
+	let searchInflight = $state(false);
+	let searchError = $state('');
+
+	const searchOpen = $derived.by(() => {
 		if (searchFocused || resultsFocused) return true;
 		return resultsHovered;
 	});
@@ -78,7 +87,7 @@
 	};
 
 	const handleKeyDown = (ev: KeyboardEvent) => {
-		if (!searching) return;
+		if (!searchOpen) return;
 
 		if (ev.key === 'Escape') closeSearch();
 		else if (ev.key === 'Enter') {
@@ -87,6 +96,34 @@
 		} else if (ev.key === 'ArrowRight') {
 			tryTakePlaceholder();
 		}
+	};
+
+	const runSearch = async () => {
+		if (searchInflight) return;
+		searchInflight = true;
+
+		try {
+			const query = cleanQuery;
+			if (!query) return;
+
+			searchError = '';
+			const result = await runGlobalSearch({ query });
+
+			if ('error' in result) {
+				searchError = result.error;
+			} else searchResults = result;
+		} catch (err) {
+			console.warn(err);
+			searchError = 'Unknown error, please try typing your query again.';
+		} finally {
+			searchInflight = false;
+		}
+	};
+
+	const getResultKey = (result: SearchResult) => {
+		if (result.kind === 'mutual') return `mutual:${result.entity.userId}`;
+		if (result.kind === 'list') return `list:${result.entity.slug}`;
+		return `reservation:${result.entity.itemId}`;
 	};
 
 	let searchRef: HTMLInputElement | undefined = $state();
@@ -114,23 +151,58 @@
 		const interval = setInterval(setRandomPlaceholder, 5000);
 		return () => clearInterval(interval);
 	});
+
+	$effect(() => {
+		const query = cleanQuery;
+		if (!query) {
+			searchResults = [];
+			searchError = '';
+			return;
+		}
+
+		searchPending = true;
+		const timeout = setTimeout(() => {
+			runSearch();
+			searchPending = false;
+		}, 300);
+
+		return () => {
+			searchPending = false;
+			clearTimeout(timeout);
+		};
+	});
 </script>
 
 <svelte:window onkeyup={handleKeyUp} onkeydown={handleKeyDown} />
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
-		<SearchIcon
-			size={20}
-			class={`shrink-0 transition-colors ${searching ? 'text-accent' : 'text-text'}`}
-		/>
+		<div class="shrnk-0 relative flex size-8 items-center justify-center">
+			{#if searchPending || searchInflight}
+				<span in:fade={{ duration: 120 }} out:fade={{ duration: 120 }} class="absolute w-full h-full">
+					<Loader
+						thickness="2px"
+						pulseDur="500ms"
+						pulseStaggerDur="75ms"
+						pulseCount={2}
+					/>
+				</span>
+			{:else}
+				<span in:fade={{ duration: 120 }} out:fade={{ duration: 120 }} class="absolute">
+					<SearchIcon
+						size={20}
+						class={`shrink-0 transition-colors ${searchOpen ? 'text-accent' : 'text-text'}`}
+					/>
+				</span>
+			{/if}
+		</div>
 
 		<div
 			role="combobox"
-			aria-expanded={searching}
+			aria-expanded={searchOpen}
 			aria-haspopup="dialog"
 			aria-controls="search-panel"
-			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:max-w-4/5 {searching
+			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:max-w-4/5 {searchOpen
 				? 'lg:w-xl'
 				: 'lg:w-md'}"
 		>
@@ -138,7 +210,7 @@
 				<input
 					name="Global Search"
 					aria-autocomplete="none"
-					aria-expanded={searching}
+					aria-expanded={searchOpen}
 					aria-controls="search-panel"
 					bind:this={searchRef}
 					bind:value={query}
@@ -150,7 +222,7 @@
 
 				{#if !query}
 					<p
-						class="pointer-events-none absolute flex w-full items-center justify-between gap-2 overflow-hidden px-3 {searching
+						class="pointer-events-none absolute flex w-full items-center justify-between gap-2 overflow-hidden px-3 {searchOpen
 							? 'text-text-muted/50'
 							: 'text-text-muted'}"
 					>
@@ -159,7 +231,7 @@
 						{#key currentPlaceholder}
 							<span
 								transition:fly={{ y: 50 }}
-								class="absolute max-w-full truncate ps-7 pe-11 {searching
+								class="absolute max-w-full truncate ps-7 pe-11 {searchOpen
 									? ''
 									: 'placeholder-glow'}"
 							>
@@ -167,7 +239,7 @@
 							</span>
 						{/key}
 
-						{#if searching}
+						{#if searchOpen}
 							<span in:fade>
 								<ArrowBigRightIcon
 									size={18}
@@ -194,16 +266,39 @@
 				onblur={() => (resultsFocused = false)}
 				onmouseenter={() => (resultsHovered = true)}
 				onmouseleave={() => (resultsHovered = false)}
-				class="scrollbar-thin absolute bottom-full left-0 mb-2 max-h-85 min-h-0 w-full overflow-y-auto rounded-md border bg-surface transition-[opacity,translate] md:top-full md:bottom-[unset] md:mt-2 md:mb-0 {searching
+				class="scrollbar-thin absolute bottom-full left-0 mb-2 max-h-85 min-h-0 w-full overflow-y-auto rounded-md border bg-surface transition-[opacity,translate] md:top-full md:bottom-[unset] md:mt-2 md:mb-0 {searchOpen
 					? 'pointer-events-auto translate-y-0 opacity-100'
 					: 'pointer-events-none -translate-y-8 opacity-0'} {resultsFocused
 					? 'border-primary'
 					: 'border-accent'}"
 			>
-				<div role="group" aria-label="Search Results" class="flex flex-col gap-3 p-3">
-					<ul class="flex-1 overflow-y-auto" role="listbox">
-						<p class="text-text-muted italic">No results...</p>
-					</ul>
+				<div role="group" aria-label="Search Results" class="flex flex-col gap-3 px-3 py-4">
+					<div class="relative">
+						<ul class="flex flex-1 flex-col gap-2 overflow-y-auto" role="listbox">
+							{#if searchError}
+								<p class="text-danger italic">
+									{searchError}
+								</p>
+							{:else if searchResults.length}
+								{#each searchResults as result, i (getResultKey(result))}
+									<li
+										in:fly={{ x: -24, y: 6, duration: 260, delay: i * 30 }}
+										out:fly={{ x: -8, duration: 140 }}
+									>
+										<SearchResultTesting {result} />
+									</li>
+								{/each}
+							{:else if !searchPending && !searchInflight}
+								<p class="text-text-muted italic">
+									{#if !cleanQuery}
+										Search through your mutuals, lists and reserved items.
+									{:else}
+										No results...
+									{/if}
+								</p>
+							{/if}
+						</ul>
+					</div>
 
 					<hr class="border-border-strong" />
 
@@ -231,6 +326,7 @@
 			var(--color-text-muted) 65%,
 			var(--color-text-muted) 100%
 		);
+
 		background-size: 200% 100%;
 		background-clip: text;
 		-webkit-background-clip: text;

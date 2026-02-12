@@ -5,4 +5,4 @@ export const PromptSchema = z
 	.trim()
 	.toLowerCase()
 	.min(1, { error: 'Minimum 1 character' })
-	.max(512, {error: "Maximum 512 characters!"});
+	.max(512, { error: 'Maximum 512 characters!' });
