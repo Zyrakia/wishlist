@@ -19,36 +19,34 @@ const MAX_OUTPUT_TOKENS = 1024;
 const DOC_CHUNKS = 5;
 
 interface SearchResults {
-	mutual: {name: string; userId: string; groupId: string;}
-	reservation: {name: string; notes: string; itemId: string; wishlistSlug: string;}
-	list: {name: string; description: string; slug: string;}
+	mutual: { name: string; userId: string; groupId: string };
+	reservation: { name: string; notes: string; itemId: string; wishlistSlug: string };
+	list: { name: string; description: string; slug: string };
 }
 
-export type SearchResult = {[K in keyof SearchResults]: {kind: K, entity: SearchResults[K]}}[keyof SearchResults]
+export type SearchResult = {
+	[K in keyof SearchResults]: { kind: K; entity: SearchResults[K] };
+}[keyof SearchResults];
 
 const MutualsTable = sql`mutuals_fts`;
 const ReservationsTable = sql`reservations_fts`;
-const ListsTable = sql`lists_fts`
+const ListsTable = sql`lists_fts`;
 
 const toFtsPrefixQuery = (query: string) => {
-	const sanitized = query.trim().replace(/"/g, "");
-	return `"${sanitized}"*`
-}
+	const sanitized = query.trim().replace(/"/g, '');
+	return `"${sanitized}"*`;
+};
 
-const searchMutuals = async (
-	client: DatabaseClient,
-	ftsQuery: string,
-	queryUserId: string,
-) => {
+const searchMutuals = async (client: DatabaseClient, ftsQuery: string, queryUserId: string) => {
 	const groups = unwrap(await GroupsService.$with(client).listByUserId(queryUserId));
-	if (groups.length === 0) return [ ];
+	if (groups.length === 0) return [];
 
-	const groupIds = groups.map((v) => v.groupId)
+	const groupIds = groups.map((v) => v.groupId);
 
 	// Find people in shared groups
 	// Returns one result per user (selects one group ID if in multiple)
 
-	type Result = SearchResults["mutual"];
+	type Result = SearchResults['mutual'];
 
 	return await client.all<Result>(sql`
 	SELECT ${MutualsTable}.name, ${MutualsTable}.user_id as userId, ${MutualsTable}.group_id as groupId
@@ -58,19 +56,18 @@ const searchMutuals = async (
 		AND ${MutualsTable}.name MATCH ${ftsQuery}
 	GROUP BY ${MutualsTable}.user_id
 	ORDER BY MIN(${MutualsTable}.rank)`);
-}
+};
 
 const searchReservations = async (
 	client: DatabaseClient,
 	ftsQuery: string,
 	queryUserId: string,
 ) => {
-
 	// Find items user as reserved
 	// Joins slug to allow navigation to list
 	// Matches either name or notes (matches against table not column)
 
-	type Result = SearchResults["reservation"];
+	type Result = SearchResults['reservation'];
 
 	return await client.all<Result>(sql`
 	SELECT ${ReservationsTable}.name, ${ReservationsTable}.notes, ${ReservationsTable}.item_id as itemId, ${WishlistTable.slug} as wishlistSlug
@@ -79,20 +76,15 @@ const searchReservations = async (
 	INNER JOIN ${WishlistTable} ON ${WishlistTable.id} = ${WishlistItemTable.wishlistId}
 	WHERE ${ReservationsTable}.user_id = ${queryUserId}
 		AND ${ReservationsTable} MATCH ${ftsQuery}
-	ORDER BY ${ReservationsTable}.rank`)
-}
+	ORDER BY ${ReservationsTable}.rank`);
+};
 
-const searchLists = async (
-	client: DatabaseClient,
-	ftsQuery: string,
-	queryUserId: string,
-) => {
-
+const searchLists = async (client: DatabaseClient, ftsQuery: string, queryUserId: string) => {
 	// Finds lists a user has made
 	// Lists FTS table is content backed by wishlist table, can join on rowid
 	// Matches either name or description (matches against table not column)
-	
-	type Result = SearchResults["list"]
+
+	type Result = SearchResults['list'];
 
 	return await client.all<Result>(sql`
 	SELECT ${ListsTable}.name, ${ListsTable}.description, ${WishlistTable.slug}
@@ -101,7 +93,7 @@ const searchLists = async (
 	WHERE ${WishlistTable.userId} = ${queryUserId}
 		AND ${ListsTable} MATCH ${ftsQuery}
 	ORDER BY ${ListsTable}.rank`);
-}
+};
 
 export const SearchService = createService(db(), {
 	/**
@@ -168,6 +160,6 @@ export const SearchService = createService(db(), {
 			...mutuals.map((entity) => ({ kind: 'mutual', entity }) as const),
 			...lists.map((entity) => ({ kind: 'list', entity }) as const),
 			...reservations.map((entity) => ({ kind: 'reservation', entity }) as const),
-		])
-	}
+		]);
+	},
 });
