@@ -1,24 +1,46 @@
 import { PromptSchema } from '$lib/schemas/search';
 import { verifyAuth } from '$lib/server/auth';
 import { SearchService } from '$lib/server/services/search/search';
-import { unwrapOrDomain } from '$lib/server/util/service';
-import { error, type RequestHandler } from '@sveltejs/kit';
+import { DomainError, unwrap } from '$lib/server/util/service';
+import { firstIssue } from '$lib/util/issue';
+import { type RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request }) => {
 	verifyAuth();
 
-	const { success, data: body } = z
-		.object({ prompt: PromptSchema })
-		.safeParse(await request.json());
+	const {
+		success,
+		error: parseError,
+		data: body,
+	} = z.object({ prompt: PromptSchema }).safeParse(await request.json());
 
 	if (!success) {
-		error(400, 'Invalid prompt');
+		return new Response(firstIssue(parseError.issues), {
+			status: 400,
+			headers: {
+				'Content-Type': 'text/plain; charset=utf-8',
+				'Cache-Control': 'no-cache',
+			},
+		});
 	}
 
-	const stream = unwrapOrDomain(await SearchService.streamDocsAnswer(body.prompt), (message) =>
-		error(404, { message: 'Search failed', userMessage: message }),
-	);
+	const streamResult = await SearchService.streamDocsAnswer(body.prompt);
+	if (streamResult.isErr()) {
+		if (DomainError.is(streamResult.error)) {
+			return new Response(streamResult.error.message, {
+				status: 400,
+				headers: {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache',
+				},
+			});
+		}
+
+		throw streamResult.error;
+	}
+
+	const stream = unwrap(streamResult);
 
 	request.signal.addEventListener('abort', async () => {
 		await stream.consumeStream();

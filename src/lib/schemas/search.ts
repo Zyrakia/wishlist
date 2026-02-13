@@ -4,8 +4,8 @@ export const PromptSchema = z
 	.string({ error: 'Prompt is required' })
 	.trim()
 	.toLowerCase()
-	.min(1, { error: 'Minimum 1 character' })
-	.max(512, { error: 'Maximum 512 characters!' });
+	.min(1, { error: 'Too short!' })
+	.max(512, { error: 'Too long!' });
 
 export interface SearchResults {
 	mutual: { name: string; userId: string };

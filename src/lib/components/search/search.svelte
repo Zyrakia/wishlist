@@ -271,7 +271,7 @@
 						<button
 							type="button"
 							onclick={exitAskMode}
-							class="w-full rounded-md border border-accent/70 bg-accent/10 px-4 py-3 text-center font-semibold text-accent transition-colors hover:bg-accent/20"
+							class="w-full rounded-md border border-danger/70 bg-danger/5 px-4 py-3 text-center font-semibold text-text transition-colors hover:bg-danger/10"
 						>
 							Exit Ask Mode
 						</button>

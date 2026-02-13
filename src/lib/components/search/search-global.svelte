@@ -90,9 +90,11 @@
 			<p class="text-danger italic">
 				{searchError}
 			</p>
-		{:else if !searchResults.length && !searchQueued && !searchInflight}
+		{:else if !searchResults.length}
 			<p class="text-text-muted italic">
-				{#if !query}
+				{#if searchQueued || searchInflight}
+					Loading...
+				{:else if !query}
 					Search through your mutuals, lists and reserved items.
 					<br />
 					You can also ask the Wishii Assistant a question!

@@ -9,8 +9,6 @@
 	import Markdown from '../markdown.svelte';
 	import { slide } from 'svelte/transition';
 	import { getAssistantContext } from '$lib/runes/assistant-indicators.svelte';
-	import { PromptSchema } from '$lib/schemas/search';
-	import { firstIssue } from '$lib/util/issue';
 
 	interface Props {
 		query: string;
@@ -79,7 +77,7 @@
 	};
 
 	const handleAskButtonClick = () => {
-		if (!active) {
+		if (!active && !query) {
 			onactivate?.();
 			return;
 		}
@@ -87,20 +85,10 @@
 		void ask();
 	};
 
+	$inspect(questionError);
 	export const ask = async () => {
 		const rawPrompt = getQueryAsPrompt();
 		if (!rawPrompt) return;
-
-		const {
-			success: isPromptValid,
-			error: promptError,
-			data: prompt,
-		} = PromptSchema.safeParse(rawPrompt);
-
-		if (!isPromptValid) {
-			questionError = firstIssue(promptError.issues) || 'Unknown issue with your prompt.';
-			return;
-		}
 
 		onactivate?.();
 
@@ -114,12 +102,14 @@
 		try {
 			const res = await fetch('/search', {
 				method: 'POST',
-				headers: { 'Content-Type': 'text/json', 'Accept': 'text/event-stream' },
-				body: JSON.stringify({ prompt }),
+				headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+				body: JSON.stringify({ prompt: rawPrompt }),
 			});
 
 			if (!res.ok) {
-				questionError = 'Something went wrong while asking that question.';
+				questionError =
+					(await res.text()) || 'Something went wrong while asking that question.';
+
 				return;
 			}
 
@@ -130,9 +120,10 @@
 
 			let chunk: ReadableStreamReadResult<Uint8Array<ArrayBuffer>>;
 			while ((chunk = await reader.read()) && !chunk.done) {
-				const rawValue = chunk.value;
-				questionResponse += decoder.decode(rawValue, { stream: true });
+				questionResponse += decoder.decode(chunk.value, { stream: true });
 			}
+
+			questionResponse += decoder.decode();
 		} catch (err) {
 			console.warn(err);
 			questionError = 'An unknown error occurred during generation.';
@@ -151,6 +142,7 @@
 		title={active ? 'Ask Wishii AI' : 'Enter Ask Mode'}
 		class="mb-1 flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
 		disabled={!askButtonEnabled}
+		onmousedown={(e) => e.preventDefault()}
 		onclick={handleAskButtonClick}
 		type="button"
 	>
@@ -195,7 +187,7 @@
 			class="my-3 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
 		>
 			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
-			<p class="text-sm text-text-muted italic">{lastSubmission}</p>
+			<p class="truncate text-sm text-text-muted italic">{lastSubmission}</p>
 		</div>
 	{/if}
 
