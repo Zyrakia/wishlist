@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { SearchResult } from '$lib/schemas/search';
 	import { UrlBuilder } from '$lib/util/url';
-	import { BookmarkCheckIcon, ContactIcon, ScrollTextIcon, UsersIcon } from '@lucide/svelte';
+	import {
+		BookmarkCheckIcon,
+		CircleUserRoundIcon,
+		ScrollTextIcon,
+		UsersIcon,
+	} from '@lucide/svelte';
 
 	let { result }: { result: SearchResult } = $props();
 
@@ -42,7 +47,7 @@
 >
 	<span class="mt-0.5 shrink-0">
 		{#if result.kind === 'mutual'}
-			<ContactIcon class="text-danger" size={18} />
+			<CircleUserRoundIcon class="text-danger" size={18} />
 		{:else if result.kind === 'list'}
 			<ScrollTextIcon class="text-accent" size={18} />
 		{:else if result.kind === 'reservation'}
