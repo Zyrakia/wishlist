@@ -1,4 +1,4 @@
-import { asc, count, eq, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 import { Ok } from 'ts-results-es';
 
 import { db } from '../db';
@@ -31,11 +31,7 @@ export const AdminService = createService(db(), {
 	 * @param limit the page size to fetch
 	 * @param offset the row offset to fetch
 	 */
-	listErroredConnectionsPage: async (
-		client,
-		limit: number,
-		offset: number,
-	) => {
+	listErroredConnectionsPage: async (client, limit: number, offset: number) => {
 		const [data, [{ total }]] = await Promise.all([
 			client.query.WishlistConnectionTable.findMany({
 				limit,

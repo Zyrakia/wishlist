@@ -1,6 +1,6 @@
 import ENV from '$lib/env';
 import { createMistral } from '@ai-sdk/mistral';
-import { embed, embedMany, type EmbeddingModel } from 'ai';
+import { embed, embedMany } from 'ai';
 import { Err, Ok } from 'ts-results-es';
 
 import { DomainError } from '../util/service';

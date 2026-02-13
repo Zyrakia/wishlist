@@ -1,4 +1,4 @@
-import { getTableColumns, sql, SQL } from 'drizzle-orm';
+import { getTableColumns, sql, type SQL } from 'drizzle-orm';
 
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 

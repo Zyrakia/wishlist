@@ -4,7 +4,7 @@ import { Ok } from 'ts-results-es';
 import { GroupsService } from '../groups';
 import type { SearchResults } from '$lib/schemas/search';
 import { sql } from 'drizzle-orm';
-import { GroupMembershipTable, GroupTable, UserTable, WishlistTable } from '$lib/server/db/schema';
+import { GroupMembershipTable, GroupTable, WishlistTable } from '$lib/server/db/schema';
 
 const LIMIT = 10;
 

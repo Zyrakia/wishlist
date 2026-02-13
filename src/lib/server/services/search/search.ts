@@ -1,17 +1,14 @@
 import ENV from '$lib/env';
-import { PromptSchema, type SearchResult, type SearchResults } from '$lib/schemas/search';
+import { PromptSchema, type SearchResult } from '$lib/schemas/search';
 import { createMistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
 import { Err, Ok } from 'ts-results-es';
 
 import SYSTEM_PROMPT from '$lib/assets/assistant-system-prompt.txt?raw';
-import { db, type DatabaseClient } from '../../db';
+import { db } from '../../db';
 import { createService, DomainError, unwrap } from '../../util/service';
 import { EmbeddingService } from '../embedding';
 import { DocsService } from './docs';
-import { GroupsService } from '../groups';
-import { sql } from 'drizzle-orm';
-import { WishlistItemTable, WishlistTable } from '../../db/schema';
 import { FtsService } from './fts';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
