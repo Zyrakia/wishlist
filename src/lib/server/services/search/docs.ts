@@ -1,9 +1,9 @@
 import { inArray, notInArray, sql } from 'drizzle-orm';
 import { Ok } from 'ts-results-es';
 
-import { db } from '../db';
-import { DocumentationTable } from '../db/schema';
-import { createService } from '../util/service';
+import { db } from '$lib/server/db';
+import { DocumentationTable } from '$lib/server/db/schema';
+import { createService } from '$lib/server/util/service';
 
 export const DocsService = createService(db(), {
 	/**

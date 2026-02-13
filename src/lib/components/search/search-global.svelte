@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import type { SearchResult } from '$lib/schemas/search';
-	import { runGlobalSearch } from '$lib/remotes/search.remote';
 	import SearchResultItem from './search-result.svelte';
+	import { runGlobalSearch } from '$lib/remotes/search.remote';
 
 	interface Props {
 		query: string;
@@ -24,6 +24,8 @@
 				return `list:${result.entity.slug}`;
 			case 'reservation':
 				return `reservation:${result.entity.itemId}`;
+			case 'group':
+				return `group:${result.entity.id}`;
 		}
 	};
 

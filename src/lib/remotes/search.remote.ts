@@ -1,6 +1,6 @@
 import { query } from '$app/server';
 import { verifyAuth } from '$lib/server/auth';
-import { SearchService } from '$lib/server/services/search';
+import { SearchService } from '$lib/server/services/search/search';
 import { unwrapOrDomain } from '$lib/server/util/service';
 import z from 'zod';
 

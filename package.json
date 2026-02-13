@@ -35,7 +35,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/mistral": "^2.0.24",
-		"@libsql/client": "^0.15.15",
+		"@libsql/client": "^0.17.0",
 		"@lucide/svelte": "^0.546.0",
 		"@t3-oss/env-core": "^0.13.8",
 		"@tailwindcss/vite": "^4.1.17",

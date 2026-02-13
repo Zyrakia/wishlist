@@ -1,12 +1,7 @@
 <script lang="ts">
 	import type { SearchResult } from '$lib/schemas/search';
 	import { UrlBuilder } from '$lib/util/url';
-	import {
-		BookmarkCheckIcon,
-		CircleUserRoundIcon,
-		ScrollTextIcon,
-		UsersIcon,
-	} from '@lucide/svelte';
+	import { BookmarkCheckIcon, CircleUserRoundIcon, GiftIcon, UsersIcon } from '@lucide/svelte';
 
 	let { result }: { result: SearchResult } = $props();
 
@@ -33,7 +28,7 @@
 				builder.segment('users').segment(result.entity.userId);
 				break;
 			case 'group':
-				builder.segment('groups').segment(result.entity.groupId);
+				builder.segment('groups').segment(result.entity.id);
 				break;
 		}
 
@@ -49,7 +44,7 @@
 		{#if result.kind === 'mutual'}
 			<CircleUserRoundIcon class="text-danger" size={18} />
 		{:else if result.kind === 'list'}
-			<ScrollTextIcon class="text-accent" size={18} />
+			<GiftIcon class="text-accent" size={18} />
 		{:else if result.kind === 'reservation'}
 			<BookmarkCheckIcon class="text-success" size={18} />
 		{:else if result.kind === 'group'}
@@ -57,10 +52,18 @@
 		{/if}
 	</span>
 
-	<span class="min-w-0 flex-1">
-		<span class="block truncate text-sm font-semibold text-text">{result.entity.name}</span>
+	<span class="flex min-w-0 flex-1 flex-col">
+		<span class="w-full max-w-full flex-1 text-sm font-semibold text-text">
+			<span class="truncate">{result.entity.name}</span>
+			{#if result.kind === 'reservation'}
+				<span class="truncate text-xs text-accent">
+					({result.entity.ownerName})
+				</span>
+			{/if}
+		</span>
+
 		{#if subtitle}
-			<p class="mt-0.5 truncate text-xs text-text-muted">{subtitle}</p>
+			<p class="truncate text-xs text-text-muted">{subtitle}</p>
 		{/if}
 	</span>
 </a>

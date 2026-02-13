@@ -9,9 +9,15 @@ export const PromptSchema = z
 
 export interface SearchResults {
 	mutual: { name: string; userId: string };
-	reservation: { name: string; notes: string; itemId: string; wishlistSlug: string };
+	reservation: {
+		name: string;
+		notes: string;
+		itemId: string;
+		ownerName: string;
+		wishlistSlug: string;
+	};
 	list: { name: string; description: string; slug: string };
-	group: { name: string; groupId: string };
+	group: { name: string; id: string };
 }
 
 export type SearchResult = {
