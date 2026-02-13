@@ -16,7 +16,7 @@
 
 		switch (result.kind) {
 			case 'list':
-				builder.segment('list').segment(result.entity.slug);
+				builder.segment('lists').segment(result.entity.slug);
 				break;
 			case 'reservation':
 				// TODO need to implement focusItem
