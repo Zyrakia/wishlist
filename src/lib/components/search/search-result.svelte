@@ -19,12 +19,14 @@
 				builder.segment('list').segment(result.entity.slug);
 				break;
 			case 'reservation':
+				// TODO need to implement focusItem
 				builder
 					.segment(`lists`)
 					.segment(result.entity.wishlistSlug)
 					.param('focusItem', result.entity.itemId);
 				break;
 			case 'mutual':
+				// TODO need to implement user page
 				builder.segment('users').segment(result.entity.userId);
 				break;
 			case 'group':
