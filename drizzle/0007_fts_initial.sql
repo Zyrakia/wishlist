@@ -47,7 +47,7 @@ CREATE TRIGGER reservation_fts_insert AFTER INSERT ON item_reservation BEGIN
 	SELECT item.name, item.notes, owner.name, new.item_id, new.wishlist_id, new.user_id, wishlist.user_id
 	FROM wishlist_item as item
 	INNER JOIN wishlist ON wishlist.id = new.wishlist_id
-	INNER JOIN user as owner ON user.id = wishlist.user_id
+	INNER JOIN user as owner ON owner.id = wishlist.user_id
 	WHERE item.id = new.item_id;
 END;
 --> statement-breakpoint
