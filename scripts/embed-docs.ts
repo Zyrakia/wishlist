@@ -3,7 +3,7 @@ import { type Dirent, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import type { Embedding } from 'ai';
 
-import { DocsService } from '../src/lib/server/services/docs';
+import { DocsService } from '../src/lib/server/services/search/docs';
 import { EMBEDDING_MAX_INPUT, EmbeddingService } from '../src/lib/server/services/embedding';
 import { unwrap } from '../src/lib/server/util/service';
 
