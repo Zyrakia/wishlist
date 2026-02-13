@@ -79,8 +79,6 @@ export const SearchService = createService(db(), {
 			fts.findReservationsAsUser(userId, ftsQuery),
 		]);
 
-		console.log(groups);
-
 		return Ok([
 			...unwrap(mutuals).map((entity): SearchResult => ({ kind: 'mutual', entity })),
 			...unwrap(groups).map((entity): SearchResult => ({ kind: 'group', entity })),
