@@ -8,7 +8,7 @@
 	import type { CookieUser } from '$lib/schemas/auth';
 	import { slide } from 'svelte/transition';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
-	import Search from './search.svelte';
+	import Search from './search/search.svelte';
 
 	let { theme, user }: { theme: Theme; user?: CookieUser } = $props();
 

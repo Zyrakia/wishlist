@@ -5,8 +5,8 @@
 		MessageCircleQuestionMarkIcon,
 		SparklesIcon,
 	} from '@lucide/svelte';
-	import Loader from './loader.svelte';
-	import Markdown from './markdown.svelte';
+	import Loader from '../loader.svelte';
+	import Markdown from '../markdown.svelte';
 	import { slide } from 'svelte/transition';
 	import { getAssistantContext } from '$lib/runes/assistant-indicators.svelte';
 	import { PromptSchema } from '$lib/schemas/search';
@@ -15,10 +15,22 @@
 	interface Props {
 		query: string;
 		searchFocused: boolean;
+		active?: boolean;
+		onactivate?: () => void;
 		onask?: () => void;
+		promptToAsk?: boolean;
+		loading?: boolean;
 	}
 
-	const { query, searchFocused, onask }: Props = $props();
+	let {
+		query,
+		searchFocused,
+		active = false,
+		onactivate,
+		onask,
+		promptToAsk: promptToAskHint = false,
+		loading = $bindable(false),
+	}: Props = $props();
 
 	const questionWords = new Set([
 		'who',
@@ -38,19 +50,16 @@
 	const isQueryQuestion = $derived.by(() => {
 		if (query.endsWith('?')) return true;
 		if (queryWords.length < 2) return false;
-
-		const startingWord = queryWords[0];
-		if (!startingWord) return false;
-
-		return questionWords.has(startingWord);
+		return questionWords.has(queryWords[0]);
 	});
 
 	let isQuestionInProgress = $state(false);
-	let lastSubmittedQuery = $state('');
+	let lastSubmission = $state('');
 	let questionResponse = $state('');
 	let questionError = $state('');
 
-	const shouldPromptToAsk = $derived(isQueryQuestion && !isQuestionInProgress);
+	const promptToAsk = $derived(!!query && (isQueryQuestion || promptToAskHint));
+	const askButtonEnabled = $derived(!isQuestionInProgress && (!active || !!query));
 
 	const getQueryAsPrompt = () => {
 		if (!query) return;
@@ -69,9 +78,16 @@
 		return lines.join('\n');
 	};
 
-	export const ask = async () => {
-		if (isQuestionInProgress) return;
+	const handleAskButtonClick = () => {
+		if (!active) {
+			onactivate?.();
+			return;
+		}
 
+		void ask();
+	};
+
+	export const ask = async () => {
 		const rawPrompt = getQueryAsPrompt();
 		if (!rawPrompt) return;
 
@@ -86,8 +102,10 @@
 			return;
 		}
 
+		onactivate?.();
+
 		isQuestionInProgress = true;
-		lastSubmittedQuery = query;
+		lastSubmission = query;
 		questionResponse = '';
 		questionError = '';
 
@@ -122,22 +140,26 @@
 			isQuestionInProgress = false;
 		}
 	};
+
+	$effect(() => {
+		loading = isQuestionInProgress;
+	});
 </script>
 
 {#snippet askButton()}
 	<button
-		title="Ask Wishii AI"
+		title={active ? 'Ask Wishii AI' : 'Enter Ask Mode'}
 		class="mb-1 flex items-center gap-2 border-accent p-2 py-1 text-xs text-text"
-		disabled={isQuestionInProgress || !query}
-		onclick={ask}
+		disabled={!askButtonEnabled}
+		onclick={handleAskButtonClick}
 		type="button"
 	>
 		{#if isQuestionInProgress}
 			<span class="animate-pulse">Asking...</span>
 		{:else}
-			<span>Ask</span>
+			<span>{active ? 'Ask' : 'Enter Ask Mode'}</span>
 
-			{#if searchFocused}
+			{#if searchFocused && active}
 				<CornerDownLeftIcon size={12} />
 			{/if}
 		{/if}
@@ -145,19 +167,17 @@
 {/snippet}
 
 <div role="group" aria-label="AI Assistant">
-	<div
-		class={`flex items-center gap-2 text-accent ${isQuestionInProgress || shouldPromptToAsk ? 'animate-[color-shift_2s_ease-in-out_infinite]' : ''}`}
-	>
+	<div class={`flex items-center gap-2 text-accent`}>
 		<SparklesIcon size={18} />
 
 		<span class="me-auto">Wishii AI</span>
 
-		{#if !isQueryQuestion}
+		{#if !promptToAsk}
 			{@render askButton()}
 		{/if}
 	</div>
 
-	{#if isQueryQuestion}
+	{#if promptToAsk}
 		<div transition:slide={{ duration: 150 }} class="flex items-center gap-2">
 			<ArrowDownRight class="shrink-0 animate-pulse text-accent" size={14} />
 
@@ -170,12 +190,12 @@
 		</div>
 	{/if}
 
-	{#if lastSubmittedQuery}
+	{#if lastSubmission}
 		<div
 			class="my-3 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
 		>
 			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
-			<p class="text-sm text-text-muted italic">{lastSubmittedQuery}</p>
+			<p class="text-sm text-text-muted italic">{lastSubmission}</p>
 		</div>
 	{/if}
 
@@ -191,15 +211,3 @@
 		<p class="mt-2 text-danger/75 italic">{questionError}</p>
 	{/if}
 </div>
-
-<style>
-	@keyframes color-shift {
-		0%,
-		100% {
-			color: var(--color-accent);
-		}
-		50% {
-			color: var(--color-shimmer);
-		}
-	}
-</style>

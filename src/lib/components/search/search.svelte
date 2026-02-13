@@ -3,12 +3,10 @@
 	import { ArrowBigRightIcon, SearchIcon, SlashIcon, SparklesIcon } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import SearchAi from './search-ai.svelte';
-	import SearchResultTesting from './search-result.svelte';
-	import type { SearchResult } from '$lib/server/services/search';
+	import SearchGlobal from './search-global.svelte';
 	import { likelyHasKeyboard } from '$lib/runes/media.svelte';
 	import { getSuggestedPrompt } from '$lib/runes/assistant-indicators.svelte';
-	import { runGlobalSearch } from '$lib/remotes/search.remote';
-	import Loader from './loader.svelte';
+	import Loader from '../loader.svelte';
 
 	let mode: 'ask' | 'search' = $state('search');
 
@@ -22,14 +20,13 @@
 			.join(' '),
 	);
 
-	let searchFocused = $state(true);
+	let searchFocused = $state(false);
 	let resultsFocused = $state(false);
 	let resultsHovered = $state(false);
 
-	let searchResults = $state<SearchResult[]>([]);
-	let searchPending = $state(false);
-	let searchInflight = $state(false);
-	let searchError = $state('');
+	let globalLoading = $state(false);
+	let aiLoading = $state(false);
+	const isLoading = $derived(globalLoading || aiLoading);
 
 	const searchOpen = $derived.by(() => {
 		if (searchFocused || resultsFocused) return true;
@@ -61,69 +58,67 @@
 
 	const setRandomPlaceholder = () => {
 		const index = Math.floor(Math.random() * placeholderRotation.length);
-		currentPlaceholder =
-			placeholderRotation[index] || 'Search people, items or ask questions...';
+		currentPlaceholder = placeholderRotation[index];
 	};
 
-	const tryTakePlaceholder = () => {
+	const setDefaultPlaceholder = () => {
+		currentPlaceholder = 'Search people, items or ask questions...';
+	};
+
+	const tryInsertPlaceholder = () => {
 		if (query) return;
 		query = currentPlaceholder;
 	};
 
-	const closeSearch = () => {
+	const blurAll = () => {
 		searchFocused = false;
 		resultsFocused = false;
 		resultsHovered = false;
 	};
 
-	const openSearch = () => {
+	const activateAskMode = () => {
+		mode = 'ask';
+		searchFocused = true;
+	};
+
+	const exitAskMode = () => {
+		mode = 'search';
 		searchFocused = true;
 	};
 
 	const handleKeyUp = (ev: KeyboardEvent) => {
 		if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement)
 			return;
-		if (ev.key === '/') openSearch();
+
+		if (ev.key === '/') searchFocused = true;
 	};
 
 	const handleKeyDown = (ev: KeyboardEvent) => {
 		if (!searchOpen) return;
 
-		if (ev.key === 'Escape') closeSearch();
+		if (ev.key === 'Escape') blurAll();
 		else if (ev.key === 'Enter') {
-			if (query) aiRef?.ask();
-			else setRandomPlaceholder();
+			if (mode === 'ask' && cleanQuery) aiRef?.ask();
 		} else if (ev.key === 'ArrowRight') {
-			tryTakePlaceholder();
+			tryInsertPlaceholder();
 		}
 	};
 
-	const runSearch = async () => {
-		if (searchInflight) return;
-		searchInflight = true;
-
-		try {
-			const query = cleanQuery;
-			if (!query) return;
-
-			searchError = '';
-			const result = await runGlobalSearch({ query });
-
-			if ('error' in result) {
-				searchError = result.error;
-			} else searchResults = result;
-		} catch (err) {
-			console.warn(err);
-			searchError = 'Unknown error, please try typing your query again.';
-		} finally {
-			searchInflight = false;
-		}
+	const handleInputBlur = () => {
+		searchFocused = false;
 	};
 
-	const getResultKey = (result: SearchResult) => {
-		if (result.kind === 'mutual') return `mutual:${result.entity.userId}`;
-		if (result.kind === 'list') return `list:${result.entity.slug}`;
-		return `reservation:${result.entity.itemId}`;
+	let placeholderInterval: NodeJS.Timeout | undefined;
+	const runPlaceholderLoop = () => {
+		killPlaceholderLoop();
+		setRandomPlaceholder();
+		placeholderInterval = setInterval(setRandomPlaceholder, 5000);
+	};
+
+	const killPlaceholderLoop = () => {
+		if (!placeholderInterval) return;
+		clearTimeout(placeholderInterval);
+		placeholderInterval = undefined;
 	};
 
 	let searchRef: HTMLInputElement | undefined = $state();
@@ -131,9 +126,11 @@
 		if (!searchRef) return;
 
 		if (searchFocused) {
-			searchRef?.focus();
+			searchRef.focus();
 			inputBorderColor = undefined;
-		} else searchRef.blur();
+		} else {
+			searchRef.blur();
+		}
 	});
 
 	$effect(() => {
@@ -141,35 +138,26 @@
 		if (suggested) {
 			currentPlaceholder = suggested.prompt;
 			inputBorderColor = suggested.color;
-
 			return;
 		}
 
+		currentPlaceholder = '';
 		inputBorderColor = undefined;
 
-		setRandomPlaceholder();
-		const interval = setInterval(setRandomPlaceholder, 5000);
-		return () => clearInterval(interval);
+		if (mode === 'search') {
+			killPlaceholderLoop();
+			setDefaultPlaceholder();
+		} else runPlaceholderLoop();
 	});
 
 	$effect(() => {
-		const query = cleanQuery;
-		if (!query) {
-			searchResults = [];
-			searchError = '';
-			return;
+		// Delay for 150ms because the focus switching could run this multiple times
+		if (!searchOpen) {
+			setTimeout(() => {
+				if (searchOpen) return;
+				mode = 'search';
+			}, 150);
 		}
-
-		searchPending = true;
-		const timeout = setTimeout(() => {
-			runSearch();
-			searchPending = false;
-		}, 300);
-
-		return () => {
-			searchPending = false;
-			clearTimeout(timeout);
-		};
 	});
 
 	const hasJs = useHasJs();
@@ -180,7 +168,7 @@
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
 		<div class="shrnk-0 relative flex size-8 items-center justify-center">
-			{#if searchPending || searchInflight}
+			{#if isLoading}
 				<span
 					in:fade={{ duration: 120 }}
 					out:fade={{ duration: 120 }}
@@ -221,7 +209,7 @@
 					bind:this={searchRef}
 					bind:value={query}
 					onfocus={() => (searchFocused = true)}
-					onblur={() => (searchFocused = false)}
+					onblur={handleInputBlur}
 					class="w-full"
 					style:border-color={inputBorderColor}
 				/>
@@ -237,7 +225,7 @@
 						{#key currentPlaceholder}
 							<span
 								transition:fly={{ y: 50 }}
-								class="absolute max-w-full truncate ps-7 pe-11 {searchOpen
+								class="absolute max-w-full truncate ps-7 pe-11 {mode === 'search'
 									? ''
 									: 'placeholder-glow'}"
 							>
@@ -251,7 +239,7 @@
 									size={18}
 									class="pointer-events-auto cursor-pointer"
 									onmousedown={(e) => e.preventDefault()}
-									onclick={() => tryTakePlaceholder()}
+									onclick={() => tryInsertPlaceholder()}
 								/>
 							</span>
 						{:else if likelyHasKeyboard.current}
@@ -279,32 +267,17 @@
 					: 'border-accent'}"
 			>
 				<div role="group" aria-label="Search Results" class="flex flex-col gap-3 px-3 py-4">
-					<div class="relative">
-						<ul class="flex flex-1 flex-col gap-2 overflow-y-auto" role="listbox">
-							{#if searchError}
-								<p class="text-danger italic">
-									{searchError}
-								</p>
-							{:else if searchResults.length}
-								{#each searchResults as result, i (getResultKey(result))}
-									<li
-										in:fly={{ x: -24, y: 6, duration: 260, delay: i * 30 }}
-										out:fly={{ x: -8, duration: 140 }}
-									>
-										<SearchResultTesting {result} />
-									</li>
-								{/each}
-							{:else if !searchPending && !searchInflight}
-								<p class="text-text-muted italic">
-									{#if !cleanQuery}
-										Search through your mutuals, lists and reserved items.
-									{:else}
-										No results...
-									{/if}
-								</p>
-							{/if}
-						</ul>
-					</div>
+					{#if mode === 'ask'}
+						<button
+							type="button"
+							onclick={exitAskMode}
+							class="w-full rounded-md border border-accent/70 bg-accent/10 px-4 py-3 text-center font-semibold text-accent transition-colors hover:bg-accent/20"
+						>
+							Exit Ask Mode
+						</button>
+					{:else}
+						<SearchGlobal query={cleanQuery} bind:loading={globalLoading} />
+					{/if}
 
 					<hr class="border-border-strong" />
 
@@ -312,7 +285,11 @@
 						bind:this={aiRef}
 						query={cleanQuery}
 						{searchFocused}
+						active={mode === 'ask'}
+						onactivate={activateAskMode}
 						onask={() => (query = '')}
+						promptToAsk={mode === 'ask'}
+						bind:loading={aiLoading}
 					/>
 				</div>
 			</div>

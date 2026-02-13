@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { BookmarkCheckIcon, ContactIcon, ScrollTextIcon } from '@lucide/svelte';
-	import type { SearchResult } from '$lib/server/services/search';
+	import type { SearchResult } from '$lib/schemas/search';
+	import { UrlBuilder } from '$lib/util/url';
+	import { BookmarkCheckIcon, ContactIcon, ScrollTextIcon, UsersIcon } from '@lucide/svelte';
 
 	let { result }: { result: SearchResult } = $props();
 
@@ -10,11 +11,28 @@
 		return undefined;
 	});
 
-	const href = $derived.by(() => {
-		if (result.kind === 'list') return `/lists/${result.entity.slug}`;
-		if (result.kind === 'reservation') return `/lists/${result.entity.wishlistSlug}`;
-		if (result.kind === 'mutual') return `/groups/${result.entity.groupId}`;
-		return '/';
+	const href = $derived.by((): string => {
+		const builder = UrlBuilder.from();
+
+		switch (result.kind) {
+			case 'list':
+				builder.segment('list').segment(result.entity.slug);
+				break;
+			case 'reservation':
+				builder
+					.segment(`lists`)
+					.segment(result.entity.wishlistSlug)
+					.param('focusItem', result.entity.itemId);
+				break;
+			case 'mutual':
+				builder.segment('users').segment(result.entity.userId);
+				break;
+			case 'group':
+				builder.segment('groups').segment(result.entity.groupId);
+				break;
+		}
+
+		return builder.toPath();
 	});
 </script>
 
@@ -27,8 +45,10 @@
 			<ContactIcon class="text-danger" size={18} />
 		{:else if result.kind === 'list'}
 			<ScrollTextIcon class="text-accent" size={18} />
-		{:else}
+		{:else if result.kind === 'reservation'}
 			<BookmarkCheckIcon class="text-success" size={18} />
+		{:else if result.kind === 'group'}
+			<UsersIcon class="text-danger" size={18} />
 		{/if}
 	</span>
 

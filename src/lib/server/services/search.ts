@@ -1,5 +1,5 @@
 import ENV from '$lib/env';
-import { PromptSchema } from '$lib/schemas/search';
+import { PromptSchema, type SearchResult, type SearchResults } from '$lib/schemas/search';
 import { createMistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
 import { Err, Ok } from 'ts-results-es';
@@ -17,16 +17,6 @@ const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
 const MAX_OUTPUT_TOKENS = 1024;
 
 const DOC_CHUNKS = 5;
-
-interface SearchResults {
-	mutual: { name: string; userId: string; groupId: string };
-	reservation: { name: string; notes: string; itemId: string; wishlistSlug: string };
-	list: { name: string; description: string; slug: string };
-}
-
-export type SearchResult = {
-	[K in keyof SearchResults]: { kind: K; entity: SearchResults[K] };
-}[keyof SearchResults];
 
 const MutualsTable = sql`mutuals_fts`;
 const ReservationsTable = sql`reservations_fts`;

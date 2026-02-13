@@ -6,3 +6,14 @@ export const PromptSchema = z
 	.toLowerCase()
 	.min(1, { error: 'Minimum 1 character' })
 	.max(512, { error: 'Maximum 512 characters!' });
+
+export interface SearchResults {
+	mutual: { name: string; userId: string };
+	reservation: { name: string; notes: string; itemId: string; wishlistSlug: string };
+	list: { name: string; description: string; slug: string };
+	group: { name: string; groupId: string };
+}
+
+export type SearchResult = {
+	[K in keyof SearchResults]: { kind: K; entity: SearchResults[K] };
+}[keyof SearchResults];
