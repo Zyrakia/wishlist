@@ -1,30 +1,11 @@
-import { createEnv } from '@t3-oss/env-core';
-import DotenvFlow from 'dotenv-flow';
+import 'sane-env/config';
+import { createEnvironment } from 'sane-env';
 import z from 'zod';
 import { intoTime } from './util/zod';
 
-const isServer = () => {
-	if (typeof process !== 'undefined') return true;
-	return typeof window === 'undefined';
-};
-
-const getRuntimeEnv = () => {
-	if (isServer() && process.env) return process.env;
-	return import.meta.env;
-};
-
-if (isServer()) {
-	const { error } = DotenvFlow.config({ silent: true });
-	if (error) console.warn('No environment loaded from `.env` files.');
-}
-
-const ENV = createEnv({
-	runtimeEnv: getRuntimeEnv(),
-	emptyStringAsUndefined: true,
-	clientPrefix: 'VITE_',
-	isServer: isServer(),
-	client: {},
-	server: {
+const ENV = createEnvironment({
+	source: process.env,
+	schema: {
 		DATABASE_PATH: z.string().transform((v) => {
 			if (v.startsWith('file:')) return v;
 			return `file:${v}`;
