@@ -13,7 +13,7 @@
 		Share2 as ShareIcon,
 		Trash2Icon,
 	} from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import type { PageData } from './$types';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { flip } from 'svelte/animate';
@@ -33,6 +33,8 @@
 	const reservations = $derived(data.reservations);
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
+
+	let focusedRef: WishlistItem | undefined = $state();
 
 	let shareEnabled = $state(true);
 	let copyConfirm = $state(false);
@@ -151,6 +153,32 @@
 
 	onMount(() => {
 		seen.markSeen(wishlist.id);
+	});
+
+	$effect(() => {
+		if (data.focusItemId === undefined) return;
+
+		history.replaceState(
+			history.state,
+			'',
+			UrlBuilder.from(page.url).removeParam('focusItem').toPath(),
+		);
+	});
+
+	$effect(() => {
+		const id = data.focusItemId;
+		if (!id) return;
+
+		queueMicrotask(async () => {
+			await tick();
+
+			const element = document.querySelector(`[data-item-id="${id}"]`);
+			if (!element) return;
+
+			setTimeout(() => {
+				element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}, 100);
+		});
 	});
 </script>
 
@@ -285,9 +313,18 @@
 		{#each items as item (item.id)}
 			{@const connection = connections.find((v) => v.id === item.connectionId)}
 			{@const reservation = reservations.find((v) => v.itemId === item.id)}
+			{@const externallyFocused = item.id === data.focusItemId}
 
-			<div animate:flip={{ duration: 200 }} class="h-full w-full">
-				<WishlistItem {item} interactive={!isReorganizing} highlighted={item.favorited}>
+			<div animate:flip={{ duration: 200 }} data-item-id={item.id} class="h-full w-full">
+				<WishlistItem
+					{item}
+					interactive={!isReorganizing}
+					highlight={externallyFocused
+						? 'focused'
+						: item.favorited
+							? 'prioritized'
+							: undefined}
+				>
 					{#snippet footer()}
 						{#if isReorganizing}
 							<div

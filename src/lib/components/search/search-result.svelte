@@ -19,7 +19,6 @@
 				builder.segment('lists').segment(result.entity.slug);
 				break;
 			case 'reservation':
-				// TODO need to implement focusItem
 				builder
 					.segment(`lists`)
 					.segment(result.entity.wishlistSlug)

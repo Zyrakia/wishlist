@@ -25,6 +25,7 @@ type UrlQueryValue = string | number | boolean | null | undefined;
 
 const DEFAULT_ALLOWED_PROTOCOLS = ['https:', 'http:'];
 const INTERNAL_BASE = 'https://local.invalid';
+const INTERNAL_BASE_ORIGIN = new URL(INTERNAL_BASE).origin;
 
 const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`);
 
@@ -87,24 +88,26 @@ export const parseUrl = (input: string | URL, opts: ParseUrlOptions = {}) => {
 
 const getBuilderSeedUrl = (input?: string | URL) => {
 	if (!input) return new URL(INTERNAL_BASE);
-	if (input instanceof URL) return new URL(input.href);
+
+	if (input instanceof URL) {
+		return new URL(input.href);
+	}
 
 	const raw = input.trim();
 	if (!raw) return new URL(INTERNAL_BASE);
 	if (isRelativePath(raw)) return new URL(raw, INTERNAL_BASE);
 
-	return parseUrl(raw) || new URL(INTERNAL_BASE);
+	const parsed = parseUrl(raw);
+	if (!parsed) return new URL(INTERNAL_BASE);
+
+	return parsed;
 };
 
 export class UrlBuilder {
-	private pathname: string;
-	private params: URLSearchParams;
-	private hashFragment: string;
+	private url: URL;
 
 	private constructor(seed: URL) {
-		this.pathname = seed.pathname || '/';
-		this.params = new URLSearchParams(seed.search);
-		this.hashFragment = normalizeHash(seed.hash);
+		this.url = new URL(seed.href);
 	}
 
 	public static from(input?: string | URL) {
@@ -112,7 +115,7 @@ export class UrlBuilder {
 	}
 
 	public path(nextPath: string) {
-		this.pathname = normalizePath(nextPath.trim() || '/');
+		this.url.pathname = normalizePath(nextPath.trim() || '/');
 		return this;
 	}
 
@@ -125,8 +128,8 @@ export class UrlBuilder {
 
 		if (!safeSegment) return this;
 
-		const basePath = this.pathname.replace(/\/+$/, '');
-		this.pathname = basePath ? `${basePath}/${safeSegment}` : `/${safeSegment}`;
+		const basePath = this.url.pathname.replace(/\/+$/, '');
+		this.url.pathname = basePath ? `${basePath}/${safeSegment}` : `/${safeSegment}`;
 
 		return this;
 	}
@@ -140,46 +143,48 @@ export class UrlBuilder {
 	}
 
 	public param(key: string, value: UrlQueryValue) {
-		if (value === undefined || value === null) this.params.delete(key);
-		else this.params.set(key, String(value));
+		if (value === undefined || value === null) this.url.searchParams.delete(key);
+		else this.url.searchParams.set(key, String(value));
 
 		return this;
 	}
 
 	public removeParam(key: string) {
-		this.params.delete(key);
+		this.url.searchParams.delete(key);
 		return this;
 	}
 
 	public clearQuery() {
-		this.params = new URLSearchParams();
+		this.url.search = '';
 		return this;
 	}
 
 	public hash(nextHash: string | null | undefined) {
-		this.hashFragment = normalizeHash(nextHash);
+		const normalized = normalizeHash(nextHash);
+		this.url.hash = normalized ? `#${normalized}` : '';
 		return this;
 	}
 
 	public clearHash() {
-		this.hashFragment = '';
+		this.url.hash = '';
 		return this;
 	}
 
 	public toPath() {
-		const search = this.params.toString();
-		const hashPart = this.hashFragment ? `#${this.hashFragment}` : '';
-
-		return `${this.pathname}${search ? `?${search}` : ''}${hashPart}`;
+		return `${this.url.pathname}${this.url.search}${this.url.hash}`;
 	}
 
-	public toAbsolute(base: string | URL) {
-		const target = parseUrl(base);
+	public toAbsolute(base?: string | URL) {
+		const baseUrl =
+			base || (this.url.origin !== INTERNAL_BASE_ORIGIN ? this.url.origin : undefined);
+		if (!baseUrl) throw new Error('Invalid base URL');
+
+		const target = parseUrl(baseUrl);
 		if (!target) throw new Error('Invalid base URL');
 
-		target.pathname = this.pathname;
-		target.search = this.params.toString();
-		target.hash = this.hashFragment ? `#${this.hashFragment}` : '';
+		target.pathname = this.url.pathname;
+		target.search = this.url.search;
+		target.hash = this.url.hash;
 
 		return target.href;
 	}
