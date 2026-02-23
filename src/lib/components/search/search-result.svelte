@@ -3,7 +3,11 @@
 	import { UrlBuilder } from '$lib/util/url';
 	import { BookmarkCheckIcon, CircleUserRoundIcon, GiftIcon, UsersIcon } from '@lucide/svelte';
 
-	let { result }: { result: SearchResult } = $props();
+	let {
+		result,
+		active = false,
+		index,
+	}: { result: SearchResult; active?: boolean; index: number } = $props();
 
 	const subtitle = $derived.by(() => {
 		if (result.kind === 'list') return result.entity.description;
@@ -38,7 +42,13 @@
 </script>
 
 <a
-	class="flex min-w-0 items-start gap-3 rounded-lg border border-border-strong/70 bg-surface/65 px-3 py-2.5"
+	class={`flex min-w-0 items-start gap-3 rounded-lg border bg-surface/65 px-3 py-2.5 transition-colors focus-visible:border-accent/90 focus-visible:bg-accent/8 focus-visible:outline-none ${
+		active
+			? 'border-accent/90 bg-accent/8'
+			: 'border-border-strong/70 hover:border-accent/70 hover:bg-accent/5'
+	}`}
+	data-search-result-index={index}
+	data-search-result-active={active ? 'true' : 'false'}
 	{href}
 >
 	<span class="mt-0.5 shrink-0">

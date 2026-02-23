@@ -55,6 +55,7 @@
 	let inputBorderColor = $state<string | undefined>();
 
 	let aiRef: ReturnType<typeof SearchAi> | undefined = $state();
+	let searchGlobalRef: ReturnType<typeof SearchGlobal> | undefined = $state();
 
 	const setRandomPlaceholder = () => {
 		const index = Math.floor(Math.random() * placeholderRotation.length);
@@ -97,8 +98,22 @@
 		if (!searchOpen) return;
 
 		if (ev.key === 'Escape') blurAll();
-		else if (ev.key === 'Enter') {
+		else if (mode === 'search' && ev.key === 'ArrowDown') {
+			if (searchGlobalRef?.selectNext()) ev.preventDefault();
+		} else if (mode === 'search' && ev.key === 'ArrowUp') {
+			if (searchGlobalRef?.selectPrevious()) ev.preventDefault();
+		} else if (ev.key === 'Enter') {
 			if (mode === 'ask' && cleanQuery) aiRef?.ask();
+			else if (mode === 'search') {
+				const selected = document.querySelector<HTMLAnchorElement>(
+					'a[data-search-result-active="true"]',
+				);
+
+				if (!selected) return;
+
+				ev.preventDefault();
+				selected?.click();
+			}
 		} else if (ev.key === 'ArrowRight') {
 			tryInsertPlaceholder();
 		}
@@ -106,6 +121,25 @@
 
 	const handleInputBlur = () => {
 		searchFocused = false;
+	};
+
+	const handleResultsFocusIn = () => {
+		resultsFocused = true;
+	};
+
+	const handleResultsFocusOut = (ev: FocusEvent) => {
+		const panel = ev.currentTarget;
+		if (!(panel instanceof HTMLElement)) {
+			resultsFocused = false;
+			return;
+		}
+
+		const nextFocusTarget = ev.relatedTarget;
+		if (nextFocusTarget instanceof Node && panel.contains(nextFocusTarget)) {
+			return;
+		}
+
+		resultsFocused = false;
 	};
 
 	let placeholderInterval: NodeJS.Timeout | undefined;
@@ -256,8 +290,8 @@
 				role="dialog"
 				aria-label="Search Results and AI"
 				tabindex="0"
-				onfocus={() => (resultsFocused = true)}
-				onblur={() => (resultsFocused = false)}
+				onfocusin={handleResultsFocusIn}
+				onfocusout={handleResultsFocusOut}
 				onmouseenter={() => (resultsHovered = true)}
 				onmouseleave={() => (resultsHovered = false)}
 				class="scrollbar-thin absolute bottom-full left-0 mb-2 max-h-85 min-h-0 w-full overflow-y-auto rounded-md border bg-surface transition-[opacity,translate] md:top-full md:bottom-[unset] md:mt-2 md:mb-0 {searchOpen
@@ -276,7 +310,11 @@
 							Exit Ask Mode
 						</button>
 					{:else}
-						<SearchGlobal query={cleanQuery} bind:loading={globalLoading} />
+						<SearchGlobal
+							bind:this={searchGlobalRef}
+							query={cleanQuery}
+							bind:loading={globalLoading}
+						/>
 					{/if}
 
 					<hr class="border-border-strong" />

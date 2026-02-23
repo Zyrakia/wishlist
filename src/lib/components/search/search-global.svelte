@@ -15,6 +15,9 @@
 	let searchQueued = $state(false);
 	let searchInflight = $state(false);
 	let searchError = $state('');
+	let activeIndex = $state(-1);
+
+	let resultsRef: HTMLUListElement | undefined = $state();
 
 	const getResultKey = (result: SearchResult): string => {
 		switch (result.kind) {
@@ -73,16 +76,58 @@
 	$effect(() => {
 		loading = searchQueued || searchInflight;
 	});
+
+	$effect(() => {
+		if (searchError || !searchResults.length) {
+			activeIndex = -1;
+			return;
+		}
+
+		activeIndex = Math.max(0, Math.min(activeIndex, searchResults.length - 1));
+	});
+
+	$effect(() => {
+		if (!resultsRef || activeIndex < 0) return;
+
+		const activeResult = resultsRef.querySelector<HTMLElement>(
+			`[data-search-result-index="${activeIndex}"]`,
+		);
+
+		activeResult?.scrollIntoView({ block: 'nearest' });
+	});
+
+	export const selectNext = () => {
+		if (!searchResults.length || searchError) return false;
+
+		activeIndex = activeIndex >= searchResults.length - 1 ? 0 : activeIndex + 1;
+		return true;
+	};
+
+	export const selectPrevious = () => {
+		if (!searchResults.length || searchError) return false;
+
+		activeIndex = activeIndex <= 0 ? searchResults.length - 1 : activeIndex - 1;
+		return true;
+	};
 </script>
 
 <div class="relative">
-	<ul class="flex flex-1 flex-col gap-2 overflow-y-auto" role="listbox">
+	<ul
+		bind:this={resultsRef}
+		class="flex flex-1 flex-col gap-2 overflow-y-auto"
+		role="listbox"
+		aria-label="Search results"
+	>
 		{#each searchError ? [] : searchResults as result, i (getResultKey(result))}
 			<li
+				role="option"
+				aria-selected={activeIndex === i}
+				onmouseenter={() => (activeIndex = i)}
+				onfocusin={() => (activeIndex = i)}
 				in:fly={{ x: -24, y: 6, duration: 260, delay: i * 30 }}
 				out:fly={{ x: -8, duration: 140 }}
 			>
-				<SearchResultItem {result} />
+				<SearchResultItem {result} index={i} active={activeIndex === i} />
 			</li>
 		{/each}
 
