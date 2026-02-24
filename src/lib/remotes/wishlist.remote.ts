@@ -104,5 +104,5 @@ export const deleteWishlist = form(
 
 export const getWishlists = query(async () => {
 	const user = verifyAuth({ failStrategy: 'login' });
-	return unwrap(await WishlistService.listForOwner(user.id));
+	return unwrap(await WishlistService.listsForOwner(user.id));
 });

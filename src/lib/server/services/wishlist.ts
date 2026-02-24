@@ -229,7 +229,7 @@ export const WishlistService = createService(db(), {
 	 *
 	 * @param userId the ID of the user to lookup
 	 */
-	listForOwner: async (client, userId: string) => {
+	listsForOwner: async (client, userId: string) => {
 		const wishlists = await client.query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			orderBy: (t, { desc }) => desc(t.activityAt),
