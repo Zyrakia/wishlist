@@ -236,9 +236,7 @@
 			aria-expanded={searchOpen}
 			aria-haspopup="dialog"
 			aria-controls="search-panel"
-			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:max-w-4/5 {searchOpen
-				? 'lg:w-xl'
-				: 'lg:w-md'}"
+			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:w-md lg:max-w-4/5"
 		>
 			<div class="relative flex w-full items-center">
 				<input

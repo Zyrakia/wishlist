@@ -5,8 +5,13 @@
 
 	let {
 		active = $bindable(false),
+		iconClass = 'size-6',
 		onClick,
-	}: { active: boolean; onClick?: (active: boolean) => void } = $props();
+	}: {
+		active: boolean;
+		iconClass?: string;
+		onClick?: (active: boolean) => void;
+	} = $props();
 
 	const hasJs = useHasJs();
 
@@ -27,13 +32,13 @@
 </script>
 
 {#if hasJs()}
-	<button class="border-0 p-2" onclick={toggle}>
+	<button class="border-0 p-1.5 md:p-2" onclick={toggle}>
 		{#if active}
-			<SearchXIcon {color} />
+			<SearchXIcon {color} class={iconClass} />
 		{:else if hasIndicator}
-			<SearchSlashIcon {color} />
+			<SearchSlashIcon {color} class={iconClass} />
 		{:else}
-			<SearchIcon {color} />
+			<SearchIcon {color} class={iconClass} />
 		{/if}
 	</button>
 {/if}
