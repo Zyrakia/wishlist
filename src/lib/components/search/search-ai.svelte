@@ -85,7 +85,6 @@
 		void ask();
 	};
 
-	$inspect(questionError);
 	export const ask = async () => {
 		const rawPrompt = getQueryAsPrompt();
 		if (!rawPrompt) return;
