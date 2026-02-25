@@ -126,7 +126,7 @@ export const WishlistService = createService(db(), {
 					orderBy: (t, { asc, desc }) => {
 						const sortBy = (col: keyof typeof t) => [
 							direction === 'asc' ? asc(t[col]) : desc(t[col]),
-							// TODO desc(t.updatedAt),
+							// TODO need to implement column desc(t.updatedAt),
 						];
 
 						switch (sort) {
