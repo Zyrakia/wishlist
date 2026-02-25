@@ -148,7 +148,7 @@
 		{#if isQuestionInProgress}
 			<span class="animate-pulse">Asking...</span>
 		{:else}
-			<span>{active ? 'Ask' : 'Enter Ask Mode'}</span>
+			<span>{active || isQueryQuestion ? 'Ask' : 'Enter Ask Mode'}</span>
 
 			{#if searchFocused && active}
 				<CornerDownLeftIcon size={12} />
