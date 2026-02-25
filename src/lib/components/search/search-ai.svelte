@@ -42,6 +42,7 @@
 		'does',
 		'are',
 		'do',
+		'explain',
 	]);
 
 	const queryWords = $derived(query.toLowerCase().split(' '));

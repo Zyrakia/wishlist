@@ -8,6 +8,11 @@
 	import { getSuggestedPrompt } from '$lib/runes/assistant-indicators.svelte';
 	import Loader from '../loader.svelte';
 
+	let {
+		searchFocused = $bindable(false),
+		onOpenChange,
+	}: { searchFocused?: boolean; onOpenChange?: (open: boolean) => void } = $props();
+
 	let mode: 'ask' | 'search' = $state('search');
 
 	let query = $state('');
@@ -20,7 +25,6 @@
 			.join(' '),
 	);
 
-	let searchFocused = $state(false);
 	let resultsFocused = $state(false);
 	let resultsHovered = $state(false);
 
@@ -32,6 +36,8 @@
 		if (searchFocused || resultsFocused) return true;
 		return resultsHovered;
 	});
+
+	$effect(() => void onOpenChange?.(searchOpen));
 
 	const placeholderRotation = [
 		'How do I create a list?',

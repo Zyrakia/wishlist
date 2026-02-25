@@ -9,6 +9,7 @@
 	import { slide } from 'svelte/transition';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import Search from './search/search.svelte';
+	import SearchToggle from './search/search-toggle.svelte';
 
 	let { theme, user }: { theme: Theme; user?: CookieUser } = $props();
 
@@ -19,6 +20,9 @@
 	let navAnimating = $state(false);
 	let navAnimPerc = $state(0);
 	let navAnimOrigin: 'left' | 'right' = $state('left');
+
+	let searchActive = $state(false);
+	let searchFocused = $state(false);
 
 	let navAnimStepper: ReturnType<typeof setInterval> | undefined;
 	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
@@ -54,6 +58,11 @@
 	};
 
 	$effect(() => {
+		if (!isHome) return;
+		searchActive = true;
+	});
+
+	$effect(() => {
 		if (navigating.to) untrack(startNavigation);
 		else if (navAnimating) untrack(finishNavigation);
 	});
@@ -62,6 +71,8 @@
 		if (!browser) return;
 		resetNavigation();
 	});
+
+	$inspect(searchActive);
 </script>
 
 <header
@@ -83,6 +94,15 @@
 		{/if}
 
 		<div class="flex items-center justify-end gap-6 md:order-3">
+			{#if user}
+				<SearchToggle
+					bind:active={searchActive}
+					onClick={(active) => {
+						if (active) searchFocused = true;
+					}}
+				/>
+			{/if}
+
 			<form {...toggleSavedTheme}>
 				<button
 					disabled={changingTheme}
@@ -127,9 +147,16 @@
 		{#if hasJs() && user}
 			<div
 				in:slide={{ duration: 200 }}
-				class="col-span-2 grid shrink-0 place-items-center md:order-2 md:col-span-1"
+				class="col-span-2 grid shrink-0 place-items-center transition-[grid-template-rows,opacity,margin] md:order-2 md:col-span-1 {searchActive
+					? 'mt-0 grid-rows-1 opacity-100'
+					: 'grid-rows-0 pointer-events-none -mt-2 opacity-0'}"
 			>
-				<Search />
+				<Search
+					bind:searchFocused
+					onOpenChange={(open) => {
+						if (open === true) searchActive = true;
+					}}
+				/>
 			</div>
 		{/if}
 	</div>
