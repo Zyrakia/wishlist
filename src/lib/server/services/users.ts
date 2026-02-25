@@ -18,6 +18,15 @@ export const UsersService = createService(db(), {
 		return Ok(user);
 	},
 
+	getPublicById: async (client, userId: string) => {
+		const user = await client.query.UserTable.findFirst({
+			where: (t, { eq }) => eq(t.id, userId),
+			columns: { id: true, name: true, createdAt: true },
+		});
+
+		return Ok(user);
+	},
+
 	/**
 	 * Fetches a user by email address.
 	 *

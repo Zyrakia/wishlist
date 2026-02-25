@@ -29,8 +29,7 @@
 					.param('focusItem', result.entity.itemId);
 				break;
 			case 'mutual':
-				// TODO need to implement user page
-				builder.segment('users').segment(result.entity.userId);
+				builder.segment('users').segment(result.entity.userId).param('fast', true);
 				break;
 			case 'group':
 				builder.segment('groups').segment(result.entity.id);
