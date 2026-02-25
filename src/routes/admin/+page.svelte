@@ -136,9 +136,14 @@
 				{#each users as user}
 					<article class="rounded-lg border border-border bg-background/55 p-3">
 						<div class="flex items-start justify-between gap-2">
-							<p class="flex items-center gap-2 font-semibold truncate">
+							<p class="flex items-center gap-2 truncate font-semibold">
 								<SquareUserIcon size={18} class="shrink-0 text-accent" />
-								{user.name}
+								<a
+									href="/users/{user.id}"
+									class="truncate underline decoration-dotted underline-offset-3 hover:text-accent"
+								>
+									{user.name}
+								</a>
 							</p>
 							<span class="text-[11px] text-text-muted"
 								>{formatRelative(user.createdAt)}</span
