@@ -10,6 +10,7 @@
 	import { formatDate } from '$lib/util/date';
 	import { firstIssue } from '$lib/util/issue.js';
 	import {
+		ArrowUpRightIcon,
 		CircleUserRoundIcon,
 		MailQuestionMarkIcon,
 		Settings2Icon,
@@ -93,9 +94,19 @@
 						{/if}
 					</div>
 
-					<p class="text-sm font-light text-text-muted">
-						Member since: {formatDate(joinedAt, 'mediumD')}
-					</p>
+					<div
+						class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-light text-text-muted"
+					>
+						<p>Member since: {formatDate(joinedAt, 'mediumD')}</p>
+
+						<a
+							href="/users/{member.id}"
+							class="inline-flex items-center gap-1 font-medium text-accent transition-colors hover:text-accent"
+						>
+							View profile
+							<ArrowUpRightIcon size={14} />
+						</a>
+					</div>
 
 					<div
 						class="grid grid-cols-1 gap-3 pt-2 pb-4 sm:grid-cols-[repeat(auto-fit,minmax(16rem,max-content))]"
