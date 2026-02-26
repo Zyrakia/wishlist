@@ -132,11 +132,11 @@
 		{/each}
 
 		{#if searchError}
-			<p class="text-danger italic">
+			<li class="text-danger italic" role="option" aria-disabled="true">
 				{searchError}
-			</p>
+			</li>
 		{:else if !searchResults.length}
-			<p class="text-text-muted italic">
+			<li class="text-text-muted italic" role="presentation">
 				{#if searchQueued || searchInflight}
 					Loading...
 				{:else if !query}
@@ -146,7 +146,7 @@
 				{:else}
 					No results, but maybe you can ask our assistant below!
 				{/if}
-			</p>
+			</li>
 		{/if}
 	</ul>
 </div>

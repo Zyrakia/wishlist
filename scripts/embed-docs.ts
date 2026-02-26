@@ -44,7 +44,7 @@ function chunkDocument(file: Dirent) {
 		}
 
 		const chunk = lines.join('\n');
-		if (chunk.length >= EMBEDDING_MAX_INPUT) {
+		if (chunk.length > EMBEDDING_MAX_INPUT) {
 			throw `Chunk ${file.name}@${title} above embedding limit (${chunk.length}/${EMBEDDING_MAX_INPUT}).`;
 		}
 

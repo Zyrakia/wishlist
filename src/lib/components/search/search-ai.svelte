@@ -87,6 +87,7 @@
 	};
 
 	export const ask = async () => {
+		if (isQuestionInProgress) return;
 		const rawPrompt = getQueryAsPrompt();
 		if (!rawPrompt) return;
 

@@ -157,7 +157,7 @@
 
 	const killPlaceholderLoop = () => {
 		if (!placeholderInterval) return;
-		clearTimeout(placeholderInterval);
+		clearInterval(placeholderInterval);
 		placeholderInterval = undefined;
 	};
 

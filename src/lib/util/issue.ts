@@ -24,11 +24,11 @@ export const firstIssue = (input?: IssuePickable): string | undefined => {
 };
 
 /**
- * From a remote form `fields` entry, pick the first issue and return it
- * formatted with its path (if applicable).
+ * Formats a path array into a readable string representation.
+ * Numbers are formatted as array indices, strings are joined with dots.
  *
- * @param fields the remote form fields property
- * @return the first picked issue
+ * @param path the path segments to format (['items', 0, 'name'])
+ * @return the formatted path string (items[0].name)
  */
 const formatIssuePath = (path: RemoteFormIssue['path']) => {
 	return path

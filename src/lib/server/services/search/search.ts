@@ -44,7 +44,7 @@ export const SearchService = createService(db(), {
 			.map((v, i, arr) => {
 				const mostRelevant = arr.length;
 				const relativeRelevancy = mostRelevant - i;
-				return `Documentation Chunck ${i + 1} (${relativeRelevancy}/${mostRelevant} ~relevancy):\n${v.content}`;
+				return `Documentation Chunk ${i + 1} (${relativeRelevancy}/${mostRelevant} ~relevancy):\n${v.content}`;
 			})
 			.join('\n\n');
 
