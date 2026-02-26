@@ -212,7 +212,7 @@
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
-		<div class="shrnk-0 relative flex size-8 items-center justify-center">
+		<div class="shrink-0 relative flex size-8 items-center justify-center">
 			{#if isLoading}
 				<span
 					in:fade={{ duration: 120 }}
