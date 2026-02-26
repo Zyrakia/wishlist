@@ -31,6 +31,7 @@
 		document.documentElement.dataset.theme = theme;
 	});
 
+	$effect(() => assistantIndicator('title', { context: `Current Page Title: ${meta.title}` }));
 	$effect(() => assistantIndicator('path', { context: `Current Path: ${page.url.pathname}` }));
 	$effect(() =>
 		assistantIndicator('user', {
