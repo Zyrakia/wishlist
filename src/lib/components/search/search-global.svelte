@@ -32,15 +32,21 @@
 		}
 	};
 
+	let latestRequestId = $state(0);
 	const runSearch = async () => {
-		if (searchInflight) return;
+		const requestId = ++latestRequestId;
 		searchInflight = true;
 
 		try {
-			if (!query) return;
+			if (!query) {
+				searchResults = [];
+				searchError = '';
+				return;
+			}
 
 			searchError = '';
 			const result = await runGlobalSearch({ query });
+			if (requestId !== latestRequestId) return;
 
 			if ('error' in result) {
 				searchError = result.error;
@@ -49,7 +55,7 @@
 			console.warn(err);
 			searchError = 'Unknown error';
 		} finally {
-			searchInflight = false;
+			if (requestId === latestRequestId) searchInflight = false;
 		}
 	};
 
@@ -132,7 +138,7 @@
 		{/each}
 
 		{#if searchError}
-			<li class="text-danger italic" role="option" aria-disabled="true">
+			<li class="text-danger italic" role="option" aria-selected="false" aria-disabled="true">
 				{searchError}
 			</li>
 		{:else if !searchResults.length}
