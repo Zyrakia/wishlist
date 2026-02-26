@@ -44,7 +44,12 @@ export const updateWishlist = form(WishlistSchema.partial(), async (data, invali
 
 	if (updated) {
 		unwrap(await WishlistService.touchById(updated.id));
-		redirect(303, UrlBuilder.from('/lists').segment(data.slug ?? wishlist_slug).toPath());
+		redirect(
+			303,
+			UrlBuilder.from('/lists')
+				.segment(data.slug ?? wishlist_slug)
+				.toPath(),
+		);
 	} else error(400, 'No wishlist can be updated');
 });
 
@@ -58,10 +63,7 @@ const ItemDirectionSchema = z.enum(['asc', 'desc']);
 export const getWishlistWithItems = query(
 	z.object({ slug: z.string(), sort: ItemSortSchema, direction: ItemDirectionSchema }),
 	async ({ slug, sort, direction }) => {
-		return unwrapOrDomain(
-			await WishlistService.getBySlugWithItemsOrErr(slug, sort, direction),
-			() => undefined,
-		);
+		return unwrap(await WishlistService.getBySlugWithItems(slug, sort, direction));
 	},
 );
 
@@ -102,5 +104,5 @@ export const deleteWishlist = form(
 
 export const getWishlists = query(async () => {
 	const user = verifyAuth({ failStrategy: 'login' });
-	return unwrap(await WishlistService.listForOwner(user.id));
+	return unwrap(await WishlistService.listsForOwner(user.id));
 });

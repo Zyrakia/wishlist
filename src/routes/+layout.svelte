@@ -1,10 +1,11 @@
 <script lang="ts">
-	import '$lib/assets/app.css';
+	import '../app.css';
 
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 	import Header from '$lib/components/header.svelte';
 	import { untrack } from 'svelte';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte.js';
 
 	let { children, data } = $props();
 
@@ -29,6 +30,16 @@
 
 		document.documentElement.dataset.theme = theme;
 	});
+
+	$effect(() => assistantIndicator('path', { context: `Current Path: ${page.url.pathname}` }));
+	$effect(() =>
+		assistantIndicator('user', {
+			context: [
+				`Logged In: ${data.user ? 'Yes' : 'No'}`,
+				data.user ? `User Name: ${data.user.name}` : '',
+			],
+		}),
+	);
 </script>
 
 <svelte:head>
@@ -37,7 +48,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<link
-		href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+		href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
 		rel="stylesheet"
 	/>
 

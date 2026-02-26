@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolveGroupInvite } from '$lib/remotes/group.remote';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { UrlBuilder } from '$lib/util/url.js';
 	import { TriangleAlertIcon } from '@lucide/svelte';
 
@@ -50,7 +50,7 @@
 
 			{#if me}
 				{#if me.email === invite.targetEmail}
-					{@const issue = asIssue(resolveGroupInvite.fields.allIssues())}
+					{@const issue = firstIssue(resolveGroupInvite.fields.allIssues())}
 
 					<form {...resolveGroupInvite} class="flex gap-3">
 						<input {...resolveGroupInvite.fields.inviteId.as('hidden', invite.id)} />
@@ -70,10 +70,7 @@
 				{:else}
 					<p class="text-warning">This is not your invite.</p>
 
-					<a
-						href={loginInviteHref}
-						class="button bg-accent text-accent-fg"
-					>
+					<a href={loginInviteHref} class="button bg-accent text-accent-fg">
 						Change Account
 					</a>
 				{/if}
@@ -81,19 +78,11 @@
 				<p class="text-warning">You must be signed in to accept this invite.</p>
 
 				<div class="flex gap-3">
-					<a
-						href={registerInviteHref}
-						class="button bg-success text-accent-fg"
-					>
+					<a href={registerInviteHref} class="button bg-success text-accent-fg">
 						Create Account
 					</a>
 
-					<a
-						href={loginInviteHref}
-						class="button bg-accent text-accent-fg"
-					>
-						Log In
-					</a>
+					<a href={loginInviteHref} class="button bg-accent text-accent-fg"> Log In </a>
 				</div>
 			{/if}
 		</div>

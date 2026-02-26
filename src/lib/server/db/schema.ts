@@ -1,10 +1,47 @@
 import { relations, sql } from 'drizzle-orm';
-import { integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import {
+	customType,
+	index,
+	integer,
+	primaryKey,
+	real,
+	sqliteTable,
+	text,
+	unique,
+} from 'drizzle-orm/sqlite-core';
 
 const autoTimestampColumn = () =>
 	integer({ mode: 'timestamp' })
 		.notNull()
 		.default(sql`(unixepoch())`);
+
+/**
+ * LibSQL F32_BLOB implementation.
+ *
+ * Sources:
+ * - Turso Docs: "Storing embeddings as raw bytes"
+ * - Drizzle Issue #3899 (Discussion on driverData types)
+ */
+export const libsqlVector = customType<{
+	data: number[];
+	config: { dimensions: number };
+	configRequired: true;
+	driverData: Buffer;
+}>({
+	dataType(config) {
+		return `F32_BLOB(${config.dimensions})`;
+	},
+	fromDriver(value: Buffer) {
+		// Convert binary blob back to numbers for your code to use
+		// Note: Use the byteOffset/byteLength to ensure we read the view correctly
+		return Array.from(new Float32Array(value.buffer, value.byteOffset, value.byteLength / 4));
+	},
+	toDriver(value: number[]) {
+		// Convert numbers to raw binary before sending to DB.
+		// This bypasses the need for the `vector32()` SQL function parsing.
+		return Buffer.from(new Float32Array(value).buffer);
+	},
+});
 
 export const UserTable = sqliteTable('user', {
 	id: text().primaryKey(),
@@ -59,22 +96,18 @@ export const WishlistItemTable = sqliteTable('wishlist_item', {
 	createdAt: autoTimestampColumn(),
 });
 
-export const ReservationTable = sqliteTable(
-	'item_reservation',
-	{
-		wishlistId: text()
-			.notNull()
-			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-		itemId: text()
-			.notNull()
-			.references(() => WishlistItemTable.id, { onDelete: 'cascade' }),
-		userId: text()
-			.notNull()
-			.references(() => UserTable.id, { onDelete: 'cascade' }),
-		createdAt: autoTimestampColumn(),
-	},
-	(t) => [primaryKey({ columns: [t.itemId, t.wishlistId] })],
-);
+export const ReservationTable = sqliteTable('item_reservation', {
+	itemId: text()
+		.references(() => WishlistItemTable.id, { onDelete: 'cascade' })
+		.primaryKey(),
+	wishlistId: text()
+		.notNull()
+		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+	userId: text()
+		.notNull()
+		.references(() => UserTable.id, { onDelete: 'cascade' }),
+	createdAt: autoTimestampColumn(),
+});
 
 export const GroupTable = sqliteTable('group', {
 	id: text().primaryKey(),
@@ -123,6 +156,20 @@ export const AccountActionTable = sqliteTable('account_action', {
 	type: text().notNull(),
 	payload: text({ mode: 'json' }).notNull(),
 });
+
+export const DocumentationTable = sqliteTable(
+	'doc_embeddings',
+	{
+		id: text().primaryKey(),
+		content: text().notNull(),
+		contentHash: text().notNull().unique(),
+		// Embedding vectors stored as blobs (specifically for Mistral)
+		vector: libsqlVector({ dimensions: 1024 }),
+	},
+	(table) => ({
+		vectorIndex: index('docs_vector_idx').on(sql`libsql_vector_idx(${table.vector})`),
+	}),
+);
 
 export const _UserRelations = relations(UserTable, ({ many, one }) => ({
 	wishlists: many(WishlistTable),

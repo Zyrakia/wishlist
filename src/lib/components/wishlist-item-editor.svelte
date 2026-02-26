@@ -2,9 +2,10 @@
 	import { formEdit, type FormEditHandler } from '$lib/actions/form-edit';
 	import { pageScroll } from '$lib/actions/page-scroll';
 	import { generateItem, updateItem, createItem } from '$lib/remotes/item.remote';
+	import { assistantIndicator } from '$lib/runes/assistant-indicators.svelte';
 	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { ItemSchema, RequiredUrlSchema, type Item } from '$lib/schemas/item';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue, formatAllIssues } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { formatHost } from '$lib/util/url';
 	import { onMount } from 'svelte';
@@ -39,7 +40,7 @@
 
 	let pageHasScroll = $state(false);
 
-	const generalIssue = $derived(asIssue(handler.fields.issues()));
+	const generalIssue = $derived(firstIssue(handler.fields.issues()));
 	// SEE: https://github.com/sveltejs/kit/issues/14802
 	// Prevent generation value from persisting
 	let generateRemote = generateItem
@@ -118,6 +119,24 @@
 	onMount(() => {
 		handler.validate();
 		if (generate) generateRemote.validate();
+	});
+
+	$effect(() => {
+		const contexts: string[] = [];
+
+		const itemFormIssues = formatAllIssues(handler.fields);
+		if (itemFormIssues) contexts.push(`Wishlist Item Form Errors:\n${itemFormIssues}`);
+
+		const generateFormIssues = formatAllIssues(generateRemote.fields);
+		if (generateFormIssues)
+			contexts.push(`Wishlist Item Generation Errors:\n${generateFormIssues}`);
+
+		if (contexts.length === 0) return;
+
+		return assistantIndicator('wishlist-item-form', {
+			suggestedPrompt: { prompt: 'Explain my form errors', color: 'var(--color-danger)' },
+			context: contexts.join('\n\n'),
+		});
 	});
 
 	let generating = $state(false);

@@ -7,13 +7,13 @@
 	import { fade } from 'svelte/transition';
 
 	import backgroundImage from '$lib/assets/authentication-background.webp';
-	import { asIssue } from '$lib/util/pick-issue';
+	import { firstIssue } from '$lib/util/issue';
 	import { safePrune } from '$lib/util/safe-prune';
 	import { UrlBuilder } from '$lib/util/url';
 	import { page } from '$app/state';
 
 	const hasJs = useHasJs();
-	const getIssue = () => asIssue(remote.fields);
+	const getIssue = () => firstIssue(remote.fields);
 
 	const remote = register.preflight(CreateCredentialsSchema);
 

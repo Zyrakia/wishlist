@@ -9,6 +9,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { checkSyncStatus } from '$lib/remotes/connection.remote';
 	import { clock } from '$lib/runes/clock.svelte';
+	import { UrlBuilder } from '$lib/util/url';
 
 	let { children, data }: { children: Snippet; data: PageData } = $props();
 
@@ -54,9 +55,17 @@
 	<div class="border-b border-border px-5 py-4 shadow">
 		<h1 class="text-2xl font-semibold">{wishlist.name}</h1>
 		<p class="text-lg font-light italic">
-			by {wishlist.user.name}
 			{#if isOwn}
+				by {wishlist.user.name}
 				<span class="font-bold text-danger not-italic">(You)</span>
+			{:else}
+				by
+				<a
+					class="underline hover:text-accent focus:text-accent active:text-accent"
+					href={UrlBuilder.from('/users').segment(wishlist.userId).toPath()}
+				>
+					{wishlist.user.name}
+				</a>
 			{/if}
 		</p>
 
@@ -121,7 +130,7 @@
 
 		{#if isRoot}
 			<div
-				class="mt-2 -mb-2 flex flex-wrap items-center gap-0.5 pt-1.5 border-t border-border/50 text-xs text-text-muted"
+				class="mt-2 -mb-2 flex flex-wrap items-center gap-0.5 border-t border-border/50 pt-1.5 text-xs text-text-muted"
 			>
 				<p>{wishlist.items.length} items</p>
 				<DotIcon />

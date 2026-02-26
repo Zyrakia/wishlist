@@ -414,4 +414,13 @@ export const GroupsService = createService(db(), {
 		if (!sharesGroup) return Err(DomainError.of('Reservation not allowed'));
 		return Ok(true);
 	},
+
+	listByUserId: async (client, userId: string) => {
+		const res = await client.query.GroupMembershipTable.findMany({
+			columns: {groupId: true, joinedAt: true},
+			where: (t, {eq}) => eq(t.userId, userId)
+		});
+	
+		return Ok(res)
+	}
 });

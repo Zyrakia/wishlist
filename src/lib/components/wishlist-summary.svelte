@@ -12,7 +12,7 @@
 
 <a
 	href="/lists/{wishlist.slug}"
-	class="button relative flex w-full max-w-full flex-col rounded border bg-surface p-0 shadow"
+	class="button relative flex w-full max-w-full flex-col rounded border border-border-strong bg-surface p-0 shadow transition-all duration-150 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
 >
 	{#if author}
 		<div

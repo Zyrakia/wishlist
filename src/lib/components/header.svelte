@@ -6,19 +6,29 @@
 	import { navigating, page } from '$app/state';
 	import type { Theme } from '$lib/util/theme';
 	import type { CookieUser } from '$lib/schemas/auth';
-	import { fade, slide } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
+	import { useHasJs } from '$lib/runes/has-js.svelte';
+	import Search from './search/search.svelte';
+	import SearchToggle from './search/search-toggle.svelte';
+	import { isMobile } from '$lib/runes/media.svelte';
 
 	let { theme, user }: { theme: Theme; user?: CookieUser } = $props();
 
+	const isHome = $derived(page.url.pathname === '/');
 	const changingTheme = $derived(!!setSavedTheme.pending);
+	const hasJs = useHasJs();
 
 	let navAnimating = $state(false);
 	let navAnimPerc = $state(0);
 	let navAnimOrigin: 'left' | 'right' = $state('left');
 
+	let searchActive = $state(false);
+	let searchFocused = $state(false);
+
 	let navAnimStepper: ReturnType<typeof setInterval> | undefined;
 	let navAnimFinisher: ReturnType<typeof setTimeout> | undefined;
 	const startNavigation = () => {
+		if (isMobile.current) searchActive = false;
 		if (navAnimating) return;
 
 		resetNavigation();
@@ -50,6 +60,11 @@
 	};
 
 	$effect(() => {
+		if (!isHome) return;
+		searchActive = true;
+	});
+
+	$effect(() => {
 		if (navigating.to) untrack(startNavigation);
 		else if (navAnimating) untrack(finishNavigation);
 	});
@@ -68,8 +83,12 @@
 		style="transform-origin: {navAnimOrigin}; transform: scaleX({navAnimPerc})"
 	></div>
 
-	<div class="flex w-full flex-wrap items-center justify-between gap-6">
-		{#if !(page.url.pathname === '/')}
+	<div
+		class="grid w-full grid-cols-2 items-center gap-x-6 md:grid-cols-[auto_1fr_auto] {searchActive
+			? 'gap-y-2'
+			: 'gap-y-0'} md:gap-y-0"
+	>
+		{#if !isHome}
 			<a class="flex items-center gap-2 transition-colors hover:text-accent" href="/">
 				<HouseIcon />
 				Home
@@ -78,20 +97,34 @@
 			<p class="font-semibold">Wishii</p>
 		{/if}
 
-		<div class="flex items-center gap-6">
+		<div class="flex min-w-0 items-center justify-end gap-2 sm:gap-3 md:order-3 md:gap-6">
+			{#if user}
+				<SearchToggle
+					bind:active={searchActive}
+					iconClass="size-5 md:size-6"
+					onClick={(active) => {
+						if (active) searchFocused = true;
+					}}
+				/>
+			{/if}
+
 			<form {...toggleSavedTheme}>
 				<button
 					disabled={changingTheme}
-					class="overflow-hidden border-0 p-2"
+					aria-label={theme === 'light'
+						? 'Switch to dark theme'
+						: 'Switch to light theme'}
+					title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+					class="overflow-hidden border-0 p-1.5 md:p-2"
 					{...toggleSavedTheme.buttonProps}
 				>
 					{#if theme === 'light'}
 						<div out:slide={{ duration: 150 }} in:slide={{ duration: 150 }}>
-							<SunIcon />
+							<SunIcon class="size-5 md:size-6" />
 						</div>
 					{:else}
 						<div out:slide={{ duration: 150 }} in:slide={{ duration: 150 }}>
-							<MoonIcon />
+							<MoonIcon class="size-5 md:size-6" />
 						</div>
 					{/if}
 				</button>
@@ -100,22 +133,44 @@
 			{#if user}
 				<a
 					href="/account"
-					class="flex items-center gap-2 truncate transition-colors hover:text-accent"
+					aria-label="Account"
+					title="Account"
+					class="flex min-w-0 items-center gap-1.5 truncate transition-colors hover:text-accent md:gap-2"
 				>
-					<SquareUserIcon />
+					<SquareUserIcon class="size-5 shrink-0 md:size-6" />
 
-					{user.name}
+					<span class="hidden truncate md:inline">
+						{user.name}
+					</span>
 				</a>
 			{:else}
 				<a
 					href="/login"
-					class="flex items-center gap-2 transition-colors hover:text-accent"
+					aria-label="Login"
+					title="Login"
+					class="flex items-center gap-1.5 transition-colors hover:text-accent md:gap-2"
 				>
-					Login
+					<span class="hidden md:inline">Login</span>
 
-					<LogInIcon />
+					<LogInIcon class="size-5 shrink-0 md:size-6" />
 				</a>
 			{/if}
 		</div>
+
+		{#if hasJs() && user}
+			<div
+				in:slide={{ duration: 200 }}
+				class="col-span-2 w-full shrink-0 transition-[max-height,opacity,margin] duration-200 md:order-2 md:col-span-1 md:mt-0 md:max-h-20 md:overflow-visible {searchActive
+					? 'mt-2 max-h-32 overflow-visible opacity-100 md:pointer-events-auto'
+					: 'pointer-events-none mt-0 max-h-0 overflow-hidden opacity-0 md:max-h-20 md:overflow-visible'}"
+			>
+				<Search
+					bind:searchFocused
+					onOpenChange={(open) => {
+						if (open === true) searchActive = true;
+					}}
+				/>
+			</div>
+		{/if}
 	</div>
 </header>

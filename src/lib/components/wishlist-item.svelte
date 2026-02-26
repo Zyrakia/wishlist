@@ -7,12 +7,12 @@
 	let {
 		item,
 		interactive = true,
-		highlighted = false,
+		highlight,
 		footer,
 	}: {
 		item: Partial<Item>;
 		interactive?: boolean;
-		highlighted?: boolean;
+		highlight?: 'focused' | 'prioritized';
 		footer?: Snippet<[]>;
 	} = $props();
 
@@ -58,7 +58,10 @@
 			'button flex h-full w-full flex-col justify-center rounded-xl border border-accent/30 from-muted to-surface p-0 text-left shadow-sm shadow-accent/10 brightness-100 transition-all dark:bg-radial-[at_50%_25%]',
 
 			canClick && 'interactive cursor-pointer hover:border-accent hover:shadow-xl',
-			highlighted && 'ring-2 ring-accent/75 drop-shadow-[0_0_6px_white] drop-shadow-accent',
+			highlight === 'prioritized' &&
+				'ring-2 ring-accent/75 drop-shadow-[0_0_6px_white] drop-shadow-accent',
+			highlight === 'focused' &&
+				'shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-success)_22%,transparent)] ring-2 ring-success/80',
 		]}
 		href={item.url}
 		target="_blank"

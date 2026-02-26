@@ -102,12 +102,7 @@ export const WishlistService = createService(db(), {
 		return Ok(wishlist);
 	},
 
-	getBySlugAndIdForOwnerOrErr: async (
-		client,
-		slug: string,
-		listId: string,
-		userId: string,
-	) => {
+	getBySlugAndIdForOwnerOrErr: async (client, slug: string, listId: string, userId: string) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { and, eq }) =>
 				and(eq(t.userId, userId), eq(t.id, listId), eq(t.slug, slug)),
@@ -123,19 +118,16 @@ export const WishlistService = createService(db(), {
 	 * @param sort the item sorting mode
 	 * @param direction the item sorting direction
 	 */
-	getBySlugWithItems: async (
-		client,
-		slug: string,
-		sort: ItemSort,
-		direction: SortDirection,
-	) => {
+	getBySlugWithItems: async (client, slug: string, sort: ItemSort, direction: SortDirection) => {
 		const wishlist = await client.query.WishlistTable.findFirst({
 			where: (t, { eq }) => eq(t.slug, slug),
 			with: {
 				items: {
 					orderBy: (t, { asc, desc }) => {
-						const sortBy = (col: keyof typeof t) =>
-							direction === 'asc' ? asc(t[col]) : desc(t[col]);
+						const sortBy = (col: keyof typeof t) => [
+							direction === 'asc' ? asc(t[col]) : desc(t[col]),
+							// TODO need to implement column desc(t.updatedAt),
+						];
 
 						switch (sort) {
 							case 'alphabetical':
@@ -154,41 +146,7 @@ export const WishlistService = createService(db(), {
 				user: { columns: { name: true } },
 			},
 		});
-		return Ok(wishlist);
-	},
 
-	getBySlugWithItemsOrErr: async (
-		client,
-		slug: string,
-		sort: ItemSort,
-		direction: SortDirection,
-	) => {
-		const wishlist = await client.query.WishlistTable.findFirst({
-			where: (t, { eq }) => eq(t.slug, slug),
-			with: {
-				items: {
-					orderBy: (t, { asc, desc }) => {
-						const sortBy = (col: keyof typeof t) =>
-							direction === 'asc' ? asc(t[col]) : desc(t[col]);
-
-						switch (sort) {
-							case 'alphabetical':
-								return sortBy('name');
-							case 'created':
-								return sortBy('createdAt');
-							case 'price':
-								return sortBy('price');
-							case 'user':
-							default:
-								return asc(t.order);
-						}
-					},
-				},
-				connections: true,
-				user: { columns: { name: true } },
-			},
-		});
-		if (!wishlist) return Err(DomainError.of('Wishlist not found'));
 		return Ok(wishlist);
 	},
 
@@ -271,7 +229,7 @@ export const WishlistService = createService(db(), {
 	 *
 	 * @param userId the ID of the user to lookup
 	 */
-	listForOwner: async (client, userId: string) => {
+	listsForOwner: async (client, userId: string) => {
 		const wishlists = await client.query.WishlistTable.findMany({
 			where: (t, { eq }) => eq(t.userId, userId),
 			orderBy: (t, { desc }) => desc(t.activityAt),

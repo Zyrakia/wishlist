@@ -18,8 +18,6 @@ export const listUsers = query(
 		page: z.number().int().min(0),
 	}),
 	async ({ limit, page }) => {
-		await new Promise((res) => setTimeout(res, 2000));
-
 		await verifyAdmin();
 
 		const offset = page * limit;

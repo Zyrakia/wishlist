@@ -1,0 +1,1 @@
+CREATE INDEX `docs_vector_idx` ON `doc_embeddings` (libsql_vector_idx("vector"));

@@ -1,7 +1,7 @@
 <script>
 	import InputGroup from '$lib/components/input-group.svelte';
 	import { changeEmail } from '$lib/remotes/auth.remote.js';
-	import { asIssue } from '$lib/util/pick-issue.js';
+	import { firstIssue } from '$lib/util/issue.js';
 	import { TriangleAlertIcon } from '@lucide/svelte';
 
 	let { data } = $props();
@@ -17,7 +17,7 @@
 			>
 				<input {...changeEmail.fields.token.as('hidden', data.token)} />
 
-				<InputGroup label="New Email" error={asIssue(changeEmail.fields.issues())}>
+				<InputGroup label="New Email" error={firstIssue(changeEmail.fields.issues())}>
 					{#snippet control()}
 						<input
 							type="email"
