@@ -7,7 +7,7 @@ import { type RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request }) => {
-	verifyAuth();
+	verifyAuth({ failStrategy: 'error' });
 
 	let rawBody;
 	try {

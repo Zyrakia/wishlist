@@ -9,10 +9,10 @@ type IssuePickable =
 	| IssuePickable[];
 
 /**
- * Attempts to the first issue message out of the given input.
+ * Attempts to get the first issue message out of the given input.
  *
  * @param input an issue message, an array of issue messages or an object that has issues.
- * @return the first issue, if it can be derived form the input
+ * @return the first issue, if it can be derived from the input
  */
 export const firstIssue = (input?: IssuePickable): string | undefined => {
 	if (!input) return;
@@ -25,7 +25,7 @@ export const firstIssue = (input?: IssuePickable): string | undefined => {
 
 /**
  * From a remote form `fields` entry, pick the first issue and return it
- * formatted with it's path (if applicable).
+ * formatted with its path (if applicable).
  *
  * @param fields the remote form fields property
  * @return the first picked issue
@@ -57,7 +57,7 @@ export const formatIssue = (message: string, path?: (string | number)[]) => {
 
 /**
  * From a remote form `fields` entry, pick the first issue and return it
- * formatted with it's path (if applicable).
+ * formatted with its path (if applicable).
  *
  * @param fields the remote form fields property
  * @return the first picked issue

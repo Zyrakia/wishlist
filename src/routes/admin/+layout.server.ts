@@ -1,8 +1,8 @@
 import { checkRole } from '$lib/remotes/auth.remote';
 import { redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { LayoutServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: LayoutServerLoad = async () => {
 	const isAdmin = await checkRole({ targetRole: 'ADMIN' });
 	if (!isAdmin) redirect(303, '/');
 };

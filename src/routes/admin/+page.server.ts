@@ -4,7 +4,7 @@ import { safePruneParams } from '$lib/util/safe-prune';
 import { listUsers, listErroredConnections } from '$lib/remotes/admin.remote';
 
 const ParamsSchema = z.object({
-	limit: z.coerce.number().int().min(1).max(100),
+	limit: z.coerce.number().int().min(10).multipleOf(10).max(100),
 	userPage: z.coerce.number().int().min(0),
 	connectionsPage: z.coerce.number().int().min(0),
 });
