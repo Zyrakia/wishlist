@@ -2,23 +2,23 @@
 CREATE VIRTUAL TABLE group_membership_fts USING fts5(
 	name,
 	group_id UNINDEXED,
-	user_id UNINDEXED,
+	user_id UNINDEXED
+	-- need to update sqlite version here so it's supported
 	-- content='',
 	-- contentless_delete=1,
 	-- contentless_unindexed=1
 );
 --> statement-breakpoint
 CREATE TRIGGER group_membership_fts_insert AFTER INSERT ON group_membership BEGIN
-	INSERT INTO group_membership_fts(name, group_id, user_id)
-	SELECT user.name, new.group_id, new.user_id
+	INSERT INTO group_membership_fts(rowid, name, group_id, user_id)
+	SELECT new.rowid, user.name, new.group_id, new.user_id
 	FROM user
 	WHERE user.id = new.user_id;
 END;
 --> statement-breakpoint
 CREATE TRIGGER group_membership_fts_delete AFTER DELETE ON group_membership BEGIN
 	DELETE FROM group_membership_fts
-	WHERE group_id = old.group_id
-		AND user_id = old.user_id;
+	WHERE rowid = old.rowid;
 END;
 --> statement-breakpoint
 CREATE TRIGGER group_membership_fts_name_update AFTER UPDATE OF name ON user BEGIN
@@ -27,8 +27,8 @@ CREATE TRIGGER group_membership_fts_name_update AFTER UPDATE OF name ON user BEG
 	WHERE user_id = new.id;
 END;
 --> statement-breakpoint
-INSERT INTO group_membership_fts(name, group_id, user_id)
-SELECT user.name, group_id, user_id
+INSERT INTO group_membership_fts(rowid, name, group_id, user_id)
+SELECT group_membership.rowid, user.name, group_id, user_id
 FROM group_membership
 INNER JOIN user ON user.id = group_membership.user_id;
 --> statement-breakpoint
@@ -39,12 +39,12 @@ CREATE VIRTUAL TABLE reservation_fts USING fts5(
 	item_id UNINDEXED,
 	wishlist_id UNINDEXED,
 	reserver_id UNINDEXED,
-	owner_id UNINDEXED,
+	owner_id UNINDEXED
 );
 --> statement-breakpoint
 CREATE TRIGGER reservation_fts_insert AFTER INSERT ON item_reservation BEGIN
-	INSERT INTO reservation_fts(name, notes, owner_name, item_id, wishlist_id, reserver_id, owner_id)
-	SELECT item.name, item.notes, owner.name, new.item_id, new.wishlist_id, new.user_id, wishlist.user_id
+	INSERT INTO reservation_fts(rowid, name, notes, owner_name, item_id, wishlist_id, reserver_id, owner_id)
+	SELECT new.rowid, item.name, item.notes, owner.name, new.item_id, new.wishlist_id, new.user_id, wishlist.user_id
 	FROM wishlist_item as item
 	INNER JOIN wishlist ON wishlist.id = new.wishlist_id
 	INNER JOIN user as owner ON owner.id = wishlist.user_id
@@ -53,7 +53,7 @@ END;
 --> statement-breakpoint
 CREATE TRIGGER reservation_fts_delete AFTER DELETE ON item_reservation BEGIN
 	DELETE FROM reservation_fts
-	WHERE item_id = old.item_id;
+	WHERE rowid = old.rowid;
 END;
 --> statement-breakpoint
 CREATE TRIGGER reservation_fts_item_update AFTER UPDATE OF name, notes ON wishlist_item BEGIN
@@ -68,8 +68,9 @@ CREATE TRIGGER reservation_fts_user_update AFTER UPDATE OF name ON user BEGIN
 	WHERE owner_id = new.id;
 END;
 --> statement-breakpoint
-INSERT INTO reservation_fts(name, notes, owner_name, item_id, wishlist_id, reserver_id, owner_id)
+INSERT INTO reservation_fts(rowid, name, notes, owner_name, item_id, wishlist_id, reserver_id, owner_id)
 SELECT 
+	res.rowid,
     item.name, 
     item.notes, 
 	owner.name,
