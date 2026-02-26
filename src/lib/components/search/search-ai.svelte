@@ -78,9 +78,11 @@
 	};
 
 	const handleAskButtonClick = () => {
-		if (!active && !query) {
-			onactivate?.();
-			return;
+		if (!active) {
+			if (!promptToAsk || !query) {
+				onactivate?.();
+				return;
+			}
 		}
 
 		void ask();
