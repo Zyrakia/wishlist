@@ -231,7 +231,7 @@
 			aria-expanded={searchOpen}
 			aria-haspopup="dialog"
 			aria-controls="search-panel"
-			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-lg lg:w-md lg:max-w-4/5"
+			class="w-full max-w-full transition-all duration-300 sm:relative md:max-w-sm lg:max-w-lg xl:max-w-xl"
 		>
 			<div class="relative flex w-full items-center">
 				<input
@@ -306,7 +306,7 @@
 							onclick={exitAskMode}
 							class="w-full rounded-md border border-danger/70 bg-danger/5 px-4 py-3 text-center font-semibold text-text transition-colors hover:bg-danger/10"
 						>
-							Exit Ask Mode
+							Exit to Search Mode
 						</button>
 					{:else}
 						<SearchGlobal
