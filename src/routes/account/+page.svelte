@@ -266,7 +266,11 @@
 			</div>
 		</div>
 
-		<a class="button mt-auto bg-danger text-center dark:text-accent-fg" href="/logout">
+		<a
+			class="button mt-auto bg-danger text-center dark:text-accent-fg"
+			href="/logout"
+			data-sveltekit-preload-data="off"
+		>
 			Logout
 		</a>
 	</div>
