@@ -9,11 +9,24 @@ import z from 'zod';
 export const POST: RequestHandler = async ({ request }) => {
 	verifyAuth();
 
+	let rawBody;
+	try {
+		rawBody = await request.json();
+	} catch {
+		return new Response('Malformed request body', {
+			status: 400,
+			headers: {
+				'Content-Type': 'text/plain; charset=utf-8',
+				'Cache-Control': 'no-cache',
+			},
+		});
+	}
+
 	const {
 		success,
 		error: parseError,
 		data: body,
-	} = z.object({ prompt: PromptSchema }).safeParse(await request.json());
+	} = z.object({ prompt: PromptSchema }).safeParse(rawBody);
 
 	if (!success) {
 		return new Response(firstIssue(parseError.issues), {
