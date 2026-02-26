@@ -176,6 +176,7 @@
 	$effect(() => {
 		const suggested = getSuggestedPrompt();
 		if (suggested) {
+			killPlaceholderLoop();
 			currentPlaceholder = suggested.prompt;
 			inputBorderColor = suggested.color;
 			return;
@@ -187,7 +188,11 @@
 		if (mode === 'search') {
 			killPlaceholderLoop();
 			setDefaultPlaceholder();
-		} else runPlaceholderLoop();
+			return;
+		}
+
+		runPlaceholderLoop();
+		return () => void killPlaceholderLoop();
 	});
 
 	$effect(() => {
