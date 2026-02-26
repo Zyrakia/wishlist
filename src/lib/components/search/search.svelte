@@ -195,16 +195,6 @@
 		return () => void killPlaceholderLoop();
 	});
 
-	$effect(() => {
-		// Delay for 150ms because the focus switching could run this multiple times
-		if (!searchOpen) {
-			setTimeout(() => {
-				if (searchOpen) return;
-				mode = 'search';
-			}, 150);
-		}
-	});
-
 	const hasJs = useHasJs();
 </script>
 
@@ -212,7 +202,7 @@
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
-		<div class="shrink-0 relative flex size-8 items-center justify-center">
+		<div class="relative flex size-8 shrink-0 items-center justify-center">
 			{#if isLoading}
 				<span
 					in:fade={{ duration: 120 }}
