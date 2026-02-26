@@ -69,7 +69,7 @@
 	};
 
 	const setDefaultPlaceholder = () => {
-		currentPlaceholder = 'Search people, items or ask questions...';
+		currentPlaceholder = 'Search people, reservations or ask questions...';
 	};
 
 	const tryInsertPlaceholder = () => {
