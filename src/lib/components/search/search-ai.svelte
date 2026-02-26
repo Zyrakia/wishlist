@@ -1,13 +1,15 @@
 <script lang="ts">
 	import {
 		ArrowDownRight,
+		ChevronDownIcon,
+		ChevronUpIcon,
 		CornerDownLeftIcon,
 		MessageCircleQuestionMarkIcon,
 		SparklesIcon,
 	} from '@lucide/svelte';
 	import Loader from '../loader.svelte';
 	import Markdown from '../markdown.svelte';
-	import { slide } from 'svelte/transition';
+	import { fly, slide } from 'svelte/transition';
 	import { getAssistantContext } from '$lib/runes/assistant-indicators.svelte';
 
 	interface Props {
@@ -56,6 +58,9 @@
 	let lastSubmission = $state('');
 	let questionResponse = $state('');
 	let questionError = $state('');
+
+	let isAnswerExpanded = $state(false);
+	$effect(() => void (isAnswerExpanded = active));
 
 	const promptToAsk = $derived(!!query && (isQueryQuestion || promptToAskHint));
 	const askButtonEnabled = $derived(!isQuestionInProgress && (!active || !!query));
@@ -190,7 +195,19 @@
 			class="my-3 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
 		>
 			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
+
 			<p class="truncate text-sm text-text-muted italic">{lastSubmission}</p>
+
+			<button
+				class="absolute right-5 m-0 border-0 p-0"
+				onclick={() => (isAnswerExpanded = !isAnswerExpanded)}
+			>
+				{#if isAnswerExpanded}
+					<ChevronUpIcon size={18} />
+				{:else}
+					<ChevronDownIcon size={18} />
+				{/if}
+			</button>
 		</div>
 	{/if}
 
@@ -199,9 +216,11 @@
 			<Loader thickness="2px" pulseDur="1.25s" pulseStaggerDur="250ms" pulseCount={2} />
 		</div>
 	{:else if questionResponse}
-		<div aria-live="polite" class="mt-2" title="Generated Response">
-			<Markdown content={questionResponse} />
-		</div>
+		{#if isAnswerExpanded}
+			<div aria-live="polite" class="mt-2" title="Generated Response">
+				<Markdown content={questionResponse} />
+			</div>
+		{/if}
 	{:else if questionError}
 		<p class="mt-2 text-danger/75 italic">{questionError}</p>
 	{/if}
