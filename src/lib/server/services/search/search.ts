@@ -1,4 +1,4 @@
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 import { PromptSchema, type SearchResult } from '$lib/schemas/search';
 import { createMistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';

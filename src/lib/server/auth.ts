@@ -8,7 +8,7 @@ import z from 'zod';
 import { type Cookies, error, redirect } from '@sveltejs/kit';
 
 import { Cookie } from './cookies';
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 
 const SECRET_KEY = createSecretKey(ENV.JWT_SECRET, 'utf-8');
 

@@ -1,7 +1,7 @@
 import { type CreateEmailOptions, Resend } from 'resend';
 import z from 'zod';
 
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 
 const resend = new Resend(ENV.RESEND_KEY);
 

@@ -1,4 +1,4 @@
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 import { createMistral } from '@ai-sdk/mistral';
 import { embed, embedMany } from 'ai';
 import { Err, Ok } from 'ts-results-es';

@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client/node';
 
 import * as schema from './schema';
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 import { existsSync } from 'node:fs';
 
 const create = () => {

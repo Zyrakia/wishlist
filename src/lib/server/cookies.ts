@@ -1,7 +1,7 @@
 import { dev } from '$app/environment';
 import ms from 'ms';
 
-import ENV from '$lib/env';
+import ENV from '$lib/server/env';
 import { cookieHandle } from './util/cookie-handle';
 
 export const Cookie = {
