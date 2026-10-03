@@ -1,11 +1,17 @@
-import { rollingReadSession } from '$lib/server/auth';
+import { clearSession, rollingReadSession } from '$lib/server/auth';
+import { UsersService } from '$lib/server/services/users';
+import { unwrap } from '$lib/server/util/service';
 import { getTheme } from '$lib/server/theme';
 
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const session = await rollingReadSession(event.cookies);
-	if (session) event.locals.user = { id: session.sub, name: session.name };
+	if (session) {
+		const user = unwrap(await UsersService.getPublicById(session.sub));
+		if (user) event.locals.user = { id: user.id, name: user.name };
+		else clearSession(event.cookies);
+	}
 
 	const theme = getTheme(event.cookies);
 
