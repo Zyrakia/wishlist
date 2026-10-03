@@ -78,6 +78,9 @@
 							title="Group {isOwner ? 'Owner' : 'Member'}{isMe ? ' (You)' : ''}"
 						>
 							{member.name}
+							{#if isMe}
+								<span class="text-text-muted">(You)</span>
+							{/if}
 						</p>
 
 						{#if isOwn && !isOwner}
