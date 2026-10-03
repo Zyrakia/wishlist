@@ -9,7 +9,7 @@ import { SyncService } from '$lib/server/services/sync';
 
 const verifyAdmin = async () => {
 	const isRole = await checkRole({ targetRole: 'ADMIN' });
-	if (!isRole) error(401, 'You do not have permission to access this resource');
+	if (!isRole) error(403, 'You do not have permission to access this resource');
 };
 
 export const listUsers = query(
@@ -41,6 +41,7 @@ export const listErroredConnections = query(
 export const forceResync = form(
 	z.object({ connectionId: z.string() }),
 	async ({ connectionId }, invalid) => {
+		await verifyAdmin();
 		unwrapOrDomain(await SyncService.syncConnection(connectionId), invalid);
 	},
 );
