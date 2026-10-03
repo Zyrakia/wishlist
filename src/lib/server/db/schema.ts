@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+	type AnySQLiteColumn,
 	customType,
 	index,
 	integer,
@@ -99,8 +100,10 @@ export const WishlistItemTable = sqliteTable(
 		}),
 		name: text().notNull(),
 		notes: text().notNull(),
-		priceCurrency: text(),
-		price: real(),
+		priceId: integer().references((): AnySQLiteColumn => ItemPriceTable.id, {
+			onDelete: 'set null',
+		}),
+		priceCheckedAt: integer({ mode: 'timestamp' }),
 		imageUrl: text(),
 		url: text(),
 		favorited: integer({ mode: 'boolean' }).notNull().default(false),
@@ -110,7 +113,22 @@ export const WishlistItemTable = sqliteTable(
 	(t) => [
 		index('wishlist_item_wishlist_order_idx').on(t.wishlistId, t.order),
 		index('wishlist_item_connection_idx').on(t.connectionId),
+		index('wishlist_item_price_checked_idx').on(t.priceCheckedAt),
 	],
+);
+
+export const ItemPriceTable = sqliteTable(
+	'item_price',
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		itemId: text()
+			.notNull()
+			.references((): AnySQLiteColumn => WishlistItemTable.id, { onDelete: 'cascade' }),
+		price: real().notNull(),
+		currency: text().notNull(),
+		createdAt: autoTimestampColumn(),
+	},
+	(t) => [index('item_price_item_created_idx').on(t.itemId, t.createdAt)],
 );
 
 export const ReservationTable = sqliteTable(
@@ -233,7 +251,12 @@ export const _WishlistConnectionRelations = relations(WishlistConnectionTable, (
 	items: many(WishlistItemTable),
 }));
 
-export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => ({
+export const _WishlistItemRelations = relations(WishlistItemTable, ({ one, many }) => ({
+	latestPrice: one(ItemPriceTable, {
+		fields: [WishlistItemTable.priceId],
+		references: [ItemPriceTable.id],
+	}),
+	prices: many(ItemPriceTable, { relationName: 'history' }),
 	wishlist: one(WishlistTable, {
 		fields: [WishlistItemTable.wishlistId],
 		references: [WishlistTable.id],
@@ -241,6 +264,14 @@ export const _WishlistItemRelations = relations(WishlistItemTable, ({ one }) => 
 	source: one(WishlistConnectionTable, {
 		fields: [WishlistItemTable.connectionId],
 		references: [WishlistConnectionTable.id],
+	}),
+}));
+
+export const _ItemPriceRelations = relations(ItemPriceTable, ({ one }) => ({
+	item: one(WishlistItemTable, {
+		fields: [ItemPriceTable.itemId],
+		references: [WishlistItemTable.id],
+		relationName: 'history',
 	}),
 }));
 

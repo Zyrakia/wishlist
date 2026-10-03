@@ -1,9 +1,10 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import { Err, Ok } from 'ts-results-es';
 
 import { db } from '../db';
-import { WishlistTable } from '../db/schema';
+import { ItemPriceTable, WishlistTable } from '../db/schema';
 import { createService, DomainError } from '../util/service';
+import { flattenPrice, withLatestPrice } from './prices';
 
 type ItemSort = 'alphabetical' | 'created' | 'price' | 'user';
 type SortDirection = 'asc' | 'desc';
@@ -123,19 +124,23 @@ export const WishlistService = createService(db(), {
 			where: (t, { eq }) => eq(t.slug, slug),
 			with: {
 				items: {
+					with: withLatestPrice,
 					orderBy: (t, { asc, desc }) => {
-						const sortBy = (col: keyof typeof t) => [
-							direction === 'asc' ? asc(t[col]) : desc(t[col]),
+						const sortBy = (col: AnyColumn | SQL) => [
+							direction === 'asc' ? asc(col) : desc(col),
 							// TODO need to implement column desc(t.updatedAt),
 						];
 
 						switch (sort) {
 							case 'alphabetical':
-								return sortBy('name');
+								return sortBy(t.name);
 							case 'created':
-								return sortBy('createdAt');
+								return sortBy(t.createdAt);
 							case 'price':
-								return sortBy('price');
+								// Relational queries re-alias column objects to the items table
+								return sortBy(
+									sql`(select ${sql.identifier('price')} from ${ItemPriceTable} where ${sql.identifier('id')} = ${t.priceId})`,
+								);
 							case 'user':
 							default:
 								return asc(t.order);
@@ -147,7 +152,7 @@ export const WishlistService = createService(db(), {
 			},
 		});
 
-		return Ok(wishlist);
+		return Ok(wishlist && { ...wishlist, items: wishlist.items.map(flattenPrice) });
 	},
 
 	/**
