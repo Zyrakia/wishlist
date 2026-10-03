@@ -4,6 +4,7 @@ import { createClient } from '@libsql/client/node';
 
 import * as schema from './schema';
 import ENV from '$lib/server/env';
+import { serializeWrites } from './write-lock';
 import { existsSync } from 'node:fs';
 
 const create = () => {
@@ -17,7 +18,7 @@ const create = () => {
 		return drizzle(client, { schema, casing: 'snake_case' });
 	}
 
-	const client = createClient({ url: ENV.DATABASE_PATH });
+	const client = serializeWrites(createClient({ url: ENV.DATABASE_PATH }));
 	return drizzle(client, { schema, casing: 'snake_case' });
 };
 
