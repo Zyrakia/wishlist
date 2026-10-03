@@ -141,7 +141,9 @@ export const deleteItem = form(
 
 		unwrap(await ItemsService.deleteById(data.itemId, wl.id));
 		unwrap(await WishlistService.touchById(wl.id));
-		redirect(303, UrlBuilder.from('/lists').segment(data.wishlistSlug).toPath());
+
+		const listPath = UrlBuilder.from('/lists').segment(data.wishlistSlug).toPath();
+		if (getRequestEvent().url.pathname !== listPath) redirect(303, listPath);
 	},
 );
 
