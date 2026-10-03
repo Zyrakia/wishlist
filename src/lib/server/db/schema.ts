@@ -54,60 +54,84 @@ export const UserTable = sqliteTable('user', {
 	createdAt: autoTimestampColumn(),
 });
 
-export const WishlistTable = sqliteTable('wishlist', {
-	id: text().primaryKey(),
-	userId: text()
-		.notNull()
-		.references(() => UserTable.id, { onDelete: 'cascade' }),
-	slug: text().notNull().unique(),
-	name: text().notNull(),
-	description: text().notNull(),
-	createdAt: autoTimestampColumn(),
-	activityAt: autoTimestampColumn(),
-});
+export const WishlistTable = sqliteTable(
+	'wishlist',
+	{
+		id: text().primaryKey(),
+		userId: text()
+			.notNull()
+			.references(() => UserTable.id, { onDelete: 'cascade' }),
+		slug: text().notNull().unique(),
+		name: text().notNull(),
+		description: text().notNull(),
+		createdAt: autoTimestampColumn(),
+		activityAt: autoTimestampColumn(),
+	},
+	(t) => [index('wishlist_user_activity_idx').on(t.userId, t.activityAt)],
+);
 
-export const WishlistConnectionTable = sqliteTable('wishlist_connection', {
-	wishlistId: text()
-		.notNull()
-		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-	id: text().primaryKey(),
-	name: text().notNull(),
-	url: text().notNull(),
-	provider: text().notNull(),
-	syncError: integer({ mode: 'boolean' }),
-	lastSyncedAt: integer({ mode: 'timestamp' }),
-	createdAt: autoTimestampColumn(),
-});
+export const WishlistConnectionTable = sqliteTable(
+	'wishlist_connection',
+	{
+		wishlistId: text()
+			.notNull()
+			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+		id: text().primaryKey(),
+		name: text().notNull(),
+		url: text().notNull(),
+		provider: text().notNull(),
+		syncError: integer({ mode: 'boolean' }),
+		lastSyncedAt: integer({ mode: 'timestamp' }),
+		createdAt: autoTimestampColumn(),
+	},
+	(t) => [index('wishlist_connection_wishlist_idx').on(t.wishlistId)],
+);
 
-export const WishlistItemTable = sqliteTable('wishlist_item', {
-	id: text().notNull().primaryKey(),
-	wishlistId: text()
-		.notNull()
-		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-	connectionId: text().references(() => WishlistConnectionTable.id, { onDelete: 'set null' }),
-	name: text().notNull(),
-	notes: text().notNull(),
-	priceCurrency: text(),
-	price: real(),
-	imageUrl: text(),
-	url: text(),
-	favorited: integer({ mode: 'boolean' }).notNull().default(false),
-	order: real().default(0).notNull(),
-	createdAt: autoTimestampColumn(),
-});
+export const WishlistItemTable = sqliteTable(
+	'wishlist_item',
+	{
+		id: text().notNull().primaryKey(),
+		wishlistId: text()
+			.notNull()
+			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+		connectionId: text().references(() => WishlistConnectionTable.id, {
+			onDelete: 'set null',
+		}),
+		name: text().notNull(),
+		notes: text().notNull(),
+		priceCurrency: text(),
+		price: real(),
+		imageUrl: text(),
+		url: text(),
+		favorited: integer({ mode: 'boolean' }).notNull().default(false),
+		order: real().default(0).notNull(),
+		createdAt: autoTimestampColumn(),
+	},
+	(t) => [
+		index('wishlist_item_wishlist_order_idx').on(t.wishlistId, t.order),
+		index('wishlist_item_connection_idx').on(t.connectionId),
+	],
+);
 
-export const ReservationTable = sqliteTable('item_reservation', {
-	itemId: text()
-		.references(() => WishlistItemTable.id, { onDelete: 'cascade' })
-		.primaryKey(),
-	wishlistId: text()
-		.notNull()
-		.references(() => WishlistTable.id, { onDelete: 'cascade' }),
-	userId: text()
-		.notNull()
-		.references(() => UserTable.id, { onDelete: 'cascade' }),
-	createdAt: autoTimestampColumn(),
-});
+export const ReservationTable = sqliteTable(
+	'item_reservation',
+	{
+		itemId: text()
+			.references(() => WishlistItemTable.id, { onDelete: 'cascade' })
+			.primaryKey(),
+		wishlistId: text()
+			.notNull()
+			.references(() => WishlistTable.id, { onDelete: 'cascade' }),
+		userId: text()
+			.notNull()
+			.references(() => UserTable.id, { onDelete: 'cascade' }),
+		createdAt: autoTimestampColumn(),
+	},
+	(t) => [
+		index('item_reservation_wishlist_idx').on(t.wishlistId),
+		index('item_reservation_user_idx').on(t.userId),
+	],
+);
 
 export const GroupTable = sqliteTable('group', {
 	id: text().primaryKey(),
@@ -130,7 +154,10 @@ export const GroupInviteTable = sqliteTable(
 		targetEmail: text().notNull(),
 		createdAt: autoTimestampColumn(),
 	},
-	(t) => [unique('group_invitee_unique').on(t.groupId, t.targetEmail)],
+	(t) => [
+		unique('group_invitee_unique').on(t.groupId, t.targetEmail),
+		index('group_invite_target_email_idx').on(t.targetEmail),
+	],
 );
 
 export const GroupMembershipTable = sqliteTable(
@@ -144,18 +171,25 @@ export const GroupMembershipTable = sqliteTable(
 			.references(() => UserTable.id, { onDelete: 'cascade' }),
 		joinedAt: autoTimestampColumn(),
 	},
-	(t) => [primaryKey({ columns: [t.groupId, t.userId] })],
+	(t) => [
+		primaryKey({ columns: [t.groupId, t.userId] }),
+		index('group_membership_user_idx').on(t.userId),
+	],
 );
 
-export const AccountActionTable = sqliteTable('account_action', {
-	token: text().primaryKey(),
-	userId: text()
-		.notNull()
-		.references(() => UserTable.id),
-	expiresAt: integer({ mode: 'timestamp' }).notNull(),
-	type: text().notNull(),
-	payload: text({ mode: 'json' }).notNull(),
-});
+export const AccountActionTable = sqliteTable(
+	'account_action',
+	{
+		token: text().primaryKey(),
+		userId: text()
+			.notNull()
+			.references(() => UserTable.id, { onDelete: 'cascade' }),
+		expiresAt: integer({ mode: 'timestamp' }).notNull(),
+		type: text().notNull(),
+		payload: text({ mode: 'json' }).notNull(),
+	},
+	(t) => [index('account_action_user_idx').on(t.userId)],
+);
 
 export const DocumentationTable = sqliteTable(
 	'doc_embeddings',
