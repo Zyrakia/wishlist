@@ -13,6 +13,8 @@ import { reportGenerationUsage } from './usage-stats';
 
 import ENV from '$lib/server/env';
 import { parseUrl } from '$lib/util/url';
+import { isPublicUrl } from '../util/public-address';
+import { getPublicProxyUrl } from '../util/public-proxy';
 import { DomainError } from '../util/service';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
@@ -55,7 +57,10 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 }
 
 async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
-	const browser = await chromium.launch({ headless: !dev });
+	const browser = await chromium.launch({
+		headless: !dev,
+		proxy: { server: await getPublicProxyUrl() },
+	});
 
 	try {
 		const page = await browser.newPage({
@@ -185,6 +190,7 @@ const distillUrl = async (
 ): Promise<Result<string, DomainError>> => {
 	const parsedUrl = parseUrl(url);
 	if (!parsedUrl) return Err(DomainError.of('Invalid URL'));
+	if (!(await isPublicUrl(parsedUrl))) return Err(DomainError.of('This address cannot be read'));
 
 	const html = await renderUrl(parsedUrl.href, renderOptions);
 	if (!html) return Err(DomainError.of('Cannot render page'));
