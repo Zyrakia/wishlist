@@ -22,6 +22,11 @@ export const normalizeCompareUrl = (raw: string) => {
 	return `${url.protocol}//${url.host}${url.pathname}`;
 };
 
+const itemSyncKey = (item: { url?: string | null; name: string }) => {
+	if (item.url) return `url:${normalizeCompareUrl(item.url)}`;
+	return `name:${item.name.trim().toLowerCase()}`;
+};
+
 const syncing = new Map<string, Promise<Result<void, unknown>>>();
 
 const _syncConnection = async (
@@ -45,24 +50,26 @@ const _syncConnection = async (
 
 	const candidates: ItemCandidate[] = candidatesResult.value;
 
-	const existingItems = connection.items;
-	const urlToId = new Map(
-		existingItems.map((v) => [v.url ? normalizeCompareUrl(v.url) : null, v.id]),
-	);
+	const keyToId = new Map(connection.items.map((v) => [itemSyncKey(v), v.id]));
+	const seenKeys = new Set<string>();
 
 	const items = candidates.flatMap((candidate) => {
 		if (!candidate.name || !candidate.valid) return [];
 
 		const data = safePrune(ItemSchema, candidate);
-		const existingId = data.url ? urlToId.get(normalizeCompareUrl(data.url)) : undefined;
+		const name = data.name || 'No Product Name';
+
+		const key = itemSyncKey({ url: data.url, name });
+		if (seenKeys.has(key)) return [];
+		seenKeys.add(key);
 
 		return [
 			{
-				id: existingId || randomUUID(),
+				id: keyToId.get(key) || randomUUID(),
 				wishlistId: connection.wishlistId,
 				connectionId: connection.id,
 				...data,
-				name: data.name || 'No Product Name',
+				name,
 				notes: data.notes || '',
 			},
 		];

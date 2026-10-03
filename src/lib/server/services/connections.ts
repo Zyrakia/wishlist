@@ -27,7 +27,7 @@ export const ConnectionsService = createService(db(), {
 	getByIdWithItems: async (client, connectionId: string) => {
 		const connection = await client.query.WishlistConnectionTable.findFirst({
 			where: (t, { eq }) => eq(t.id, connectionId),
-			with: { items: { columns: { id: true, url: true } } },
+			with: { items: { columns: { id: true, url: true, name: true } } },
 		});
 		return Ok(connection);
 	},
