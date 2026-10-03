@@ -184,14 +184,14 @@
 
 <div class="mt-2 flex flex-wrap items-end gap-3 p-4">
 	{#if isOwn}
-		<a class="button bg-success text-accent-fg" href="/lists/{wishlist.slug}/item/generate">
+		<a class="button button-primary" href="/lists/{wishlist.slug}/item/generate">
 			<AddIcon size={16} />
 			<span>Add Item</span>
 		</a>
 
 		{#if hasJs() && items.length !== 0}
 			<button
-				class={['button', isReorganizing && 'bg-success text-accent-fg']}
+				class={['button', isReorganizing && 'button-primary']}
 				onclick={() => {
 					if (isReorganizing) saveOrganization();
 					else isReorganizing = true;
@@ -219,7 +219,7 @@
 			<button
 				in:fade={{ duration: 300 }}
 				out:fade={{ duration: 300 }}
-				class="fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl bg-success text-accent-fg"
+				class="button-primary fixed right-6 bottom-24 z-50 flex items-center gap-2 rounded-xl"
 				onclick={saveOrganization}
 				disabled={!canDragSort || isSavingOrganization}
 			>

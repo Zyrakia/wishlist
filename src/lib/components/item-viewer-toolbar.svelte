@@ -121,7 +121,7 @@
 					disabled={!!reserveHandler.pending}
 					popovertarget={reserveModalId}
 					popovertargetaction="hide"
-					class="flex items-center gap-2 bg-success text-accent-fg"
+					class="button-primary flex items-center gap-2"
 					{...reserveHandler.buttonProps.enhance(async ({ submit }) => {
 						document.getElementById(reserveModalId)?.hidePopover();
 						await submit();
@@ -131,12 +131,7 @@
 					Confirm Reservation
 				</button>
 
-				<button
-					type="button"
-					popovertarget={reserveModalId}
-					popovertargetaction="hide"
-					class="bg-danger text-accent-fg"
-				>
+				<button type="button" popovertarget={reserveModalId} popovertargetaction="hide">
 					Cancel
 				</button>
 			</form>

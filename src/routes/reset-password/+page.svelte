@@ -31,7 +31,7 @@
 			<button
 				{...handler.buttonProps}
 				disabled={!!handler.pending}
-				class="button bg-success text-accent-fg"
+				class="button button-primary"
 			>
 				Reset Password
 			</button>

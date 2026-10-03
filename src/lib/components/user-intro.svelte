@@ -29,8 +29,8 @@
 		{/if}
 	</p>
 
-	<h1 class="text-3xl">
+	<h1 class="text-3xl font-normal">
 		Good {periodOfDay},
-		<span class="font-semibold">{name}</span>
+		<span class="font-extrabold">{name}</span>
 	</h1>
 </div>

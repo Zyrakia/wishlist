@@ -184,7 +184,7 @@
 
 							<button
 								{...inviteHandler.buttonProps}
-								class="h-max bg-success py-2.5 text-accent-fg"
+								class="button-primary h-max py-2.5"
 							>
 								Invite
 							</button>

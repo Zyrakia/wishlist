@@ -33,7 +33,7 @@
 				<button
 					{...changeEmail.buttonProps}
 					disabled={!!changeEmail.pending}
-					class="button bg-success text-accent-fg"
+					class="button button-primary"
 				>
 					Confirm Change
 				</button>
@@ -45,7 +45,7 @@
 
 			<p>Your email change link has most likely expired.</p>
 
-			<a href="/account" class="button bg-success text-accent-fg">Return to Account</a>
+			<a href="/account" class="button button-primary">Return to Account</a>
 		</div>
 	{/if}
 </div>

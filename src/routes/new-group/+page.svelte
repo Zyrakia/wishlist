@@ -13,7 +13,7 @@
 		<p class="text-danger">
 			You can currenly only own <span class="font-extrabold">one</span> group.
 		</p>
-		<a class="button bg-success text-accent-fg" href="/">Return Home</a>
+		<a class="button button-primary" href="/">Return Home</a>
 	</div>
 {:else}
 	<GroupEditor handler={remote} />

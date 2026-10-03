@@ -17,13 +17,6 @@
 	} from '@lucide/svelte';
 </script>
 
-<svelte:head>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:ital,wght@0,300..800;1,300..800&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
 <div
 	class="journey min-h-screen overflow-hidden bg-(--j-page-bg) font-[Nunito,sans-serif] transition-opacity duration-600 dark:bg-(--j-page-bg-dark)"
 >

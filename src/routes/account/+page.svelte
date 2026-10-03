@@ -87,11 +87,7 @@
 							{/snippet}
 						</InputGroup>
 
-						<button
-							{...handler.buttonProps}
-							title="Save"
-							class="border-border-strong bg-success py-2.5 text-accent-fg"
-						>
+						<button {...handler.buttonProps} title="Save" class="button-primary py-2.5">
 							Save
 						</button>
 					</form>
@@ -151,7 +147,7 @@
 							{...handler.buttonProps}
 							disabled={!!handler.pending}
 							title="Save"
-							class="border-border-strong bg-success py-2.5 text-accent-fg"
+							class="button-primary py-2.5"
 						>
 							Save
 						</button>
@@ -241,7 +237,7 @@
 							</InputGroup>
 						</div>
 
-						<button {...handler.buttonProps} class="bg-success text-accent-fg"
+						<button {...handler.buttonProps} class="button-primary"
 							>Confirm Change</button
 						>
 					</form>

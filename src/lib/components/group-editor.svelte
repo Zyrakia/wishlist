@@ -56,7 +56,7 @@
 			{/snippet}
 		</InputGroup>
 
-		<button {...handler.buttonProps} class="bg-success text-accent-fg">
+		<button {...handler.buttonProps} class="button-primary">
 			{mode === 'create' ? 'Submit' : 'Save'}
 		</button>
 

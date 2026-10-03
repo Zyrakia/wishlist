@@ -329,10 +329,7 @@
 							</svelte:element>
 						{/if}
 
-						<button
-							class="flex-1 bg-success font-bold text-accent-fg"
-							{...submitButtonProps}
-						>
+						<button class="button-primary flex-1" {...submitButtonProps}>
 							Submit
 						</button>
 					</div>
@@ -343,7 +340,7 @@
 						<div class="flex flex-col gap-x-4 gap-y-2 md:flex-row">
 							<div class="relative mb-10 md:mb-0">
 								<button
-									class="flex items-center gap-2 bg-success text-accent-fg"
+									class="button-primary flex items-center gap-2"
 									{...submitButtonProps}
 								>
 									<CheckIcon />
@@ -481,7 +478,7 @@
 										genFavicon = '';
 									}
 								})}
-								class="flex w-full items-center justify-center gap-3 bg-success text-accent-fg"
+								class="button-primary flex w-full items-center justify-center gap-3"
 							>
 								<SparklesIcon size={16} />
 

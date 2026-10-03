@@ -79,16 +79,12 @@
 						<form class="flex gap-2" {...inviteHandler}>
 							<input {...inviteHandler.fields.inviteId.as('hidden', invite.id)} />
 
-							<button
-								name="decision"
-								value="accept"
-								class="w-full bg-success text-accent-fg">Accept</button
+							<button name="decision" value="accept" class="button-success w-full"
+								>Accept</button
 							>
 
-							<button
-								name="decision"
-								value="decline"
-								class="w-full bg-danger text-accent-fg">Decline</button
+							<button name="decision" value="decline" class="button-danger w-full"
+								>Decline</button
 							>
 						</form>
 
@@ -103,7 +99,7 @@
 
 	{#snippet wishlistSection()}
 		<a
-			class="button absolute -top-3.5 right-0 flex h-9 w-max items-center gap-2 border-border bg-success text-accent-fg"
+			class="button button-primary absolute -top-3.5 right-0 flex h-9 w-max items-center gap-2"
 			href="/new-list"
 		>
 			<ListPlusIcon size={18} />
@@ -132,7 +128,7 @@
 					You have no wishlists, create your first one now!
 				</p>
 
-				<a href="/new-list" class="button mt-2 rounded bg-success px-4 py-3 text-accent-fg">
+				<a href="/new-list" class="button button-primary mt-2 rounded px-4 py-3">
 					Create Your First List
 				</a>
 			</div>
@@ -235,7 +231,7 @@
 					in between.
 				</p>
 
-				<a href="/new-group" class="button mt-2 bg-success px-4 py-3 text-accent-fg">
+				<a href="/new-group" class="button button-primary mt-2 px-4 py-3">
 					Create Your Group
 				</a>
 			</div>

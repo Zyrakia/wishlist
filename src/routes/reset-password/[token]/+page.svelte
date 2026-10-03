@@ -76,7 +76,7 @@
 				<button
 					{...handler.buttonProps}
 					disabled={!!handler.pending}
-					class="button bg-success text-accent-fg"
+					class="button button-primary"
 				>
 					Reset Password
 				</button>
@@ -88,7 +88,7 @@
 
 			<p>Your password reset link has most likely expired.</p>
 
-			<a href="/reset-password" class="button bg-success text-accent-fg">Get New Link</a>
+			<a href="/reset-password" class="button button-primary">Get New Link</a>
 		</div>
 	{/if}
 </div>

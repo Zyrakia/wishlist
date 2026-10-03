@@ -106,7 +106,7 @@
 					value={connectionProviderName}
 				/>
 
-				<button {...connectionHandler.buttonProps} class="mt-2 bg-success text-accent-fg">
+				<button {...connectionHandler.buttonProps} class="button-primary mt-2">
 					Create Connection
 				</button>
 

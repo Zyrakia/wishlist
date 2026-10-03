@@ -38,7 +38,7 @@
 
 			<p class="text-text-muted">It looks like this invite is invalid or has expired!</p>
 
-			<a href="/" class="button bg-success text-accent-fg">Return Home</a>
+			<a href="/" class="button button-primary">Return Home</a>
 		</div>
 	{:else}
 		<div class="flex flex-col items-center gap-4">
@@ -55,11 +55,11 @@
 					<form {...resolveGroupInvite} class="flex gap-3">
 						<input {...resolveGroupInvite.fields.inviteId.as('hidden', invite.id)} />
 
-						<button name="decision" value="accept" class="bg-success text-accent-fg">
+						<button name="decision" value="accept" class="button-success">
 							Accept
 						</button>
 
-						<button name="decision" value="decline" class="bg-danger text-accent-fg">
+						<button name="decision" value="decline" class="button-danger">
 							Decline
 						</button>
 					</form>
@@ -78,9 +78,7 @@
 				<p class="text-warning">You must be signed in to accept this invite.</p>
 
 				<div class="flex gap-3">
-					<a href={registerInviteHref} class="button bg-success text-accent-fg">
-						Create Account
-					</a>
+					<a href={registerInviteHref} class="button button-primary"> Create Account </a>
 
 					<a href={loginInviteHref} class="button bg-accent text-accent-fg"> Log In </a>
 				</div>

@@ -129,7 +129,7 @@
 			<div class="flex w-full flex-row-reverse">
 				{#if hasJs()}
 					<div
-						class="ms-1.5 flex h-full w-8 items-center justify-center"
+						class="ms-1.5 flex w-8 items-center justify-center"
 						title={slugIssue ? 'Link is invalid' : 'Link is valid'}
 					>
 						{#if checkSlugTimeout}
@@ -172,7 +172,7 @@
 		{/snippet}
 	</InputGroup>
 
-	<button {...handler.buttonProps} class="bg-success text-accent-fg">
+	<button {...handler.buttonProps} class="button-primary">
 		{mode === 'create' ? 'Submit' : 'Save'}
 	</button>
 
