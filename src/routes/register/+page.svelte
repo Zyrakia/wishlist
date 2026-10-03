@@ -1,147 +1,81 @@
 <script lang="ts">
+	import AuthShell from '$lib/components/auth-shell.svelte';
 	import InputGroup from '$lib/components/input-group.svelte';
+	import PasswordInput from '$lib/components/password-input.svelte';
 	import { register } from '$lib/remotes/auth.remote.js';
-	import { useHasJs } from '$lib/runes/has-js.svelte.js';
-	import { CreateCredentialsSchema } from '$lib/schemas/auth.js';
-	import { EyeClosedIcon, EyeIcon } from '@lucide/svelte';
-	import { fade } from 'svelte/transition';
+	import { CreateCredentialsSchema, CredentialsSchema } from '$lib/schemas/auth.js';
+	import { ArrowRightIcon } from '@lucide/svelte';
 
-	import backgroundImage from '$lib/assets/authentication-background.webp';
-	import { firstIssue } from '$lib/util/issue';
-	import { safePrune } from '$lib/util/safe-prune';
-	import { UrlBuilder } from '$lib/util/url';
 	import { page } from '$app/state';
-
-	const hasJs = useHasJs();
-	const getIssue = () => firstIssue(remote.fields);
+	import { UrlBuilder } from '$lib/util/url';
 
 	const remote = register.preflight(CreateCredentialsSchema);
-
-	let showPassword = $state(false);
-	let issue = $state(getIssue());
-
-	$effect(() => {
-		const nextIssue = getIssue();
-		if (nextIssue) issue = nextIssue;
-	});
-
-	let issueClearTimeout: NodeJS.Timeout | undefined;
-	$effect(() => {
-		if (issue) {
-			clearTimeout(issueClearTimeout);
-			issueClearTimeout = setTimeout(() => {
-				issue = undefined;
-				issueClearTimeout = undefined;
-			}, 5000);
-		}
-	});
-
-	const seed = (props: Record<string, string>) => {
-		const validProps = safePrune(CreateCredentialsSchema.partial(), props);
-		remote.fields.set(validProps as any);
-	};
 
 	const loginHref = UrlBuilder.from('/login')
 		.query(Object.fromEntries(page.url.searchParams.entries()))
 		.toPath();
 
-	seed(Object.fromEntries(page.url.searchParams.entries()));
+	const { data: seededEmail } = CredentialsSchema.shape.email.safeParse(
+		page.url.searchParams.get('email'),
+	);
+	if (seededEmail) remote.fields.email.set(seededEmail);
 </script>
 
-<div
-	style="background-image: url({backgroundImage}); background-color: rgba(0, 0, 0, 0.3);"
-	class="relative flex h-full w-full justify-center bg-cover bg-bottom-right bg-no-repeat p-6 py-12 md:items-center md:justify-start md:p-12"
->
-	<div class="absolute top-0 left-0 h-full w-full dark:bg-black/35"></div>
-
-	<div
-		class="z-10 container flex h-max max-w-2xl flex-col rounded-xl border border-border bg-surface/90 p-8 shadow-lg"
+<AuthShell title="Create an account">
+	<form
+		{...remote}
+		class="flex flex-col gap-5"
+		oninput={() => remote.validate({ preflightOnly: true })}
 	>
-		<p class="mb-2 text-sm uppercase md:mb-4 md:text-lg">Register to get started</p>
-		<h1 class="mb-6 text-3xl font-bold uppercase md:text-5xl">Create an Account</h1>
-		<p>Already have an account? <a href={loginHref} class="text-accent">Login</a></p>
+		<InputGroup label="Email" error={remote.fields.email.issues()}>
+			{#snippet control()}
+				<input
+					class="input-lg"
+					placeholder="you@example.com"
+					autocomplete="email"
+					{...remote.fields.email.as('email')}
+				/>
+			{/snippet}
+		</InputGroup>
 
-		<form
-			{...remote}
-			class="container mt-6 flex w-full flex-col gap-5 rounded"
-			oninput={() => remote.validate({ preflightOnly: true })}
-		>
-			<InputGroup label="Email" error={remote.fields.email.issues()}>
-				{#snippet control()}
-					<input placeholder="Enter your email" {...remote.fields.email.as('text')} />
-				{/snippet}
-			</InputGroup>
+		<InputGroup label="Username" error={remote.fields.username.issues()}>
+			{#snippet control()}
+				<input
+					class="input-lg"
+					placeholder="What should friends see?"
+					autocomplete="username"
+					{...remote.fields.username.as('text')}
+				/>
+			{/snippet}
+		</InputGroup>
 
-			<InputGroup label="Username" error={remote.fields.username.issues()}>
-				{#snippet control()}
-					<input
-						placeholder="Enter your preferred username"
-						{...remote.fields.username.as('text')}
-					/>
-				{/snippet}
-			</InputGroup>
+		<InputGroup label="Password" error={remote.fields.password.issues()}>
+			{#snippet control()}
+				<PasswordInput
+					placeholder="At least 11 characters"
+					autocomplete="new-password"
+					field={remote.fields.password}
+				/>
+			{/snippet}
+		</InputGroup>
 
-			<InputGroup
-				label="Password"
-				error={remote.fields.password.issues() || remote.fields.passwordConfirm.issues()}
-			>
-				{#snippet control()}
-					<div class="relative flex w-full flex-col gap-2 md:flex-row">
-						<input
-							class="bg- flex-1/2"
-							placeholder="Enter your password"
-							{...remote.fields.password.as(showPassword ? 'text' : 'password')}
-						/>
+		<InputGroup label="Confirm password" error={remote.fields.passwordConfirm.issues()}>
+			{#snippet control()}
+				<PasswordInput
+					placeholder="Same password again"
+					autocomplete="new-password"
+					field={remote.fields.passwordConfirm}
+				/>
+			{/snippet}
+		</InputGroup>
 
-						<div class="flex flex-2/3 gap-2">
-							<input
-								class="w-full"
-								placeholder="Confirm your password"
-								{...remote.fields.passwordConfirm.as(
-									showPassword ? 'text' : 'password',
-								)}
-							/>
+		<button class="button-brand mt-1" disabled={!!remote.pending} {...remote.buttonProps}>
+			Create account <ArrowRightIcon size={18} />
+		</button>
+	</form>
 
-							{#if hasJs()}
-								<button
-									title={showPassword ? 'Hide Password' : 'Show Password'}
-									class="button bg-accent px-3 dark:text-accent-fg"
-									type="button"
-									onclick={() => (showPassword = !showPassword)}
-								>
-									{#if showPassword}
-										<EyeIcon />
-									{:else}
-										<EyeClosedIcon />
-									{/if}
-								</button>
-							{/if}
-						</div>
-					</div>
-				{/snippet}
-			</InputGroup>
-
-			<button
-				class="bg-success px-6 py-3 font-bold text-accent-fg transition-colors"
-				class:bg-success={!hasJs() || !issue}
-				class:bg-danger={hasJs() && issue}
-				disabled={!!remote.pending}
-				{...remote.buttonProps.enhance(async ({ submit }) => {
-					issue = undefined;
-					await submit();
-				})}
-			>
-				Register
-			</button>
-
-			<p
-				class="font-bold0 rounded bg-danger px-6 py-2 text-center text-accent-fg transition-opacity"
-				class:hidden={!issue}
-			>
-				<span in:fade={{ duration: 150 }} out:fade={{ duration: 150 }}>
-					{issue}
-				</span>
-			</p>
-		</form>
-	</div>
-</div>
+	{#snippet alternate()}
+		Already have an account?
+		<a href={loginHref} class="font-bold text-brand hover:underline">Log in</a>
+	{/snippet}
+</AuthShell>
