@@ -21,8 +21,9 @@ export const SearchService = createService(db(), {
 	 * Streams an AI-generated answer based on documentation search prompt.
 	 *
 	 * @param dirtyPrompt the user's prompt
+	 * @param abortSignal stops generation when aborted
 	 */
-	streamDocsAnswer: async (_client, dirtyPrompt: string) => {
+	streamDocsAnswer: async (_client, dirtyPrompt: string, abortSignal?: AbortSignal) => {
 		const { success, data: userPrompt } = PromptSchema.safeParse(dirtyPrompt);
 		if (!success) {
 			return Err(DomainError.of("I don't understand that kind of question..."));
@@ -55,6 +56,7 @@ export const SearchService = createService(db(), {
 		const stream = streamText({
 			model: modelHost('mistral-small-latest'),
 			maxOutputTokens: MAX_OUTPUT_TOKENS,
+			abortSignal,
 			messages: [
 				{ role: 'system', content: sysPromptWithDocs },
 				{ role: 'user', content: userPrompt },
