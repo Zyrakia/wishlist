@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SquareUserIcon, LogInIcon, HouseIcon, SunIcon, MoonIcon } from '@lucide/svelte';
-	import { setSavedTheme, toggleSavedTheme } from '$lib/remotes/theme.remote.js';
+	import { toggleSavedTheme } from '$lib/remotes/theme.remote.js';
 	import { onDestroy, untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import { navigating, page } from '$app/state';
@@ -15,7 +15,7 @@
 	let { theme, user }: { theme: Theme; user?: CookieUser } = $props();
 
 	const isHome = $derived(page.url.pathname === '/');
-	const changingTheme = $derived(!!setSavedTheme.pending);
+	const changingTheme = $derived(!!toggleSavedTheme.pending);
 	const hasJs = useHasJs();
 
 	let navAnimating = $state(false);

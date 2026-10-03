@@ -55,6 +55,8 @@
 
 	let lastGeneratedSlug = $state('');
 	const patchSlug = () => {
+		if (generatedSlug === lastGeneratedSlug) return;
+
 		const inputSlug = handler.fields.slug.value();
 		if (inputSlug?.trim() && inputSlug !== lastGeneratedSlug) return;
 
@@ -93,7 +95,9 @@
 	});
 
 	seed(init);
-	onMount(() => handler.validate());
+	onMount(() => {
+		if (init) handler.validate();
+	});
 
 	$effect(() => {
 		const issues = firstIssue(

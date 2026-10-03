@@ -81,7 +81,8 @@
 
 		<p class="mb-8 max-w-[520px] text-lg leading-relaxed text-text-muted">
 			Stress, especially during holidays, is rising <a
-				target="blank"
+				target="_blank"
+				rel="noopener noreferrer"
 				href="https://www.psychiatry.org/news-room/news-releases/americans-more-anxious-about-the-holidays"
 				class="font-bold underline"
 			>
@@ -432,12 +433,16 @@
 		}
 	}
 
-	.anim-bob {
+	.journey :global(.anim-bob) {
 		animation: bob 3s ease-in-out infinite;
 	}
 
-	.anim-bounce {
+	.journey :global(.anim-bounce) {
 		animation: bounce-down 2s ease-in-out infinite;
+	}
+
+	.journey :global(.anim-twinkle) {
+		animation: twinkle 2s ease-in-out infinite;
 	}
 
 	.confetti {

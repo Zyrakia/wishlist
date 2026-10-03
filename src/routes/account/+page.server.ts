@@ -13,7 +13,7 @@ const ParamsSchema = z.object({
 
 export const load: PageServerLoad = async ({ url }) => {
 	const me = await resolveMe({});
-	if (!me) redirect(303, UrlBuilder.from('/login').param('return', '/account').toPath());
+	if (!me) redirect(303, UrlBuilder.from('/login').param('redirect', '/account').toPath());
 
 	const props = safePruneParams(ParamsSchema, url.searchParams);
 

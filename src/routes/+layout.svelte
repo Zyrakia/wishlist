@@ -56,13 +56,13 @@
 	{#if meta?.title}
 		<title>{meta.title}</title>
 		<meta name="title" content={meta.title} />
-		<meta name="og:title" content={meta.title} />
+		<meta property="og:title" content={meta.title} />
 		<meta name="twitter:title" content={meta.title} />
 	{/if}
 
 	{#if meta?.description}
 		<meta name="description" content={meta.description} />
-		<meta name="og:description" content={meta.description} />
+		<meta property="og:description" content={meta.description} />
 		<meta name="twitter:description" content={meta.description} />
 	{/if}
 
@@ -71,7 +71,9 @@
 	{/if}
 
 	{#each Object.entries(meta) as [name, content]}
-		{#if name !== 'title' && name !== 'description' && name !== 'canonical'}
+		{#if name.startsWith('og:')}
+			<meta property={name} {content} />
+		{:else if name !== 'title' && name !== 'description' && name !== 'canonical'}
 			<meta {name} {content} />
 		{/if}
 	{/each}

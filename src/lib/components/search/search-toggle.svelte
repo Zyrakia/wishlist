@@ -32,7 +32,13 @@
 </script>
 
 {#if hasJs()}
-	<button class="border-0 p-1.5 md:p-2" onclick={toggle}>
+	<button
+		class="border-0 p-1.5 md:p-2"
+		aria-label={active ? 'Close search' : 'Open search'}
+		title={active ? 'Close search' : 'Open search'}
+		aria-expanded={active}
+		onclick={toggle}
+	>
 		{#if active}
 			<SearchXIcon {color} class={iconClass} />
 		{:else if hasIndicator}
