@@ -192,12 +192,15 @@ export const GroupsService = createService(db(), {
 	},
 
 	/**
-	 * Deletes a group invite by ID.
+	 * Deletes a group invite by ID scoped to a group.
 	 *
 	 * @param inviteId the invite ID to delete
+	 * @param groupId the group ID to scope by
 	 */
-	deleteInviteById: async (client, inviteId: string) => {
-		await client.delete(GroupInviteTable).where(eq(GroupInviteTable.id, inviteId));
+	deleteInviteById: async (client, inviteId: string, groupId: string) => {
+		await client
+			.delete(GroupInviteTable)
+			.where(and(eq(GroupInviteTable.id, inviteId), eq(GroupInviteTable.groupId, groupId)));
 		return Ok(undefined);
 	},
 

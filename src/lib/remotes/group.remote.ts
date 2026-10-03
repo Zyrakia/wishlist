@@ -16,6 +16,14 @@ import { error, redirect } from '@sveltejs/kit';
 
 import { resolveMe } from './auth.remote';
 
+const isGroupMember = async (groupId: string) => {
+	const user = verifyAuth();
+	const membership = unwrap(
+		await GroupsService.getMembershipByGroupIdAndUserId(groupId, user.id),
+	);
+	return !!membership;
+};
+
 export const createGroup = form(GroupSchema, async (data, invalid) => {
 	const user = verifyAuth();
 
@@ -135,7 +143,7 @@ export const revokeGroupInvite = form(z.object({ inviteId: z.string() }), async 
 	const group = unwrap(await GroupsService.getByIdForOwner(group_id, user.id));
 	if (!group) error(400, 'Invalid group ID provided');
 
-	unwrap(await GroupsService.deleteInviteById(inviteId));
+	unwrap(await GroupsService.deleteInviteById(inviteId, group.id));
 	redirect(303, UrlBuilder.from('/groups').segment(group.id).toPath());
 });
 
@@ -151,7 +159,7 @@ export const resolveGroupInvite = form(
 		if (invite.targetEmail !== user.email) invalid(invalid.inviteId('This is not your invite'));
 
 		if (decision === 'decline') {
-			unwrap(await GroupsService.deleteInviteById(invite.id));
+			unwrap(await GroupsService.deleteInviteById(invite.id, invite.groupId));
 			redirect(303, '/');
 		}
 
@@ -179,7 +187,7 @@ export const removeGroupMember = form(z.object({ targetId: z.string() }), async 
 
 	if (group.ownerId === targetId) error(400, 'Cannot remove group owner');
 	if (group.ownerId !== user.id && user.id !== targetId)
-		error(401, 'Cannot modify other members of this group');
+		error(403, 'Cannot modify other members of this group');
 
 	const membership = unwrap(
 		await GroupsService.getMembershipByGroupIdAndUserId(group.id, targetId),
@@ -229,14 +237,20 @@ export const getOwnedGroup = query(async () => {
 });
 
 export const getGroupById = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	if (!(await isGroupMember(groupId))) return;
 	return unwrap(await GroupsService.getByIdWithOwner(groupId));
 });
 
 export const getGroupMembers = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	if (!(await isGroupMember(groupId))) error(404);
 	return unwrap(await GroupsService.listMembersWithListsByGroupId(groupId));
 });
 
 export const getGroupInvites = query(z.object({ groupId: z.string() }), async ({ groupId }) => {
+	const user = verifyAuth();
+	const group = unwrap(await GroupsService.getByIdForOwner(groupId, user.id));
+	if (!group) error(404);
+
 	return unwrap(await GroupsService.listInvitesByGroupId(groupId));
 });
 
