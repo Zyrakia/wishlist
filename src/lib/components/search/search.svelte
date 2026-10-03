@@ -69,7 +69,7 @@
 	};
 
 	const setDefaultPlaceholder = () => {
-		currentPlaceholder = 'Search people, reservations or ask questions...';
+		currentPlaceholder = 'Search people, lists or reservations...';
 	};
 
 	const tryInsertPlaceholder = () => {
@@ -202,30 +202,6 @@
 
 {#if hasJs()}
 	<div title="Search Wishii" class="relative flex w-full items-center justify-center gap-4 px-4">
-		<div class="relative flex size-8 shrink-0 items-center justify-center">
-			{#if isLoading}
-				<span
-					in:fade={{ duration: 120 }}
-					out:fade={{ duration: 120 }}
-					class="absolute h-full w-full"
-				>
-					<Loader
-						thickness="2px"
-						pulseDur="500ms"
-						pulseStaggerDur="75ms"
-						pulseCount={2}
-					/>
-				</span>
-			{:else}
-				<span in:fade={{ duration: 120 }} out:fade={{ duration: 120 }} class="absolute">
-					<SearchIcon
-						size={20}
-						class={`shrink-0 transition-colors ${searchOpen ? 'text-accent' : 'text-text'}`}
-					/>
-				</span>
-			{/if}
-		</div>
-
 		<div
 			role="combobox"
 			aria-expanded={searchOpen}
@@ -243,24 +219,46 @@
 					bind:value={query}
 					onfocus={() => (searchFocused = true)}
 					onblur={handleInputBlur}
-					class="w-full"
+					class={[
+						'w-full ps-10 transition-colors',
+						mode === 'ask' && searchOpen && !inputBorderColor && 'ask-border',
+					]}
 					style:border-color={inputBorderColor}
 				/>
 
+				<span
+					class="pointer-events-none absolute left-3 flex size-[18px] items-center justify-center transition-colors {mode ===
+						'ask' && searchOpen
+						? 'text-accent'
+						: 'text-text-muted'}"
+				>
+					{#if isLoading}
+						<Loader
+							thickness="2px"
+							pulseDur="500ms"
+							pulseStaggerDur="75ms"
+							pulseCount={2}
+						/>
+					{:else if mode === 'ask'}
+						<SparklesIcon size={18} />
+					{:else}
+						<SearchIcon size={18} />
+					{/if}
+				</span>
+
 				{#if !query}
 					<p
-						class="pointer-events-none absolute flex w-full items-center justify-between gap-2 overflow-hidden px-3 {searchOpen
+						class="pointer-events-none absolute flex w-full items-center justify-end gap-2 overflow-hidden px-3 {searchOpen
 							? 'text-text-muted/50'
 							: 'text-text-muted'}"
 					>
-						<SparklesIcon size={18} />
-
 						{#key currentPlaceholder}
 							<span
 								transition:fly={{ y: 50 }}
-								class="absolute max-w-full truncate ps-7 pe-11 {mode === 'search'
-									? ''
-									: 'placeholder-glow'}"
+								class="absolute left-3 max-w-full truncate ps-7 pe-11 {mode ===
+								'ask'
+									? 'placeholder-glow'
+									: ''}"
 							>
 								{currentPlaceholder}
 							</span>
@@ -295,28 +293,60 @@
 				onmouseleave={() => (resultsHovered = false)}
 				class="scrollbar-thin absolute bottom-full left-0 mb-2 max-h-85 min-h-0 w-full overflow-y-auto rounded-md border bg-surface transition-[opacity,translate] md:top-full md:bottom-[unset] md:mt-2 md:mb-0 {searchOpen
 					? 'pointer-events-auto translate-y-0 opacity-100'
-					: 'pointer-events-none -translate-y-8 opacity-0'} {resultsFocused
-					? 'border-primary'
-					: 'border-accent'}"
+					: 'pointer-events-none -translate-y-8 opacity-0'} {mode === 'ask'
+					? 'border-accent/50'
+					: 'border-border-strong'}"
 			>
 				<div role="group" aria-label="Search Results" class="flex flex-col gap-3 px-3 py-4">
-					{#if mode === 'ask'}
+					<div
+						role="tablist"
+						aria-label="Search mode"
+						class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
+					>
 						<button
 							type="button"
+							role="tab"
+							aria-selected={mode === 'search'}
+							onmousedown={(e) => e.preventDefault()}
 							onclick={exitAskMode}
-							class="w-full rounded-md border border-danger/70 bg-danger/5 px-4 py-3 text-center font-semibold text-text transition-colors hover:bg-danger/10"
+							class={[
+								'flex items-center justify-center gap-2 rounded-md border-0 px-3 py-1.5 text-sm',
+								mode === 'search'
+									? 'bg-surface text-text shadow-sm ring-1 ring-border-strong/70'
+									: 'bg-transparent text-text-muted',
+							]}
 						>
-							Exit to Search Mode
+							<SearchIcon size={14} />
+							Search
 						</button>
-					{:else}
+
+						<button
+							type="button"
+							role="tab"
+							aria-selected={mode === 'ask'}
+							onmousedown={(e) => e.preventDefault()}
+							onclick={activateAskMode}
+							class={[
+								'flex items-center justify-center gap-2 rounded-md border-0 px-3 py-1.5 text-sm',
+								mode === 'ask'
+									? 'bg-surface text-accent shadow-sm ring-1 ring-accent/70'
+									: 'bg-transparent text-text-muted',
+							]}
+						>
+							<SparklesIcon size={14} />
+							Ask AI
+						</button>
+					</div>
+
+					{#if mode === 'search'}
 						<SearchGlobal
 							bind:this={searchGlobalRef}
 							query={cleanQuery}
 							bind:loading={globalLoading}
 						/>
-					{/if}
 
-					<hr class="border-border-strong" />
+						<hr class="border-border-strong" />
+					{/if}
 
 					<SearchAi
 						bind:this={aiRef}
@@ -368,6 +398,27 @@
 		100% {
 			background-position: -100% 0;
 			text-shadow: none;
+		}
+	}
+
+	.ask-border {
+		animation: ask-border-pulse 3s ease-in-out infinite;
+	}
+
+	@keyframes ask-border-pulse {
+		0%,
+		100% {
+			border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border-strong));
+		}
+		50% {
+			border-color: color-mix(in srgb, var(--color-accent) 65%, var(--color-border-strong));
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.ask-border,
+		.placeholder-glow {
+			animation: none;
 		}
 	}
 </style>

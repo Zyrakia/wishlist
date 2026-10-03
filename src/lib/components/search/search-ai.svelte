@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		ArrowDownRight,
+		ArrowRightIcon,
 		ChevronDownIcon,
 		ChevronUpIcon,
 		CornerDownLeftIcon,
@@ -132,6 +133,11 @@
 			}
 
 			questionResponse += decoder.decode();
+
+			if (!questionResponse.trim()) {
+				questionError =
+					"Wishii AI didn't return an answer, it may be busy. Try again in a moment.";
+			}
 		} catch (err) {
 			console.warn(err);
 			questionError = 'An unknown error occurred during generation.';
@@ -167,15 +173,30 @@
 {/snippet}
 
 <div role="group" aria-label="AI Assistant">
-	<div class={`flex items-center gap-2 text-accent`}>
-		<SparklesIcon size={18} />
+	{#if active || promptToAsk}
+		<div class="flex items-center gap-2 text-accent">
+			<SparklesIcon size={18} />
+			<span>Wishii AI</span>
+		</div>
+	{:else}
+		<button
+			type="button"
+			onmousedown={(e) => e.preventDefault()}
+			onclick={onactivate}
+			class="group -mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg border-0 px-2 py-1.5 text-accent hover:bg-accent/10"
+		>
+			<SparklesIcon size={18} />
+			<span>Wishii AI</span>
+			<span class="me-auto text-sm text-text-muted">Ask a question instead</span>
+			<ArrowRightIcon size={16} class="transition-transform group-hover:translate-x-0.5" />
+		</button>
+	{/if}
 
-		<span class="me-auto">Wishii AI</span>
-
-		{#if !promptToAsk}
-			{@render askButton()}
-		{/if}
-	</div>
+	{#if active && !query && !lastSubmission}
+		<p class="mt-1 text-sm text-text-muted">
+			Ask how anything in Wishii works. Press Enter to send.
+		</p>
+	{/if}
 
 	{#if promptToAsk}
 		<div transition:slide={{ duration: 150 }} class="flex items-center gap-2">
@@ -191,37 +212,39 @@
 	{/if}
 
 	{#if lastSubmission}
-		<div
-			class="my-3 flex items-center gap-2 rounded-r-md border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3"
+		<button
+			type="button"
+			aria-expanded={isAnswerExpanded}
+			title={isAnswerExpanded ? 'Hide answer' : 'Show answer'}
+			onmousedown={(e) => e.preventDefault()}
+			onclick={() => (isAnswerExpanded = !isAnswerExpanded)}
+			class="my-3 flex w-full items-center gap-2 rounded-none rounded-r-md border-0 border-l-2 border-border-strong bg-muted py-1.5 ps-2 pe-3 text-left"
 		>
 			<MessageCircleQuestionMarkIcon size={14} class="shrink-0 text-text-muted" />
 
-			<p class="truncate text-sm text-text-muted italic">{lastSubmission}</p>
+			<span class="me-auto truncate text-sm font-normal text-text-muted italic">
+				{lastSubmission}
+			</span>
 
-			<button
-				class="absolute right-5 m-0 border-0 p-0"
-				onclick={() => (isAnswerExpanded = !isAnswerExpanded)}
-			>
-				{#if isAnswerExpanded}
-					<ChevronUpIcon size={18} />
-				{:else}
-					<ChevronDownIcon size={18} />
-				{/if}
-			</button>
-		</div>
+			{#if isAnswerExpanded}
+				<ChevronUpIcon size={18} class="shrink-0" />
+			{:else}
+				<ChevronDownIcon size={18} class="shrink-0" />
+			{/if}
+		</button>
 	{/if}
 
-	{#if isQuestionInProgress && !questionResponse}
-		<div class="h-12 w-12 pt-2">
-			<Loader thickness="2px" pulseDur="1.25s" pulseStaggerDur="250ms" pulseCount={2} />
-		</div>
-	{:else if questionResponse}
-		{#if isAnswerExpanded}
+	{#if isAnswerExpanded}
+		{#if isQuestionInProgress && !questionResponse}
+			<div class="h-12 w-12 pt-2">
+				<Loader thickness="2px" pulseDur="1.25s" pulseStaggerDur="250ms" pulseCount={2} />
+			</div>
+		{:else if questionError}
+			<p role="alert" class="mt-2 text-danger/75 italic">{questionError}</p>
+		{:else if questionResponse}
 			<div aria-live="polite" class="mt-2" title="Generated Response">
 				<Markdown content={questionResponse} />
 			</div>
 		{/if}
-	{:else if questionError}
-		<p class="mt-2 text-danger/75 italic">{questionError}</p>
 	{/if}
 </div>
