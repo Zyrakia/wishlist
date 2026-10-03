@@ -6,6 +6,8 @@ export default defineConfig({
 	dialect: 'sqlite',
 	casing: 'snake_case',
 	dbCredentials: { url: ENV.DATABASE_PATH },
+	// FTS5 and libSQL vector tables are managed by hand-written migrations
+	tablesFilter: ['!*_fts', '!*_fts_*', '!*_shadow'],
 	verbose: true,
 	strict: true,
 });
