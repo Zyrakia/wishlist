@@ -1,4 +1,4 @@
-import { form, getRequestEvent, query } from '$app/server';
+import { command, form, getRequestEvent, query } from '$app/server';
 
 import { ItemSchema, RequiredUrlSchema } from '$lib/schemas/item';
 import { verifyAuth } from '$lib/server/auth';
@@ -82,7 +82,7 @@ export const setItemFavorited = form(
 	},
 );
 
-export const reorderItems = query(
+export const reorderItems = command(
 	z.object({
 		items: z.array(
 			z.object({
@@ -96,10 +96,13 @@ export const reorderItems = query(
 			params: { wishlist_slug },
 		} = getRequestEvent();
 
-		const user = verifyAuth();
+		const user = verifyAuth({ failStrategy: 'error' });
 		if (!wishlist_slug) error(400, 'A wishlist slug is required while updating item ordering');
 
-		const wl = unwrap(await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id));
+		const wl = unwrapOrDomain(
+			await WishlistService.getBySlugForOwnerOrErr(wishlist_slug, user.id),
+			(message) => error(403, message),
+		);
 		unwrap(await ItemsService.reorder(wl.id, items));
 	},
 );
