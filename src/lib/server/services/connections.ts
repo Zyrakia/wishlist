@@ -126,21 +126,4 @@ export const ConnectionsService = createService(db(), {
 		return Ok(undefined);
 	},
 
-	/**
-	 * Fetches recent sync status for a set of connections.
-	 *
-	 * @param connectionIds the connection IDs to lookup
-	 * @param recentCutoff the cutoff timestamp for recent syncs
-	 */
-	getRecentSyncsById: async (client, connectionIds: string[], recentCutoff: Date) => {
-		const recent = await client.query.WishlistConnectionTable.findMany({
-			where: (t, { and, eq, gte, inArray, or }) =>
-				and(
-					inArray(t.id, connectionIds),
-					or(gte(t.lastSyncedAt, recentCutoff), eq(t.syncError, true)),
-				),
-			columns: { id: true, lastSyncedAt: true, syncError: true },
-		});
-		return Ok(recent);
-	},
 });

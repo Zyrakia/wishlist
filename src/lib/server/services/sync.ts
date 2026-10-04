@@ -27,7 +27,16 @@ const itemSyncKey = (item: { url?: string | null; name: string }) => {
 	return `name:${item.name.trim().toLowerCase()}`;
 };
 
-const syncing = new Map<string, Promise<Result<void, unknown>>>();
+const syncing = new Set<string>();
+
+const cooldownError = (lastSyncedAt: Date | null) => {
+	if (!lastSyncedAt || Date.now() - lastSyncedAt.getTime() >= SYNC_DELAY) return;
+
+	const nextSync = new Date(lastSyncedAt.getTime() + SYNC_DELAY);
+	return DomainError.of(`Next sync ${formatRelative(nextSync)}`);
+};
+
+export const isConnectionSyncing = (connectionId: string) => syncing.has(connectionId);
 
 const _syncConnection = async (
 	client: DatabaseClient,
@@ -36,11 +45,8 @@ const _syncConnection = async (
 	const connection = unwrap(await ConnectionsService.getByIdWithItems(connectionId));
 	if (!connection) return Err(DomainError.of('Cannot retrieve connection'));
 
-	const now = new Date();
-	if (connection.lastSyncedAt && now.getTime() - connection.lastSyncedAt.getTime() < SYNC_DELAY) {
-		const nextSync = new Date(connection.lastSyncedAt.getTime() + SYNC_DELAY);
-		return Err(DomainError.of(`Next sync ${formatRelative(nextSync)}`));
-	}
+	const cooldown = cooldownError(connection.lastSyncedAt);
+	if (cooldown) return Err(cooldown);
 
 	const candidatesResult = await generateItemCandidates(connection.url);
 	if (candidatesResult.isErr()) {
@@ -105,15 +111,29 @@ const _syncConnection = async (
 };
 
 export const SyncService = createService(db(), {
-	syncConnection: async (client, connectionId: string) => {
-		const runningSync = syncing.get(connectionId);
-		if (runningSync) return runningSync;
+	/**
+	 * Starts syncing a connection in the background unless it is already syncing.
+	 * Fails right away if the connection is missing or synced too recently.
+	 *
+	 * @param connectionId the connection to sync
+	 */
+	requestSync: async (client, connectionId: string) => {
+		if (syncing.has(connectionId)) return Ok(undefined);
 
-		const sync = _syncConnection(client, connectionId).finally(() => {
-			syncing.delete(connectionId);
-		});
+		const connection = unwrap(await ConnectionsService.getById(connectionId));
+		if (!connection) return Err(DomainError.of('Cannot retrieve connection'));
 
-		syncing.set(connectionId, sync);
-		return sync;
+		const cooldown = cooldownError(connection.lastSyncedAt);
+		if (cooldown) return Err(cooldown);
+
+		if (syncing.has(connectionId)) return Ok(undefined);
+		syncing.add(connectionId);
+
+		void ConnectionsService.updateSyncStatusById(connectionId, { syncError: false })
+			.then(() => _syncConnection(client, connectionId))
+			.catch((err) => console.warn(err))
+			.finally(() => syncing.delete(connectionId));
+
+		return Ok(undefined);
 	},
 });

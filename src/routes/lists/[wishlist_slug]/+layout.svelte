@@ -4,10 +4,9 @@
 	import { page } from '$app/state';
 	import { CircleArrowLeftIcon, DotIcon, LinkIcon } from '@lucide/svelte';
 	import WishlistConnection from '$lib/components/wishlist-connection.svelte';
-	import { useHasJs } from '$lib/runes/has-js.svelte';
 	import { formatRelative } from '$lib/util/date';
 	import { invalidateAll } from '$app/navigation';
-	import { checkSyncStatus } from '$lib/remotes/connection.remote';
+	import { getFinishedSyncs } from '$lib/remotes/connection.remote';
 	import { clock } from '$lib/runes/clock.svelte';
 	import { UrlBuilder } from '$lib/util/url';
 
@@ -19,37 +18,27 @@
 	const badges = $derived(page.data.listHeaderBadge ?? []);
 
 	const isOwn = $derived(wishlist.userId === data.user?.id);
-	const hasJs = useHasJs();
 
 	const updateSyncStatus = async () => {
-		const ids = data.syncingConnectionIds;
-
-		const syncStatuses = await checkSyncStatus({ connectionIds: ids });
-		if (syncStatuses.length) {
-			await invalidateAll();
-
-			if (
-				syncStatuses.every((v) => !v.syncError) &&
-				syncStatuses.length === data.syncingConnectionIds.length
-			)
-				clearInterval(pollInterval);
-		}
+		const finished = await getFinishedSyncs({ connectionIds: data.syncingConnectionIds });
+		if (finished.length) await invalidateAll();
 	};
 
-	let pollInterval: NodeJS.Timeout | undefined;
 	$effect(() => {
-		const ids = data.syncingConnectionIds;
-		if (!ids.length) return;
+		if (!data.syncingConnectionIds.length) return;
 
-		pollInterval = setInterval(() => untrack(updateSyncStatus), 5000);
-		return () => {
-			clearInterval(pollInterval);
-			pollInterval = undefined;
-		};
+		const pollInterval = setInterval(() => untrack(updateSyncStatus), 5000);
+		return () => clearInterval(pollInterval);
 	});
 
 	const isRoot = $derived(page.url.pathname.endsWith(wishlist.slug));
 </script>
+
+<svelte:head>
+	{#if isRoot && data.syncingConnectionIds.length}
+		<noscript><meta http-equiv="refresh" content="10" /></noscript>
+	{/if}
+</svelte:head>
 
 <div class="flex h-full w-full flex-col justify-evenly">
 	<div class="border-b border-border px-5 py-4 shadow">
@@ -79,8 +68,7 @@
 
 					<div class="flex flex-wrap gap-x-4 gap-y-1">
 						{#each connections as connection, i}
-							{@const isSyncing =
-								hasJs() && data.syncingConnectionIds.includes(connection.id)}
+							{@const isSyncing = data.syncingConnectionIds.includes(connection.id)}
 
 							<div
 								title="Last synced {connection.lastSyncedAt

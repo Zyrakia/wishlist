@@ -2,12 +2,11 @@ import { form, getRequestEvent, query } from '$app/server';
 import { WishlistConnectionSchema } from '$lib/schemas/connection';
 import { verifyAuth } from '$lib/server/auth';
 import { ConnectionsService } from '$lib/server/services/connections';
-import { SyncService } from '$lib/server/services/sync';
+import { isConnectionSyncing, SyncService } from '$lib/server/services/sync';
 import { unwrap, unwrapOrDomain } from '$lib/server/util/service';
 import { formatHost } from '$lib/util/url';
 import { strBoolean } from '$lib/util/zod';
 import { randomUUID } from 'crypto';
-import ms from 'ms';
 import z from 'zod';
 
 import { error } from '@sveltejs/kit';
@@ -47,7 +46,7 @@ export const createWishlistConnection = form(
 			}),
 		);
 
-		SyncService.syncConnection(id);
+		SyncService.requestSync(id);
 	},
 );
 
@@ -71,19 +70,11 @@ export const syncWishlistConnection = form(
 		const connection = unwrap(await ConnectionsService.getByIdWithWishlist(connectionId));
 		if (connection?.wishlist.userId !== user.id) error(400, 'Invalid connection');
 
-		unwrapOrDomain(await SyncService.syncConnection(connection.id), invalid);
+		unwrapOrDomain(await SyncService.requestSync(connection.id), invalid);
 	},
 );
 
-export const checkSyncStatus = query(
-	z.object({
-		connectionIds: z.array(z.string()),
-		recentThresholdMs: z.number().default(ms('1m')),
-	}),
-	async ({ connectionIds, recentThresholdMs }) => {
-		if (!connectionIds.length) return [];
-		const recentCutoff = new Date(Date.now() - recentThresholdMs);
-
-		return unwrap(await ConnectionsService.getRecentSyncsById(connectionIds, recentCutoff));
-	},
+export const getFinishedSyncs = query(
+	z.object({ connectionIds: z.array(z.string()) }),
+	async ({ connectionIds }) => connectionIds.filter((id) => !isConnectionSyncing(id)),
 );

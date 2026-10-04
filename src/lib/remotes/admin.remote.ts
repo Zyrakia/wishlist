@@ -42,6 +42,6 @@ export const forceResync = form(
 	z.object({ connectionId: z.string() }),
 	async ({ connectionId }, invalid) => {
 		await verifyAdmin();
-		unwrapOrDomain(await SyncService.syncConnection(connectionId), invalid);
+		unwrapOrDomain(await SyncService.requestSync(connectionId), invalid);
 	},
 );

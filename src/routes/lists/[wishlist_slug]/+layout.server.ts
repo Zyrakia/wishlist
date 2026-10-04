@@ -7,7 +7,7 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { getReservations } from '$lib/remotes/reservation.remote';
 import { getWishlistWithItems } from '$lib/remotes/wishlist.remote';
-import { SyncService } from '$lib/server/services/sync';
+import { isConnectionSyncing, SyncService } from '$lib/server/services/sync';
 const STALE_THRESHOLD = ms('24h');
 
 const ParamsSchema = z.object({
@@ -38,13 +38,16 @@ export const load: LayoutServerLoad = async ({ params, url }) => {
 		})
 		.map((v) => v.id);
 
-	staleConnectionIds.forEach((v) => SyncService.syncConnection(v));
+	staleConnectionIds.forEach((v) => SyncService.requestSync(v));
+	const syncingConnectionIds = wishlist.connections
+		.map((v) => v.id)
+		.filter((id) => staleConnectionIds.includes(id) || isConnectionSyncing(id));
 
 	return {
 		wishlist,
 		reservations: reservations || [],
 		canAccessReservations: reservations !== undefined,
-		syncingConnectionIds: staleConnectionIds,
+		syncingConnectionIds,
 		meta: {
 			title: `${wishlist.name} by ${wishlist.user.name}`,
 			description:
