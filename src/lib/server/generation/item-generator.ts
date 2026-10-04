@@ -1,20 +1,19 @@
-import { dev } from '$app/environment';
 import SYSTEM_PROMPT from '$lib/assets/generation-system-prompt.txt?raw';
 import { APICallError, generateObject } from 'ai';
 import { load as cheerio } from 'cheerio';
-import { chromium, devices, type Page } from 'playwright';
+import { devices, type BrowserContextOptions, type Page } from 'playwright';
 import TurndownService from 'turndown';
 import { Err, Ok, type Result } from 'ts-results-es';
 import z from 'zod';
 
 import { createMistral } from '@ai-sdk/mistral';
 
+import { withBrowserPage, type BrowserPriority } from './browser';
 import { reportGenerationUsage } from './usage-stats';
 
 import ENV from '$lib/server/env';
 import { parseUrl } from '$lib/util/url';
 import { isPublicUrl } from '../util/public-address';
-import { getPublicProxyUrl } from '../util/public-proxy';
 import { DomainError } from '../util/service';
 
 const modelHost = createMistral({ apiKey: ENV.MISTRAL_AI_KEY });
@@ -32,7 +31,15 @@ export type ItemCandidate = z.infer<typeof CandidateSchema>;
 
 interface RenderOptions {
 	maxScrolls?: number;
+	priority?: BrowserPriority;
 }
+
+const pageContext: BrowserContextOptions = {
+	locale: 'en-US',
+	timezoneId: 'America/New_York',
+	extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+	...devices['iPhone 15 Pro Max'],
+};
 
 interface DistillOptions {
 	stripRelativeLinks?: boolean;
@@ -56,37 +63,28 @@ async function scrollToBottom(page: Page, maxScrolls: number) {
 	}
 }
 
-async function renderUrl(url: string, { maxScrolls }: RenderOptions = {}) {
-	const browser = await chromium.launch({
-		headless: !dev,
-		proxy: { server: await getPublicProxyUrl() },
-	});
-
+async function renderUrl(url: string, { maxScrolls, priority }: RenderOptions = {}) {
 	try {
-		const page = await browser.newPage({
-			locale: 'en-US',
-			timezoneId: 'America/New_York',
-			extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-			...devices['iPhone 15 Pro Max'],
-		});
+		return await withBrowserPage(
+			async (page) => {
+				const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
+				if (!res) {
+					console.warn(`Could not goto "${url}"`);
+					return;
+				} else if (res.status() !== 200) {
+					console.warn(`Invalid status while rendering "${url}" (${res.status()})`);
+					console.warn('Response Headers:');
+					console.warn(res.headers());
+					return;
+				}
 
-		const res = await page.goto(url, { waitUntil: 'domcontentloaded' });
-		if (!res) {
-			console.warn(`Could not goto "${url}"`);
-			return;
-		} else if (res.status() !== 200) {
-			console.warn(`Invalid status while rendering "${url}" (${res.status()})`);
-			console.warn('Response Headers:');
-			console.warn(res.headers());
-			return;
-		}
-
-		if (maxScrolls) await scrollToBottom(page, maxScrolls);
-		return await page.content();
+				if (maxScrolls) await scrollToBottom(page, maxScrolls);
+				return await page.content();
+			},
+			{ priority, context: pageContext },
+		);
 	} catch (err) {
 		console.warn(err);
-	} finally {
-		await browser.close();
 	}
 }
 
@@ -203,8 +201,9 @@ const distillUrl = async (
 
 export const generateItemCandidate = async (
 	url: string,
+	priority: BrowserPriority = 'interactive',
 ): Promise<Result<z.infer<typeof CandidateSchema>, DomainError>> => {
-	const pageResult = await distillUrl(url);
+	const pageResult = await distillUrl(url, { priority });
 	if (pageResult.isErr()) return pageResult;
 
 	const page = pageResult.value;
@@ -239,7 +238,11 @@ export const generateItemCandidate = async (
 export const generateItemCandidates = async (
 	url: string,
 ): Promise<Result<z.infer<z.ZodArray<typeof CandidateSchema>>, DomainError>> => {
-	const pageResult = await distillUrl(url, { maxScrolls: 5 }, { stripRelativeLinks: false });
+	const pageResult = await distillUrl(
+		url,
+		{ maxScrolls: 5, priority: 'background' },
+		{ stripRelativeLinks: false },
+	);
 	if (pageResult.isErr()) return pageResult;
 
 	const page = pageResult.value;

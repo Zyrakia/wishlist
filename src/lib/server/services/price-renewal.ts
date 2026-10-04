@@ -14,7 +14,7 @@ export interface RenewalReport {
 
 let queue: Promise<unknown> = Promise.resolve();
 
-// Each renewal launches a headless browser, so jobs run one at a time
+// Overlapping runs would pick the same stale items
 const enqueue = <T>(job: () => Promise<T>): Promise<T> => {
 	const run = queue.then(job, job);
 	queue = run.catch(() => {});
@@ -22,7 +22,7 @@ const enqueue = <T>(job: () => Promise<T>): Promise<T> => {
 };
 
 const renewItem = async (item: { id: string; url: string }): Promise<RenewalOutcome> => {
-	const candidate = await generateItemCandidate(item.url);
+	const candidate = await generateItemCandidate(item.url, 'background');
 	unwrap(await PricesService.markChecked([item.id]));
 
 	if (candidate.isErr() || candidate.value.price == null) return 'failed';
